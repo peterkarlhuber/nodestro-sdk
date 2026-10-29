@@ -12,14 +12,14 @@ from nodestro_client import NodestroClient, PublishedWorkflow
 with NodestroClient("http://127.0.0.1:8000") as nodestro:
     workflow = nodestro.list_workflows()[0]
     run = nodestro.start_run(workflow["id"], input="Angebot für ACME")
-    for event in nodestro.events(run["id"]):        # snapshot, event ..., end
+    for event in nodestro.events(run["id"]):  # snapshot, event ..., end
         print(event.event)
     done = nodestro.wait_for_run(run["id"], raise_on_failure=True)
     print(done["output"])
 
 # Eine veröffentlichte Workflow-API mit einem Nodestro-Schlüssel (Rechte run/read/approve):
 with PublishedWorkflow("http://127.0.0.1:8000", "angebot", api_key="ndk_...") as api:
-    started = api.start({"customer": "ACME"})        # mit Idempotency-Key, sicher wiederholbar
+    started = api.start({"customer": "ACME"})  # mit Idempotency-Key, sicher wiederholbar
     result = api.wait_for_result(started["run_id"])
 ```
 
