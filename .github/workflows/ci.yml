@@ -46,6 +46,7 @@ jobs:
         working-directory: .
         run: |
           python -m nodestro_api.openapi openapi/nodestro-api.json
+          (cd typescript && npm ci)
           make generate PYTHON=python
           git diff --exit-code -- openapi python/src/nodestro_client/models.py typescript/src/generated
       - name: The client works without the API installed
