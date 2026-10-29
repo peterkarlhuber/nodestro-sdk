@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nodestro-client"
+version = "0.2.0"
+description = "Nodestro Client – the Python SDK of the Nodestro API (studio API and published workflow APIs)."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Peter Karlhuber" }]
+classifiers = ["Programming Language :: Python :: 3", "Typing :: Typed"]
+# HTTP only: neither the runtime nor the API is a dependency.
+dependencies = [
+    "httpx>=0.27,<1",
+    "typing-extensions>=4.14",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.13",
+    "pytest>=8",
+    "ruff>=0.8",
+    # Regenerates nodestro_client/models.py from ../openapi/nodestro-api.json (make generate).
+    "datamodel-code-generator==0.87.0",
+]
+
+# Only for the tests: they start a real Nodestro API (scripts/test_server.py) at the version the
+# types were generated from. The SDK itself never imports it.
+test = [
+    "nodestro-api @ git+https://github.com/peterkarlhuber/nodestro-api.git@c3ceecb0ee6eb6e6241d64a774e55df23e648593",
+    "pytest>=8",
+]
+
+[project.urls]
+Repository = "https://github.com/peterkarlhuber/nodestro-sdk"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nodestro_client"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["src/nodestro_client/models.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["nodestro_client"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+packages = ["nodestro_client"]
+mypy_path = "src"
