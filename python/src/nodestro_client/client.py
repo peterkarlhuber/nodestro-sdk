@@ -14,7 +14,7 @@ from typing import Any, Literal, cast
 import httpx
 
 from . import models
-from ._http import Event, RetryPolicy, Transport
+from ._http import Event, RetryPolicy, Transport, path_segment
 from .errors import NodestroRunFailed, NodestroTimeoutError
 
 #: Run states that end a run, and the state of a run waiting for a person.
@@ -66,16 +66,19 @@ class NodestroClient:
         return cast(list[models.WorkflowSummary], self._http.json("GET", "/api/workflows"))
 
     def get_workflow(self, workflow_id: str) -> models.Workflow:
-        return cast(models.Workflow, self._http.json("GET", f"/api/workflows/{workflow_id}"))
+        return cast(models.Workflow, self._http.json("GET", f"/api/workflows/{path_segment(workflow_id)}"))
 
     def create_workflow(self, workflow: models.WorkflowIn | Mapping[str, Any]) -> models.Workflow:
         return cast(models.Workflow, self._http.json("POST", "/api/workflows", json_body=dict(workflow)))
 
     def update_workflow(self, workflow_id: str, workflow: models.WorkflowIn | Mapping[str, Any]) -> models.Workflow:
-        return cast(models.Workflow, self._http.json("PUT", f"/api/workflows/{workflow_id}", json_body=dict(workflow)))
+        return cast(
+            models.Workflow,
+            self._http.json("PUT", f"/api/workflows/{path_segment(workflow_id)}", json_body=dict(workflow)),
+        )
 
     def delete_workflow(self, workflow_id: str) -> None:
-        self._http.request("DELETE", f"/api/workflows/{workflow_id}")
+        self._http.request("DELETE", f"/api/workflows/{path_segment(workflow_id)}")
 
     def check_workflow(self, workflow: models.WorkflowIn | Mapping[str, Any], workflow_id: str | None = None) -> Any:
         """The pre-check of a run: problems per workflow and per agent (free, no model request)."""
@@ -84,7 +87,7 @@ class NodestroClient:
         )
 
     def workflow_versions(self, workflow_id: str) -> list[Any]:
-        return cast(list[Any], self._http.json("GET", f"/api/workflows/{workflow_id}/versions"))
+        return cast(list[Any], self._http.json("GET", f"/api/workflows/{path_segment(workflow_id)}/versions"))
 
     # ---- runs ------------------------------------------------------------------------
 
@@ -98,10 +101,12 @@ class NodestroClient:
     ) -> models.Run:
         """Start a run; it runs in the background (see :meth:`wait_for_run` and :meth:`events`)."""
         body: models.RunIn = {"input": input, "values": dict(values or {}), "file_ids": list(file_ids)}
-        return cast(models.Run, self._http.json("POST", f"/api/workflows/{workflow_id}/runs", json_body=body))
+        return cast(
+            models.Run, self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/runs", json_body=body)
+        )
 
     def get_run(self, run_id: str) -> models.Run:
-        return cast(models.Run, self._http.json("GET", f"/api/runs/{run_id}"))
+        return cast(models.Run, self._http.json("GET", f"/api/runs/{path_segment(run_id)}"))
 
     def list_runs(self, *, workflow_id: str | None = None, limit: int | None = None) -> list[models.RunSummary]:
         return cast(
@@ -110,7 +115,7 @@ class NodestroClient:
         )
 
     def cancel_run(self, run_id: str) -> bool:
-        return bool((self._http.json("POST", f"/api/runs/{run_id}/cancel") or {}).get("cancelled"))
+        return bool((self._http.json("POST", f"/api/runs/{path_segment(run_id)}/cancel") or {}).get("cancelled"))
 
     def wait_for_run(
         self,
@@ -136,13 +141,13 @@ class NodestroClient:
 
     def events(self, run_id: str, *, timeout: float | None = None) -> Iterator[Event]:
         """The live events of a run: ``snapshot`` (the run), ``event`` (one step), ``end``."""
-        return self._http.events(f"/api/runs/{run_id}/events", timeout=timeout)
+        return self._http.events(f"/api/runs/{path_segment(run_id)}/events", timeout=timeout)
 
     def run_files(self, run_id: str) -> list[Any]:
-        return cast(list[Any], self._http.json("GET", f"/api/runs/{run_id}/files"))
+        return cast(list[Any], self._http.json("GET", f"/api/runs/{path_segment(run_id)}/files"))
 
     def download_file(self, run_id: str, file_id: str) -> bytes:
-        return self._http.request("GET", f"/api/runs/{run_id}/files/{file_id}").content
+        return self._http.request("GET", f"/api/runs/{path_segment(run_id)}/files/{path_segment(file_id)}").content
 
     # ---- people in the loop and continued runs -------------------------------------------
 
@@ -154,17 +159,22 @@ class NodestroClient:
         self, run_id: str, node_id: str, decision: Literal["approved", "rejected"], comment: str = ""
     ) -> models.Run:
         body: models.ApprovalDecision = {"decision": decision, "comment": comment}
-        return cast(models.Run, self._http.json("POST", f"/api/runs/{run_id}/approvals/{node_id}", json_body=body))
+        return cast(
+            models.Run,
+            self._http.json(
+                "POST", f"/api/runs/{path_segment(run_id)}/approvals/{path_segment(node_id)}", json_body=body
+            ),
+        )
 
     def resume_plan(self, run_id: str) -> models.ResumePlan:
         """Which steps of a failed run would be reused or run again (nothing starts)."""
-        return cast(models.ResumePlan, self._http.json("GET", f"/api/runs/{run_id}/resume"))
+        return cast(models.ResumePlan, self._http.json("GET", f"/api/runs/{path_segment(run_id)}/resume"))
 
     def resume_run(
         self, run_id: str, *, mode: Literal["continue", "restart"] = "continue", confirm: bool = False
     ) -> models.Run:
         body: models.ResumeRequest = {"mode": mode, "confirm_side_effects": confirm}
-        return cast(models.Run, self._http.json("POST", f"/api/runs/{run_id}/resume", json_body=body))
+        return cast(models.Run, self._http.json("POST", f"/api/runs/{path_segment(run_id)}/resume", json_body=body))
 
     # ---- agents, tools, examples ---------------------------------------------------------
 
@@ -178,10 +188,10 @@ class NodestroClient:
         return self._http.json("POST", "/api/agents/templates", json_body=dict(template))
 
     def update_agent_template(self, template_id: str, template: Mapping[str, Any]) -> Any:
-        return self._http.json("PUT", f"/api/agents/templates/{template_id}", json_body=dict(template))
+        return self._http.json("PUT", f"/api/agents/templates/{path_segment(template_id)}", json_body=dict(template))
 
     def delete_agent_template(self, template_id: str) -> None:
-        self._http.request("DELETE", f"/api/agents/templates/{template_id}")
+        self._http.request("DELETE", f"/api/agents/templates/{path_segment(template_id)}")
 
     def list_tools(self) -> list[Any]:
         return cast(list[Any], self._http.json("GET", "/api/tools"))
@@ -191,13 +201,15 @@ class NodestroClient:
 
     def copy_example(self, template_id: str, *, language: str | None = None, tests: bool = False) -> models.Workflow:
         body = {"language": language, "tests": tests}
-        return cast(models.Workflow, self._http.json("POST", f"/api/library/{template_id}/copy", json_body=body))
+        return cast(
+            models.Workflow, self._http.json("POST", f"/api/library/{path_segment(template_id)}/copy", json_body=body)
+        )
 
     # ---- publishing ------------------------------------------------------------------------
 
     def publish(self, workflow_id: str, **options: Any) -> Any:
         """Publish the workflow as an API (options: ``slug``, ``note``, ``version``, ``activate``)."""
-        return self._http.json("POST", f"/api/workflows/{workflow_id}/api/publish", json_body=options)
+        return self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/api/publish", json_body=options)
 
     def create_api_key(self, name: str, scopes: Sequence[str], publications: Sequence[str]) -> models.NewApiKey:
         """A key for published workflows; its ``token`` is returned only this once."""

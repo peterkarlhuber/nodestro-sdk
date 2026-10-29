@@ -8,6 +8,7 @@ import json
 import random
 import time
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -17,6 +18,11 @@ from .errors import NodestroAPIError, NodestroConnectionError, NodestroTimeoutEr
 RETRY_STATUS = frozenset({502, 503, 504})
 #: Methods that never change anything; only these (and requests with an idempotency key) are retried.
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def path_segment(value: object) -> str:
+    """One path segment, percent-encoded (an id with ``/``, ``?`` or ``#`` cannot change the path)."""
+    return quote(str(value), safe="")
 
 
 @dataclass(frozen=True)

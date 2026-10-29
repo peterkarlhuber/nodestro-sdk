@@ -14,7 +14,7 @@ import uuid
 import httpx
 
 from . import models
-from ._http import Event, RetryPolicy, Transport
+from ._http import Event, RetryPolicy, Transport, path_segment
 from .errors import NodestroRunFailed, NodestroTimeoutError
 
 PREFIX = "/api/published"
@@ -42,7 +42,7 @@ class PublishedWorkflow:
         http_client: httpx.Client | None = None,
     ) -> None:
         self.slug = slug
-        self._base = f"{PREFIX}/{slug}"
+        self._base = f"{PREFIX}/{path_segment(slug)}"
         self._http = Transport(
             base_url, headers={"Authorization": f"Bearer {api_key}"}, timeout=timeout, retry=retry, client=http_client
         )
@@ -78,7 +78,7 @@ class PublishedWorkflow:
         answer never starts a second run. ``wait`` waits up to that many seconds for the result
         (only when the publication allows synchronous calls).
         """
-        path = f"{self._base}/versions/{version}/runs" if version is not None else f"{self._base}/runs"
+        path = f"{self._base}/versions/{path_segment(version)}/runs" if version is not None else f"{self._base}/runs"
         key = idempotency_key or uuid.uuid4().hex
         return cast(
             models.RunStatusOut,
@@ -99,10 +99,10 @@ class PublishedWorkflow:
         )
 
     def status(self, run_id: str) -> models.RunStatusOut:
-        return cast(models.RunStatusOut, self._http.json("GET", f"{self._base}/runs/{run_id}"))
+        return cast(models.RunStatusOut, self._http.json("GET", f"{self._base}/runs/{path_segment(run_id)}"))
 
     def result(self, run_id: str) -> models.RunResultOut:
-        return cast(models.RunResultOut, self._http.json("GET", f"{self._base}/runs/{run_id}/result"))
+        return cast(models.RunResultOut, self._http.json("GET", f"{self._base}/runs/{path_segment(run_id)}/result"))
 
     def wait(
         self, run_id: str, *, timeout: float = 300.0, poll: float = 0.5, stop_at_approval: bool = True
@@ -129,13 +129,15 @@ class PublishedWorkflow:
         """Live events of a run; after a lost connection pass the last ``Event.id`` to get what was missed."""
         query = "?text=true" if text else ""
         headers = {"Last-Event-ID": last_event_id} if last_event_id else None
-        return self._http.events(f"{self._base}/runs/{run_id}/events{query}", headers=headers)
+        return self._http.events(f"{self._base}/runs/{path_segment(run_id)}/events{query}", headers=headers)
 
     def cancel(self, run_id: str) -> models.RunStatusOut:
-        return cast(models.RunStatusOut, self._http.json("POST", f"{self._base}/runs/{run_id}/cancel"))
+        return cast(models.RunStatusOut, self._http.json("POST", f"{self._base}/runs/{path_segment(run_id)}/cancel"))
 
     def approvals(self, run_id: str) -> list[models.ApprovalOut]:
-        return cast(list[models.ApprovalOut], self._http.json("GET", f"{self._base}/runs/{run_id}/approvals"))
+        return cast(
+            list[models.ApprovalOut], self._http.json("GET", f"{self._base}/runs/{path_segment(run_id)}/approvals")
+        )
 
     def approve(
         self,
@@ -149,18 +151,26 @@ class PublishedWorkflow:
         body: dict[str, Any] = {"decision": decision, "comment": comment}
         if approval_id is not None:
             body["approval_id"] = approval_id
-        return cast(models.RunStatusOut, self._http.json("POST", f"{self._base}/runs/{run_id}/approve", json_body=body))
+        return cast(
+            models.RunStatusOut,
+            self._http.json("POST", f"{self._base}/runs/{path_segment(run_id)}/approve", json_body=body),
+        )
 
     def resume(self, run_id: str, *, restart: bool = False, confirm_side_effects: bool = False) -> models.RunStatusOut:
         """Continue a failed or cancelled run (or ``restart`` it) as a new run."""
         body: models.ResumeIn = {"restart": restart, "confirm_side_effects": confirm_side_effects}
-        return cast(models.RunStatusOut, self._http.json("POST", f"{self._base}/runs/{run_id}/resume", json_body=body))
+        return cast(
+            models.RunStatusOut,
+            self._http.json("POST", f"{self._base}/runs/{path_segment(run_id)}/resume", json_body=body),
+        )
 
     def files(self, run_id: str) -> list[dict[str, Any]]:
-        return cast(list[dict[str, Any]], self._http.json("GET", f"{self._base}/runs/{run_id}/files"))
+        return cast(list[dict[str, Any]], self._http.json("GET", f"{self._base}/runs/{path_segment(run_id)}/files"))
 
     def download(self, run_id: str, file_id: str) -> bytes:
-        return self._http.request("GET", f"{self._base}/runs/{run_id}/files/{file_id}").content
+        return self._http.request(
+            "GET", f"{self._base}/runs/{path_segment(run_id)}/files/{path_segment(file_id)}"
+        ).content
 
     def usage(self, *, days: int = 30) -> models.UsageSummaryOut:
         return cast(models.UsageSummaryOut, self._http.json("GET", f"{self._base}/usage", params={"days": days}))
