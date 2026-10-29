@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 import pytest
 
-from nodestro_client import NodestroAPIError, NodestroClient, NodestroConnectionError, RetryPolicy
+from nodestro_client import NodestroAPIError, NodestroClient, NodestroConnectionError, PublishedWorkflow, RetryPolicy
 from nodestro_client._http import parse_events
 
 FAST = RetryPolicy(attempts=3, backoff=0.001)
@@ -93,3 +93,23 @@ def test_the_models_belong_to_the_committed_api_contract() -> None:
     for name in ("Run", "RunIn", "RunStatusOut", "ApprovalDecision", "ResumeRequest", "InfoOut"):
         assert name in document["components"]["schemas"]
         assert f"class {name}(TypedDict" in models
+
+
+def test_ids_are_encoded_as_single_path_segments() -> None:
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.raw_path.decode())
+        return httpx.Response(200, json={})
+
+    client_with(handler).get_run("../workflows?x=1#y")
+    published = PublishedWorkflow(
+        "http://nodestro.test",
+        "angebot/x",
+        api_key="ndk_test",
+        retry=FAST,
+        http_client=httpx.Client(base_url="http://nodestro.test", transport=httpx.MockTransport(handler)),
+    )
+    published.status("run 1")
+    # Like encodeURIComponent in the TypeScript SDK: an id never changes which endpoint is called.
+    assert paths == ["/api/runs/..%2Fworkflows%3Fx%3D1%23y", "/api/published/angebot%2Fx/runs/run%201"]
