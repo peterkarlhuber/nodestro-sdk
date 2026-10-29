@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      # The tests start the pinned nodestro-api (private, like orkexa): pip clones them with a read token.
+      - name: Grant read access to the private repositories
+        env:
+          NODESTRO_READ: ${{ secrets.NODESTRO_READ }}
+        run: |
+          if [ -z "$NODESTRO_READ" ]; then
+            echo "::error::Secret NODESTRO_READ fehlt: ein Token mit Lesezugriff auf orkexa und die nodestro-Repositories."
+            exit 1
+          fi
+          git config --global url."https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/".insteadOf "https://github.com/peterkarlhuber/"
+      - run: pip install -e ".[dev,test]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy
+      # Against a real Nodestro API with scripted model answers; also checks the committed contract.
+      - run: pytest
+      - name: The generated types are current
+        if: matrix.python == '3.13'
+        working-directory: .
+        run: |
+          python -m nodestro_api.openapi openapi/nodestro-api.json
+          (cd typescript && npm ci)
+          make generate PYTHON=python
+          git diff --exit-code -- openapi python/src/nodestro_client/models.py typescript/src/generated
+      - name: The client works without the API installed
+        run: |
+          python -m venv "$RUNNER_TEMP/plain"
+          "$RUNNER_TEMP/plain/bin/pip" install .
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/plain/bin/python" -c "import nodestro_client, importlib.util as u; assert u.find_spec('nodestro_api') is None; print(nodestro_client.__version__)"
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Grant read access to the private repositories
+        env:
+          NODESTRO_READ: ${{ secrets.NODESTRO_READ }}
+        run: |
+          if [ -z "$NODESTRO_READ" ]; then
+            echo "::error::Secret NODESTRO_READ fehlt: ein Token mit Lesezugriff auf orkexa und die nodestro-Repositories."
+            exit 1
+          fi
+          git config --global url."https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/".insteadOf "https://github.com/peterkarlhuber/"
+      # The test server only (scripts/test_server.py); the TypeScript SDK needs no Python.
+      - run: pip install "./python[test]"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: typescript/package-lock.json
+      - working-directory: typescript
+        run: npm ci
+      - working-directory: typescript
+        run: npm run typecheck
+      - working-directory: typescript
+        run: npm test
+        env:
+          NODESTRO_SDK_PYTHON: python
+      - working-directory: typescript
+        run: |
+          npm run build
+          npm pack --dry-run

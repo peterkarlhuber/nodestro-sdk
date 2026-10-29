@@ -1,0 +1,10 @@
+# Changelog
+
+## 0.2.0 (2026-10-29)
+
+- Erste Version als eigenes Repository zur Plattform 0.2 (Ausgangspunkt `nodestro` 0.1.0, Commit 15e2076).
+- Die Tests pinnen `nodestro-api` auf einen exakten Commit; die getestete Kombination steht in
+  `nodestro-studio/platform/versions.json`.
+- CI mit dem Repository-Secret `NODESTRO_READ`.
+- Neu: Python-Client `nodestro-client` und TypeScript-Client `@nodestro/client`, aus dem OpenAPI-Vertrag der API 0.2.0
+  generiert.
