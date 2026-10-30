@@ -154,6 +154,22 @@ describe("published workflow API", () => {
     expect(denied.status).toBe(401);
     expect(denied.code.startsWith("auth.")).toBe(true);
   });
+
+  it("starts a form with its values, as the README shows", async () => {
+    const form = { fields: [{ name: "customer", label: "Customer", type: "text", required: true }] };
+    const workflow = await nodestro.createWorkflow({
+      ...simple(),
+      nodes: [{ id: "start", type: "start", start: form }, ...simple().nodes.slice(1)],
+    });
+    const published = await nodestro.publish(workflow.id, { slug: "sdk-ts-form" });
+    const publication = published.publication as { id: string; slug: string };
+    const key = await nodestro.createApiKey("SDK TS form", ["run", "read"], [publication.id]);
+    const api = new PublishedWorkflow(server, publication.slug, { apiKey: key.token });
+    const refused = (await api.start({ customer: "ACME" }).catch((error: unknown) => error)) as NodestroAPIError;
+    expect([refused.status, refused.code]).toEqual([422, "request.invalid"]);
+    const started = await api.start({ values: { customer: "ACME" } });
+    expect((await api.waitForResult(started.run_id, fast)).status).toBe("succeeded");
+  });
 });
 
 const approvalWorkflow = (name: string) => ({
