@@ -32,7 +32,7 @@ const done = await nodestro.waitForRun(run.id, { timeoutMs: 300_000, raiseOnFail
 // A published workflow API with a Nodestro API key (scopes run, read, approve), on a server.
 const api = new PublishedWorkflow("https://nodestro.example.com", "quote", { apiKey: process.env.NODESTRO_API_KEY! });
 try {
-  const started = await api.start({ customer: "ACME" }); // carries an Idempotency-Key: safe to retry
+  const started = await api.start({ values: { customer: "ACME" } }); // carries an Idempotency-Key: safe to retry
   const result = await api.waitForResult(started.run_id, { timeoutMs: 600_000 });
   console.log(result.output);
 } catch (error) {

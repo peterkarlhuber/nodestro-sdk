@@ -141,6 +141,22 @@ def test_errors_carry_status_code_and_params(nodestro: NodestroClient) -> None:
     assert refused.value.status == 400 and refused.value.code
 
 
+def test_a_published_form_starts_with_its_values(nodestro: NodestroClient, server: str) -> None:
+    # The README example: a form workflow takes {"values": {...}}; the fields alone are refused.
+    form = {"fields": [{"name": "customer", "label": "Customer", "type": "text", "required": True}]}
+    workflow = nodestro.create_workflow(
+        {**simple(), "nodes": [{"id": "start", "type": "start", "start": form}, *simple()["nodes"][1:]]}
+    )
+    publication = nodestro.publish(workflow["id"], slug="sdk-form")["publication"]
+    key = nodestro.create_api_key("SDK form", ["run", "read"], [publication["id"]])
+    with PublishedWorkflow(server, publication["slug"], api_key=key["token"]) as api:
+        with pytest.raises(NodestroAPIError) as refused:
+            api.start({"customer": "ACME"})
+        assert refused.value.status == 422 and refused.value.code == "request.invalid"
+        started = api.start({"values": {"customer": "ACME"}})
+        assert api.wait_for_result(started["run_id"], timeout=30, poll=0.1)["status"] == "succeeded"
+
+
 def test_a_published_workflow_through_its_own_api(nodestro: NodestroClient, server: str) -> None:
     workflow = nodestro.create_workflow(simple())
     published = nodestro.publish(workflow["id"], slug="sdk-angebot")

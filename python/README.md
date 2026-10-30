@@ -32,7 +32,7 @@ with NodestroClient("http://127.0.0.1:8000", timeout=30) as nodestro:
 # A published workflow API with a Nodestro API key (scopes run, read, approve).
 try:
     with PublishedWorkflow("https://nodestro.example.com", "quote", api_key=os.environ["NODESTRO_API_KEY"]) as api:
-        started = api.start({"customer": "ACME"})  # carries an Idempotency-Key: safe to retry
+        started = api.start({"values": {"customer": "ACME"}})  # carries an Idempotency-Key: safe to retry
         result = api.wait_for_result(started["run_id"], timeout=600)
         print(result["output"])
 except NodestroAPIError as error:  # the API answered with an error

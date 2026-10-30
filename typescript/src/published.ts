@@ -67,7 +67,8 @@ export class PublishedWorkflow {
   }
 
   /**
-   * Start a run with the values of the workflow's input form. Every start carries an
+   * Start a run with the request body of the workflow: `{ values: {...} }` with the fields of its
+   * input form, or `{ input: "..." }` with free text (`openapi()` describes the exact body). Every start carries an
    * `Idempotency-Key` (a new random one unless given), so the automatic retry after a lost answer
    * or a 502/503/504 returns the same run instead of starting a second one. Pass your own key (at
    * most 200 characters, valid for 24 hours) to make your own retries safe too; the same key with

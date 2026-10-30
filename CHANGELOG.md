@@ -2,8 +2,15 @@
 
 ## Unreleased
 
+Platform integration (2026-10-30): the `test` extra pins `nodestro-api` at `2868b7b` (before: `1ca296b`), the API of the
+platform integration. Its OpenAPI document is unchanged, so the generated types are unchanged; both SDKs pass their
+tests against a real server of that API (Node.js 20 and 22).
+
 ### Fixed
 
+- Docs: the README examples started a published form with its fields (`start({"customer": "ACME"})`), which the API
+  refuses with `422 request.invalid`; `start()` takes the request body, so a form is `{"values": {...}}` and free text
+  `{"input": "..."}`. The docstrings of `start()` say so, and both SDKs test it against a published form.
 - Python: a `PublishedWorkflow` given an `http_client` stored its API key on that client, so the key was sent with
   every later request of the client (also to other hosts), and two published workflows sharing one client used
   the same key. Headers are now added per request; the caller's client is left unchanged.
