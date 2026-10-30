@@ -1,4 +1,8 @@
-"""A real Nodestro API server for the tests (scripts/test_server.py), or the one in NODESTRO_SDK_SERVER."""
+"""A real Nodestro API server for the tests (scripts/test_server.py), or the one in NODESTRO_SDK_SERVER.
+
+A server given in NODESTRO_SDK_SERVER must itself be a running scripts/test_server.py: the tests
+create workflows, publications and keys, and a real installation would call paid models.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +31,16 @@ def _free_port() -> int:
 def server() -> Iterator[str]:
     given = os.environ.get("NODESTRO_SDK_SERVER")
     if given:
-        yield given.rstrip("/")
+        url = given.rstrip("/")
+        try:
+            marker = httpx.get(f"{url}/sdk-test-server", timeout=10).json()
+        except (httpx.HTTPError, ValueError):
+            marker = None
+        if marker != {"nodestro_sdk_test_server": True}:
+            pytest.exit(
+                f"NODESTRO_SDK_SERVER={url} is not a scripts/test_server.py server; refusing to change its data"
+            )
+        yield url
         return
     port = _free_port()
     with tempfile.TemporaryDirectory(prefix="nodestro-sdk-") as data:
@@ -61,4 +74,8 @@ def server() -> Iterator[str]:
                 yield url
             finally:
                 process.terminate()
-                process.wait(timeout=10)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()

@@ -1,4 +1,8 @@
-"""The Python SDK against a real Nodestro API server with scripted model answers."""
+"""The Python SDK against a real Nodestro API server with scripted model answers.
+
+German values (inputs, labels, template names, the scripted answers) are deliberate test data:
+Nodestro is multilingual, and the assertions look for them.
+"""
 
 from __future__ import annotations
 
@@ -41,7 +45,7 @@ def test_meta_and_settings(nodestro: NodestroClient) -> None:
     meta = nodestro.meta()
     assert meta["version"] and {item["id"] for item in meta["providers"]} >= {"anthropic", "openai", "gemini"}
     settings = nodestro.settings()
-    assert "api_key" not in str(settings).lower() or all(not item.get("api_key") for item in settings["providers"])  # type: ignore[typeddict-item]
+    assert "api_key" not in str(settings).lower() or all(not item.get("api_key") for item in settings["providers"])
 
 
 def test_a_workflow_runs_and_returns_its_result(nodestro: NodestroClient) -> None:
@@ -160,3 +164,134 @@ def test_a_published_workflow_through_its_own_api(nodestro: NodestroClient, serv
     ):
         wrong.info()
     assert denied.value.status == 401 and denied.value.code.startswith("auth.")
+
+
+def approval_workflow(name: str) -> dict[str, Any]:
+    return {
+        "name": name,
+        "nodes": [
+            {"id": "start", "type": "start"},
+            agent("writer", "WRITER"),
+            {"id": "check", "type": "approval", "label": "Prüfen", "approval": {"instructions": "Ok?"}},
+            {"id": "out", "type": "output", "output": {"files": [{"format": "md", "name": "angebot"}]}},
+        ],
+        "edges": [edge("start", "writer"), edge("writer", "check"), edge("check", "out", "approved")],
+    }
+
+
+def published_api(nodestro: NodestroClient, body: dict[str, Any], slug: str, scopes: list[str]) -> tuple[str, str, str]:
+    """Publish ``body`` as ``slug``: its slug, a key with ``scopes`` and the publication id."""
+    workflow = nodestro.create_workflow(body)
+    publication = nodestro.publish(workflow["id"], slug=slug)["publication"]
+    key = nodestro.create_api_key(slug, scopes, [publication["id"]])
+    return publication["slug"], key["token"], publication["id"]
+
+
+def test_workflows_are_checked_versioned_updated_and_deleted(nodestro: NodestroClient) -> None:
+    workflow = nodestro.create_workflow(simple())
+    check = nodestro.check_workflow(simple(), workflow["id"])
+    # The test server has no provider key; that is the only problem of a sound workflow.
+    assert {item["code"] for item in check["problems"]} <= {"check.api_key_missing"}
+    assert check["agents"] == {"writer": []}
+    empty = nodestro.check_workflow({"name": "empty", "nodes": [], "edges": []})
+    assert empty["ok"] is False and "workflow.no_agents" in {item["code"] for item in empty["problems"]}
+    updated = nodestro.update_workflow(workflow["id"], {**simple(), "name": "SDK renamed"})
+    assert updated["name"] == "SDK renamed"
+    versions = nodestro.workflow_versions(workflow["id"])
+    assert len(versions) >= 2 and all(isinstance(item["number"], int) for item in versions)
+    nodestro.delete_workflow(workflow["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.get_workflow(workflow["id"])
+    assert gone.value.status == 404
+
+
+def test_result_files_of_a_run_can_be_downloaded(nodestro: NodestroClient) -> None:
+    body = simple()
+    body["nodes"][2]["output"] = {"files": [{"format": "md", "name": "angebot"}]}
+    workflow = nodestro.create_workflow(body)
+    done = nodestro.wait_for_run(nodestro.start_run(workflow["id"], input="x")["id"], timeout=30, poll=0.1)
+    files = nodestro.run_files(done["id"])
+    assert [item["format"] for item in files] == ["md"]
+    content = nodestro.download_file(done["id"], files[0]["id"])
+    assert b"Wir liefern" in content
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.download_file(done["id"], "file_missing")
+    assert missing.value.status == 404
+
+
+def test_agent_templates_can_be_updated(nodestro: NodestroClient) -> None:
+    created = nodestro.create_agent_template({"agent": {"name": "Prüfer", "system_prompt": "Prüfe."}})
+    changed = nodestro.update_agent_template(created["id"], {"agent": {"name": "Prüfer 2", "system_prompt": "Prüfe."}})
+    assert changed["id"] == created["id"] and changed["agent"]["name"] == "Prüfer 2"
+    nodestro.delete_agent_template(created["id"])
+
+
+def test_examples_exist_in_all_six_languages(nodestro: NodestroClient) -> None:
+    for language in ("de", "en", "es", "fr", "it", "pt-BR"):
+        assert len(nodestro.list_examples(language)) == 24
+
+
+def test_published_approvals_files_and_permissions(nodestro: NodestroClient, server: str) -> None:
+    slug, token, publication_id = published_api(
+        nodestro, approval_workflow("SDK published approval"), "sdk-approval", ["run", "read"]
+    )
+    _, foreign_key, _ = published_api(nodestro, simple(), "sdk-approval-other", ["read"])
+    with PublishedWorkflow(server, slug, api_key=token) as api:
+        run = api.start({"input": "ACME"})
+        waiting = api.wait(run["run_id"], timeout=30, poll=0.1)
+        assert waiting["status"] == "awaiting_approval"
+        approvals = api.approvals(run["run_id"])
+        assert [item["step"] for item in approvals] == ["Prüfen"]
+        with pytest.raises(NodestroAPIError) as no_scope:
+            api.approve(run["run_id"])  # the key lacks "approve": the server decides
+        assert no_scope.value.status == 403 and no_scope.value.code.startswith("auth.")
+    with PublishedWorkflow(server, slug, api_key=foreign_key) as other, pytest.raises(NodestroAPIError) as foreign:
+        other.status(run["run_id"])
+    assert foreign.value.status in (401, 403, 404)
+    key = nodestro.create_api_key("approver", ["run", "read", "approve"], [publication_id])["token"]
+    with PublishedWorkflow(server, slug, api_key=key) as api:
+        decided = api.approve(run["run_id"], comment="passt", approval_id=approvals[0]["approval_id"])
+        assert decided["run_id"] == run["run_id"]
+        with pytest.raises(NodestroAPIError) as twice:
+            api.approve(run["run_id"])
+        assert twice.value.status in (404, 409)
+        result = api.wait_for_result(run["run_id"], timeout=30, poll=0.1)
+        assert result["status"] == "succeeded"
+        files = api.files(run["run_id"])
+        assert len(files) == 1 and b"Wir liefern" in api.download(run["run_id"], str(files[0]["id"]))
+        with pytest.raises(NodestroAPIError) as missing:
+            api.download(run["run_id"], "file_missing")
+        assert (missing.value.status, missing.value.code) == (404, "file.not_found")
+        rejected = api.start({"input": "ACME"})
+        api.wait(rejected["run_id"], timeout=30, poll=0.1)
+        api.approve(rejected["run_id"], "rejected", comment="nein")
+        assert api.wait(rejected["run_id"], timeout=30, poll=0.1)["status"] in ("succeeded", "failed")
+
+
+def test_published_cancel_resume_versions_and_reconnect(nodestro: NodestroClient, server: str) -> None:
+    slug, token, _ = published_api(nodestro, simple("SLOW"), "sdk-slow", ["run", "read"])
+    with PublishedWorkflow(server, slug, api_key=token) as api:
+        assert api.openapi()["paths"]
+        run = api.start({"input": "x"}, version=1)
+        events = api.events(run["run_id"], timeout=30)
+        first = next(events)
+        events.close()  # leave the stream; reconnect with the last id
+        assert first.event == "status"
+        cancelled = api.cancel(run["run_id"])
+        assert cancelled["run_id"] == run["run_id"]
+        assert api.wait(run["run_id"], timeout=30, poll=0.1)["status"] == "cancelled"
+        with pytest.raises(NodestroRunFailed):
+            api.wait_for_result(run["run_id"], timeout=30, poll=0.1)
+        rest = list(api.events(run["run_id"], last_event_id=first.id or "0"))
+        assert rest[-1].event == "end" and rest[-1].data == {"status": "cancelled"}
+        continued = api.resume(run["run_id"])
+        assert continued["resumed_from"] == run["run_id"]
+        assert api.wait(continued["run_id"], timeout=30, poll=0.1)["status"] == "succeeded"
+        with pytest.raises(NodestroAPIError) as not_failed:
+            api.resume(continued["run_id"])
+        assert (not_failed.value.status, not_failed.value.code) == (409, "resume.not_failed")
+        with pytest.raises(NodestroAPIError) as no_version:
+            api.start({"input": "x"}, version=99)
+        assert no_version.value.status == 404
+        assert api.usage(days=1)["runs"] >= 2
+        assert [item["run_id"] for item in api.runs(status="cancelled")] == [run["run_id"]]

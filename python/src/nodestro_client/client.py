@@ -7,15 +7,14 @@ API: :class:`~nodestro_client.published.PublishedWorkflow`.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
-import time
+from collections.abc import Generator, Mapping, Sequence
 from typing import Any, Literal, cast
 
 import httpx
 
 from . import models
-from ._http import Event, RetryPolicy, Transport, path_segment
-from .errors import NodestroRunFailed, NodestroTimeoutError
+from ._http import Event, RetryPolicy, Transport, path_segment, poll_until
+from .errors import NodestroRunFailed
 
 #: Run states that end a run, and the state of a run waiting for a person.
 FINISHED = frozenset({"succeeded", "failed", "cancelled"})
@@ -26,8 +25,17 @@ class NodestroClient:
     """Workflows, runs, approvals, agents, tools and examples of a Nodestro installation.
 
     >>> with NodestroClient("http://127.0.0.1:8000") as nodestro:
-    ...     run = nodestro.start_run(workflow_id, input="Thema X")
+    ...     run = nodestro.start_run(workflow_id, input="Topic X")
     ...     done = nodestro.wait_for_run(run["id"])
+
+    ``base_url`` is the address of the installation (``http`` or ``https``, host, optional port and
+    path prefix; no query). ``timeout`` limits each phase of a request (connect, write, each read)
+    in seconds; ``retry`` repeats reads after connection errors and 502/503/504, never a request
+    that changes something. ``headers`` are sent with every request. An ``http_client`` passed in
+    is used as is (its proxies, certificates and limits) and is not closed by :meth:`close`.
+
+    Raises ``ValueError`` for an invalid base URL, timeout or id (``""``, ``.``, ``..``);
+    every other error is a :class:`~nodestro_client.NodestroClientError`.
     """
 
     def __init__(
@@ -42,6 +50,7 @@ class NodestroClient:
         self._http = Transport(base_url, headers=headers, timeout=timeout, retry=retry, client=http_client)
 
     def close(self) -> None:
+        """Close the connections (only those of the client created here; safe to call twice)."""
         self._http.close()
 
     def __enter__(self) -> NodestroClient:
@@ -80,14 +89,23 @@ class NodestroClient:
     def delete_workflow(self, workflow_id: str) -> None:
         self._http.request("DELETE", f"/api/workflows/{path_segment(workflow_id)}")
 
-    def check_workflow(self, workflow: models.WorkflowIn | Mapping[str, Any], workflow_id: str | None = None) -> Any:
+    def check_workflow(
+        self, workflow: models.WorkflowIn | Mapping[str, Any], workflow_id: str | None = None
+    ) -> models.WorkflowCheck:
         """The pre-check of a run: problems per workflow and per agent (free, no model request)."""
-        return self._http.json(
-            "POST", "/api/workflows/check", json_body=dict(workflow), params={"workflow_id": workflow_id}
+        return cast(
+            models.WorkflowCheck,
+            self._http.json(
+                "POST", "/api/workflows/check", json_body=dict(workflow), params={"workflow_id": workflow_id}
+            ),
         )
 
-    def workflow_versions(self, workflow_id: str) -> list[Any]:
-        return cast(list[Any], self._http.json("GET", f"/api/workflows/{path_segment(workflow_id)}/versions"))
+    def workflow_versions(self, workflow_id: str) -> list[models.VersionSummary]:
+        """The saved versions of a workflow, newest first."""
+        return cast(
+            list[models.VersionSummary],
+            self._http.json("GET", f"/api/workflows/{path_segment(workflow_id)}/versions"),
+        )
 
     # ---- runs ------------------------------------------------------------------------
 
@@ -115,6 +133,7 @@ class NodestroClient:
         )
 
     def cancel_run(self, run_id: str) -> bool:
+        """Ask a running run to stop; ``False`` when it had already ended."""
         return bool((self._http.json("POST", f"/api/runs/{path_segment(run_id)}/cancel") or {}).get("cancelled"))
 
     def wait_for_run(
@@ -126,27 +145,39 @@ class NodestroClient:
         stop_at_approval: bool = True,
         raise_on_failure: bool = False,
     ) -> models.Run:
-        """Wait until the run finished (or waits for a person, unless ``stop_at_approval`` is off)."""
-        deadline = time.monotonic() + timeout
-        while True:
-            run = self.get_run(run_id)
-            status = run.get("status")
-            if status in FINISHED or (stop_at_approval and status == WAITING):
-                if raise_on_failure and status in ("failed", "cancelled"):
-                    raise NodestroRunFailed(cast(dict[str, Any], run))
-                return run
-            if time.monotonic() >= deadline:
-                raise NodestroTimeoutError(f"Run {run_id} is still {status} after {timeout:g} s")
-            time.sleep(poll)
+        """Wait until the run finished (or waits for a person, unless ``stop_at_approval`` is off).
 
-    def events(self, run_id: str, *, timeout: float | None = None) -> Iterator[Event]:
-        """The live events of a run: ``snapshot`` (the run), ``event`` (one step), ``end``."""
+        Polls the run every ``poll`` seconds. ``timeout`` is the total wait in seconds; the last
+        status request may still take up to the client's request timeout. Raises
+        :class:`NodestroTimeoutError` when the run has not ended by then (the run keeps running),
+        and :class:`NodestroRunFailed` for a failed or cancelled run if ``raise_on_failure``.
+        """
+        run = poll_until(
+            lambda: self.get_run(run_id),
+            lambda found: found.get("status") in FINISHED or (stop_at_approval and found.get("status") == WAITING),
+            run_id=run_id,
+            timeout=timeout,
+            poll=poll,
+        )
+        if raise_on_failure and run.get("status") in ("failed", "cancelled"):
+            raise NodestroRunFailed(cast(dict[str, Any], run))
+        return run
+
+    def events(self, run_id: str, *, timeout: float | None = None) -> Generator[Event, None, None]:
+        """The live events of a run: ``snapshot`` (the run), ``event`` (one step), ``end``.
+
+        The connection stays open until the run ends. Leaving the loop early closes it when the
+        generator is collected; ``with contextlib.closing(nodestro.events(run_id)) as events:``
+        closes it at once. ``timeout`` limits the wait for the next line in seconds.
+        """
         return self._http.events(f"/api/runs/{path_segment(run_id)}/events", timeout=timeout)
 
-    def run_files(self, run_id: str) -> list[Any]:
-        return cast(list[Any], self._http.json("GET", f"/api/runs/{path_segment(run_id)}/files"))
+    def run_files(self, run_id: str) -> list[models.ResultFile]:
+        """The result files of a run (documents written by its output steps)."""
+        return cast(list[models.ResultFile], self._http.json("GET", f"/api/runs/{path_segment(run_id)}/files"))
 
     def download_file(self, run_id: str, file_id: str) -> bytes:
+        """The content of a result file (held in memory as a whole)."""
         return self._http.request("GET", f"/api/runs/{path_segment(run_id)}/files/{path_segment(file_id)}").content
 
     # ---- people in the loop and continued runs -------------------------------------------
@@ -179,39 +210,55 @@ class NodestroClient:
     # ---- agents, tools, examples ---------------------------------------------------------
 
     def validate_agent(self, agent: models.AgentConfig | Mapping[str, Any]) -> list[models.ConfigIssue]:
+        """The problems of one agent configuration (empty when it is fine; no model request)."""
         return cast(list[models.ConfigIssue], self._http.json("POST", "/api/agents/validate", json_body=dict(agent)))
 
-    def list_agent_templates(self) -> list[Any]:
-        return cast(list[Any], self._http.json("GET", "/api/agents/templates"))
+    def list_agent_templates(self) -> list[models.AgentTemplate]:
+        return cast(list[models.AgentTemplate], self._http.json("GET", "/api/agents/templates"))
 
-    def create_agent_template(self, template: Mapping[str, Any]) -> Any:
-        return self._http.json("POST", "/api/agents/templates", json_body=dict(template))
+    def create_agent_template(self, template: models.AgentTemplateIn | Mapping[str, Any]) -> models.AgentTemplate:
+        """Save an agent as a template (``{"agent": {...}}``)."""
+        return cast(models.AgentTemplate, self._http.json("POST", "/api/agents/templates", json_body=dict(template)))
 
-    def update_agent_template(self, template_id: str, template: Mapping[str, Any]) -> Any:
-        return self._http.json("PUT", f"/api/agents/templates/{path_segment(template_id)}", json_body=dict(template))
+    def update_agent_template(
+        self, template_id: str, template: models.AgentTemplateIn | Mapping[str, Any]
+    ) -> models.AgentTemplate:
+        return cast(
+            models.AgentTemplate,
+            self._http.json("PUT", f"/api/agents/templates/{path_segment(template_id)}", json_body=dict(template)),
+        )
 
     def delete_agent_template(self, template_id: str) -> None:
         self._http.request("DELETE", f"/api/agents/templates/{path_segment(template_id)}")
 
-    def list_tools(self) -> list[Any]:
-        return cast(list[Any], self._http.json("GET", "/api/tools"))
+    def list_tools(self) -> list[models.ToolInfo]:
+        """The tools agents can use: built-in, custom and generated ones."""
+        return cast(list[models.ToolInfo], self._http.json("GET", "/api/tools"))
 
     def list_examples(self, language: str | None = None) -> list[models.TemplateSummary]:
+        """The example library (``language``: ``de``, ``en``, ``es``, ``fr``, ``it`` or ``pt-BR``)."""
         return cast(list[models.TemplateSummary], self._http.json("GET", "/api/library", params={"language": language}))
 
     def copy_example(self, template_id: str, *, language: str | None = None, tests: bool = False) -> models.Workflow:
-        body = {"language": language, "tests": tests}
+        """Copy an example into a new workflow (``tests`` also copies its test cases)."""
+        body: models.LibraryCopy = {"language": cast(Any, language), "tests": tests}
         return cast(
             models.Workflow, self._http.json("POST", f"/api/library/{path_segment(template_id)}/copy", json_body=body)
         )
 
     # ---- publishing ------------------------------------------------------------------------
 
-    def publish(self, workflow_id: str, **options: Any) -> Any:
+    def publish(self, workflow_id: str, **options: Any) -> models.PublishOut:
         """Publish the workflow as an API (options: ``slug``, ``note``, ``version``, ``activate``)."""
-        return self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/api/publish", json_body=options)
+        return cast(
+            models.PublishOut,
+            self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/api/publish", json_body=options),
+        )
 
     def create_api_key(self, name: str, scopes: Sequence[str], publications: Sequence[str]) -> models.NewApiKey:
-        """A key for published workflows; its ``token`` is returned only this once."""
+        """A key for published workflows; its ``token`` is returned only this once.
+
+        ``scopes`` are ``run``, ``read`` and ``approve``; ``publications`` are publication ids.
+        """
         body: models.KeyIn = {"name": name, "scopes": cast(Any, list(scopes)), "publications": list(publications)}
         return cast(models.NewApiKey, self._http.json("POST", "/api/api-keys", json_body=body))
