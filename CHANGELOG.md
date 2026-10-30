@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Platform integration (2026-10-30): the `test` extra pins `nodestro-api` at `de7fb25` (before: `1ca296b`), the API of the
+platform integration. Its OpenAPI document is unchanged, so the generated types are unchanged; both SDKs pass their
+tests against a real server of that API (Node.js 20 and 22).
+
 ### Fixed
 
 - Python: a `PublishedWorkflow` given an `http_client` stored its API key on that client, so the key was sent with
