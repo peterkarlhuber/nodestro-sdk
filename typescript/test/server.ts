@@ -1,7 +1,8 @@
 /**
  * Starts a real Nodestro API server with scripted model answers (../scripts/test_server.py) for the
- * tests, or uses the one in NODESTRO_SDK_SERVER. The Python that runs it is NODESTRO_SDK_PYTHON
- * (default `python3`) and needs nodestro-api installed.
+ * tests, or uses the one in NODESTRO_SDK_SERVER (which must itself be a running test server: the
+ * tests change its data, and a real installation would call paid models). The Python that runs it
+ * is NODESTRO_SDK_PYTHON (default `python3`) and needs nodestro-api installed.
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
@@ -33,7 +34,14 @@ let data: string | undefined;
 export async function setup(project: TestProject) {
   const given = process.env.NODESTRO_SDK_SERVER;
   if (given) {
-    project.provide("server", given.replace(/\/+$/, ""));
+    const url = given.replace(/\/+$/, "");
+    const marker = await fetch(`${url}/sdk-test-server`)
+      .then((response) => response.json())
+      .catch(() => undefined);
+    if (marker?.nodestro_sdk_test_server !== true) {
+      throw new Error(`NODESTRO_SDK_SERVER=${url} is not a scripts/test_server.py server; refusing to change its data`);
+    }
+    project.provide("server", url);
     return;
   }
   const port = await freePort();
@@ -65,7 +73,9 @@ export async function teardown() {
   if (child && child.exitCode === null) {
     const ended = new Promise((done) => child?.once("exit", done));
     child.kill("SIGTERM");
+    const killer = setTimeout(() => child?.kill("SIGKILL"), 10_000);
     await ended;
+    clearTimeout(killer);
   }
   if (data) rmSync(data, { recursive: true, force: true });
 }

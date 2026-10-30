@@ -35,6 +35,11 @@ class NodestroAPIError(NodestroClientError):
 
     @classmethod
     def from_response(cls, status: int, body: Any, text: str = "") -> NodestroAPIError:
+        """The error of an answer: ``body`` is its decoded JSON (or ``None``), ``text`` its raw text.
+
+        Answers in neither format (a proxy's HTML page, an empty body, unexpected types) become
+        code ``http_error`` with the start of the text, so a broken answer never hides the status.
+        """
         if isinstance(body, dict):
             nested = body.get("error")
             if isinstance(nested, dict):
@@ -42,14 +47,18 @@ class NodestroAPIError(NodestroClientError):
                     status,
                     str(nested.get("code") or "error"),
                     str(nested.get("message") or ""),
-                    dict(nested.get("params") or {}),
+                    _params(nested.get("params")),
                 )
             if "code" in body or "detail" in body:
                 detail = body.get("detail")
                 if isinstance(detail, list):  # FastAPI's validation errors
                     return cls(status, str(body.get("code") or "validation_error"), str(detail), {"errors": detail})
-                return cls(status, str(body.get("code") or "error"), str(detail or ""), dict(body.get("params") or {}))
-        return cls(status, "http_error", text[:500] or f"HTTP {status}")
+                return cls(status, str(body.get("code") or "error"), str(detail or ""), _params(body.get("params")))
+        return cls(status, "http_error", text.strip()[:500] or f"HTTP {status}")
+
+
+def _params(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
 
 
 class NodestroRunFailed(NodestroClientError):

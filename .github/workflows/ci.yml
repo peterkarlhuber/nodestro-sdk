@@ -27,19 +27,22 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      # The tests start the pinned nodestro-api (private, like orkexa): pip clones them with a read token.
-      - name: Grant read access to the private repositories
+      # The tests start the pinned nodestro-api (private, like orkexa): git clones them with a read token.
+      # The token lives only in this step's environment, never in a configuration file.
+      - name: Install with read access to the private repositories
         env:
           NODESTRO_READ: ${{ secrets.NODESTRO_READ }}
         run: |
           if [ -z "$NODESTRO_READ" ]; then
-            echo "::error::Secret NODESTRO_READ fehlt: ein Token mit Lesezugriff auf orkexa und die nodestro-Repositories."
+            echo "::error::The secret NODESTRO_READ is missing: a token with read access to orkexa and the Nodestro repositories."
             exit 1
           fi
-          git config --global url."https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/".insteadOf "https://github.com/peterkarlhuber/"
-      - run: pip install -e ".[dev,test]"
-      - run: ruff check .
-      - run: ruff format --check .
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="url.https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/.insteadOf"
+          export GIT_CONFIG_VALUE_0="https://github.com/peterkarlhuber/"
+          pip install -e ".[dev,test]"
+      - run: ruff check . ../scripts
+      - run: ruff format --check . ../scripts
       - run: mypy
       # Against a real Nodestro API with scripted model answers; also checks the committed contract.
       - run: pytest
@@ -51,15 +54,21 @@ jobs:
           (cd typescript && npm ci)
           make generate PYTHON=python
           git diff --exit-code -- openapi python/src/nodestro_client/models.py typescript/src/generated
-      - name: The client works without the API installed
+      - name: The wheel and sdist build and the wheel works without the API installed
         run: |
+          python -m pip install build
+          python -m build --outdir "$RUNNER_TEMP/dist" .
           python -m venv "$RUNNER_TEMP/plain"
-          "$RUNNER_TEMP/plain/bin/pip" install .
+          "$RUNNER_TEMP/plain/bin/pip" install "$RUNNER_TEMP"/dist/*.whl
           cd "$RUNNER_TEMP"
-          "$RUNNER_TEMP/plain/bin/python" -c "import nodestro_client, importlib.util as u; assert u.find_spec('nodestro_api') is None; print(nodestro_client.__version__)"
+          "$RUNNER_TEMP/plain/bin/python" -c "import nodestro_client, importlib.util as u; assert u.find_spec('nodestro_api') is None; assert u.find_spec('nodestro_runtime') is None; print(nodestro_client.__version__)"
 
   typescript:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -68,20 +77,22 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - name: Grant read access to the private repositories
+      # The test server only (scripts/test_server.py); the TypeScript SDK needs no Python.
+      - name: Install the test server with read access to the private repositories
         env:
           NODESTRO_READ: ${{ secrets.NODESTRO_READ }}
         run: |
           if [ -z "$NODESTRO_READ" ]; then
-            echo "::error::Secret NODESTRO_READ fehlt: ein Token mit Lesezugriff auf orkexa und die nodestro-Repositories."
+            echo "::error::The secret NODESTRO_READ is missing: a token with read access to orkexa and the Nodestro repositories."
             exit 1
           fi
-          git config --global url."https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/".insteadOf "https://github.com/peterkarlhuber/"
-      # The test server only (scripts/test_server.py); the TypeScript SDK needs no Python.
-      - run: pip install "./python[test]"
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="url.https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/.insteadOf"
+          export GIT_CONFIG_VALUE_0="https://github.com/peterkarlhuber/"
+          pip install "./python[test]"
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: typescript/package-lock.json
       - working-directory: typescript
@@ -92,7 +103,5 @@ jobs:
         run: npm test
         env:
           NODESTRO_SDK_PYTHON: python
-      - working-directory: typescript
-        run: |
-          npm run build
-          npm pack --dry-run
+      # Builds and packs @nodestro/client, then compiles and runs a strict consumer project against the tarball.
+      - run: scripts/check_typescript_package.sh

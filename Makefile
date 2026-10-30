@@ -1,4 +1,4 @@
-.PHONY: install generate contract check test test-python test-typescript lint
+.PHONY: install generate contract check test test-python test-typescript lint package
 
 PYTHON ?= python
 
@@ -19,7 +19,7 @@ contract:
 	$(MAKE) generate
 
 lint:
-	cd python && ruff check . && ruff format --check . && mypy
+	cd python && ruff check . ../scripts && ruff format --check . ../scripts && mypy
 	cd typescript && npm run typecheck
 
 test-python:
@@ -29,5 +29,9 @@ test-typescript:
 	cd typescript && NODESTRO_SDK_PYTHON=$(PYTHON) npm test
 
 test: test-python test-typescript
+
+# Packs @nodestro/client and compiles and runs a strict consumer project against the tarball.
+package:
+	scripts/check_typescript_package.sh
 
 check: lint test

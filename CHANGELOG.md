@@ -1,20 +1,87 @@
 # Changelog
 
-## Unveröffentlicht
+## Unreleased
 
-- TypeScript: `events()` beendet die Verbindung, wenn der Aufrufer die Schleife vorzeitig verlässt (`break`,
-  `return`, Ausnahme), und gibt den Reader frei. Bisher blieb die Event-Stream-Verbindung offen, bis der Garbage
-  Collector sie einsammelte. Ereignisse, Abbruch über `signal` und Fehler bleiben unverändert.
-- Python: IDs, Slugs und Versionsnummern werden als einzelne Pfadsegmente kodiert, wie `encodeURIComponent` im
-  TypeScript-SDK. Eine ID mit `/`, `?` oder `#` kann so keinen anderen Endpunkt aufrufen.
-- Tests gegen `nodestro-api` am aktuellen Stand (auch Host-Prüfung bei `--host 0.0.0.0`).
-- CI: aktuelle Actions (Node 24), Checkout ohne gespeicherte Zugangsdaten.
+### Fixed
+
+- Python: a `PublishedWorkflow` given an `http_client` stored its API key on that client, so the key was sent with
+  every later request of the client (also to other hosts), and two published workflows sharing one client used
+  the same key. Headers are now added per request; the caller's client is left unchanged.
+- Python: an `http_client` without `base_url` failed with "missing protocol", and one with a different `base_url`
+  silently sent the requests there. The SDK now builds absolute URLs from its own base URL.
+- Python: a redirect (3xx) was returned as a successful answer (for example `None` as a run). Both SDKs now report
+  it as `NodestroAPIError` with code `http_redirect` and follow no redirects, so a key never goes elsewhere and a
+  POST is never turned into a GET (the TypeScript client followed redirects before).
+- `PublishedWorkflow.start(..., wait=...)` / `waitSeconds`: the request timed out before the server's wait ended
+  and was retried, which returned a still running run early. The request time limit is now extended by the wait.
+- TypeScript: starting a published workflow failed in browser pages served over plain HTTP outside localhost,
+  because `crypto.randomUUID` exists only in secure contexts. Idempotency keys now come from
+  `crypto.getRandomValues` (128 bits, the same 32 hex digits).
+- TypeScript: the last event of a stream that broke off in the middle was delivered (often as text instead of
+  JSON). Incomplete events are now dropped, as the SSE standard requires and the Python client already did. The
+  parser also accepts lone CR line endings and ignores ids containing NULL, in both SDKs.
+- TypeScript: the bodies of answers that were retried (502/503/504) were left open until garbage collection; they
+  are now released. A body that broke off or timed out while being read surfaced as a raw `TypeError` or
+  `DOMException`; it is now a `NodestroConnectionError` / `NodestroTimeoutError` (with `cause`) and is retried
+  like a lost connection.
+- TypeScript: an `AbortSignal` that stopped `events()` before the answer arrived became a
+  `NodestroConnectionError`; the abort error is now passed on unchanged, as during reading.
+- Python: `RetryPolicy(attempts=0)` ended in an `AssertionError`. Both SDKs now refuse retry policies with fewer
+  than one attempt or negative or non-finite pauses (`ValueError` / `RangeError`); `attempts=NaN` made the
+  TypeScript client fail without sending anything.
+- Ids and slugs `""`, `.` and `..` were normalized by the URL handling into a different endpoint
+  (`/api/runs/..` is `/api`). Both SDKs now refuse them; no id or slug of the API has these values.
+- A successful answer that is not JSON (for example the studio's HTML page at a wrong base URL) raised a raw
+  `JSONDecodeError` / `SyntaxError`; it is now a `NodestroClientError` naming the content type.
+- Error bodies with unexpected types (for example `params` as a list) raised a `ValueError` while building the
+  error; they now become a normal `NodestroAPIError`.
+- Waiting (`wait_for_run`, `wait`, `wait_for_result` and their TypeScript counterparts) slept a full poll interval
+  past its timeout; it now ends at the timeout. A poll interval of 0 or less polled without pause; it and
+  negative or non-finite timeouts are now refused.
+
+### Changed
+
+- Invalid base URLs (no `http`/`https`, query, fragment, credentials), timeouts and empty API keys are refused when
+  a client is created instead of failing at the first request.
+- More precise return types where the contract has them: `check_workflow` / `checkWorkflow` (`WorkflowCheck`),
+  `workflow_versions` (`VersionSummary`), `run_files` (`ResultFile`), agent templates (`AgentTemplate`),
+  `list_tools` (`ToolInfo`) and `publish` (`PublishOut`). The values returned are unchanged. Python `events()`
+  returns a `Generator`, so `.close()` type-checks.
+- TypeScript: every method that returns a promise now rejects instead of throwing synchronously; `events()` is an
+  async generator method. `NodestroClientError` accepts and keeps `cause`.
+- Python: `PublishedWorkflow.events()` accepts `timeout` like `NodestroClient.events()`.
+- Documentation in English, with the supported base URLs, timeout and retry semantics, closing streams,
+  reconnecting with `Last-Event-ID`, the trust boundaries of both APIs, API keys in browsers, CORS and HTTPS.
+
+### Tests and CI
+
+- Regression tests for every fix above, and further real-server tests in both languages: workflow checks,
+  versions, updates and deletion, result files and downloads, agent template updates, the examples in all six
+  languages, published approvals with missing scopes and foreign keys, cancelling, continuing, version starts,
+  usage and reconnecting with `Last-Event-ID`.
+- The tests refuse a `NODESTRO_SDK_SERVER` that is not a `scripts/test_server.py` server (they change its data, and
+  a real installation would call paid models); the test server's process is killed if it does not stop.
+- `scripts/check_typescript_package.sh` installs the packed tarball into a fresh project, compiles a strict
+  consumer against its type definitions and runs it; the CI runs it and the TypeScript tests on Node.js 20 and 22.
+- The CI builds the Python wheel and sdist and installs the wheel into a clean environment without the API. The
+  read token is handed to the dependency installation step only, through the environment instead of the global
+  git configuration.
+
+## Earlier changes, not yet released
+
+- TypeScript: `events()` ends the connection when the caller leaves the loop early (`break`, `return`, an
+  exception) and releases the reader. Before, the event stream stayed open until garbage collection. Events,
+  stopping with `signal` and errors are unchanged.
+- Python: ids, slugs and version numbers are encoded as single path segments, like `encodeURIComponent` in the
+  TypeScript SDK, so an id with `/`, `?` or `#` cannot call a different endpoint.
+- Tests against the current `nodestro-api` (including the host check with `--host 0.0.0.0`).
+- CI: current actions (Node 24), checkout without stored credentials.
 
 ## 0.2.0 (2026-10-29)
 
-- Erste Version als eigenes Repository zur Plattform 0.2 (Ausgangspunkt `nodestro` 0.1.0, Commit 15e2076).
-- Die Tests pinnen `nodestro-api` auf einen exakten Commit; die getestete Kombination steht in
+- First version as a repository of its own, for platform 0.2 (starting point `nodestro` 0.1.0, commit 15e2076).
+- The tests pin `nodestro-api` at an exact commit; the tested combination is recorded in
   `nodestro-studio/platform/versions.json`.
-- CI mit dem Repository-Secret `NODESTRO_READ`.
-- Neu: Python-Client `nodestro-client` und TypeScript-Client `@nodestro/client`, aus dem OpenAPI-Vertrag der API 0.2.0
-  generiert.
+- CI with the repository secret `NODESTRO_READ`.
+- New: the Python client `nodestro-client` and the TypeScript client `@nodestro/client`, generated from the
+  OpenAPI contract of API 0.2.0.

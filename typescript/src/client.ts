@@ -7,8 +7,8 @@
  */
 
 import type { components } from "./generated/openapi.js";
-import { NodestroRunFailed, NodestroTimeoutError } from "./errors.js";
-import { type ClientOptions, type ServerEvent, Transport } from "./http.js";
+import { type NodestroClientError, NodestroRunFailed } from "./errors.js";
+import { type ClientOptions, type ServerEvent, Transport, pathSegment, pollUntil } from "./http.js";
 
 export type Schemas = components["schemas"];
 export type Meta = Schemas["Meta"];
@@ -26,6 +26,15 @@ export type ResumePlan = Schemas["ResumePlan"];
 export type AgentConfig = Schemas["AgentConfig"];
 export type ConfigIssue = Schemas["ConfigIssue"];
 export type TemplateSummary = Schemas["TemplateSummary"];
+export type WorkflowCheck = Schemas["WorkflowCheck"];
+export type VersionSummary = Schemas["VersionSummary"];
+export type ResultFile = Stored<Schemas["ResultFile"]>;
+export type AgentTemplate = Stored<Schemas["AgentTemplate"]>;
+export type AgentTemplateIn = Schemas["AgentTemplateIn"];
+export type ToolInfo = Schemas["ToolInfo"];
+export type PublishIn = Schemas["PublishIn"];
+export type Publication = Stored<Schemas["Publication"]>;
+export type PublishOut = Omit<Schemas["PublishOut"], "publication"> & { publication: Publication };
 export type NewApiKey = Schemas["NewApiKey"];
 export type KeyIn = Schemas["KeyIn"];
 
@@ -34,16 +43,24 @@ export const FINISHED = new Set(["succeeded", "failed", "cancelled"]);
 export const WAITING = "paused";
 
 export interface WaitOptions {
+  /** Total wait in milliseconds (default 300 000); the last status request may take up to the request time limit more. */
   timeoutMs?: number;
+  /** Pause between two status requests in milliseconds (default 500). */
   pollMs?: number;
   /** Return when the run waits for a person (default true). */
   stopAtApproval?: boolean;
+  /** Throw {@link NodestroRunFailed} for a failed or cancelled run. */
   raiseOnFailure?: boolean;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/** Workflows, runs, approvals, agents, tools and examples of a Nodestro installation. */
+/**
+ * Workflows, runs, approvals, agents, tools and examples of a Nodestro installation.
+ *
+ * `baseUrl` is the address of the installation (`http` or `https`, host, optional port and path
+ * prefix; no query). Reads are retried after connection errors and 502/503/504, a request that
+ * changes something never. Throws a `TypeError` or `RangeError` for invalid options or ids (`""`,
+ * `.`, `..`); every other error is a {@link NodestroClientError}.
+ */
 export class NodestroClient {
   private readonly http: Transport;
 
@@ -54,30 +71,30 @@ export class NodestroClient {
   // ---- installation
 
   /** Version, providers, models and server tools of the installation. */
-  meta(): Promise<Meta> {
+  async meta(): Promise<Meta> {
     return this.http.json("GET", "/api/meta");
   }
 
   /** The settings as the interface shows them (API keys are never returned). */
-  settings(): Promise<Settings> {
+  async settings(): Promise<Settings> {
     return this.http.json("GET", "/api/settings");
   }
 
   // ---- workflows
 
-  listWorkflows(): Promise<WorkflowSummary[]> {
+  async listWorkflows(): Promise<WorkflowSummary[]> {
     return this.http.json("GET", "/api/workflows");
   }
 
-  getWorkflow(workflowId: string): Promise<Workflow> {
+  async getWorkflow(workflowId: string): Promise<Workflow> {
     return this.http.json("GET", `/api/workflows/${enc(workflowId)}`);
   }
 
-  createWorkflow(workflow: WorkflowIn | Record<string, unknown>): Promise<Workflow> {
+  async createWorkflow(workflow: WorkflowIn | Record<string, unknown>): Promise<Workflow> {
     return this.http.json("POST", "/api/workflows", { body: workflow });
   }
 
-  updateWorkflow(workflowId: string, workflow: WorkflowIn | Record<string, unknown>): Promise<Workflow> {
+  async updateWorkflow(workflowId: string, workflow: WorkflowIn | Record<string, unknown>): Promise<Workflow> {
     return this.http.json("PUT", `/api/workflows/${enc(workflowId)}`, { body: workflow });
   }
 
@@ -86,18 +103,19 @@ export class NodestroClient {
   }
 
   /** The pre-check of a run: problems per workflow and per agent (free, no model request). */
-  checkWorkflow(workflow: WorkflowIn | Record<string, unknown>, workflowId?: string): Promise<unknown> {
+  async checkWorkflow(workflow: WorkflowIn | Record<string, unknown>, workflowId?: string): Promise<WorkflowCheck> {
     return this.http.json("POST", "/api/workflows/check", { body: workflow, query: { workflow_id: workflowId } });
   }
 
-  workflowVersions(workflowId: string): Promise<unknown[]> {
+  /** The saved versions of a workflow, newest first. */
+  async workflowVersions(workflowId: string): Promise<VersionSummary[]> {
     return this.http.json("GET", `/api/workflows/${enc(workflowId)}/versions`);
   }
 
   // ---- runs
 
   /** Start a run; it runs in the background (see {@link waitForRun} and {@link events}). */
-  startRun(
+  async startRun(
     workflowId: string,
     options: { input?: string; values?: Record<string, unknown>; fileIds?: string[] } = {},
   ): Promise<Run> {
@@ -105,69 +123,74 @@ export class NodestroClient {
     return this.http.json("POST", `/api/workflows/${enc(workflowId)}/runs`, { body });
   }
 
-  getRun(runId: string): Promise<Run> {
+  async getRun(runId: string): Promise<Run> {
     return this.http.json("GET", `/api/runs/${enc(runId)}`);
   }
 
-  listRuns(options: { workflowId?: string; limit?: number } = {}): Promise<RunSummary[]> {
+  async listRuns(options: { workflowId?: string; limit?: number } = {}): Promise<RunSummary[]> {
     return this.http.json("GET", "/api/runs", { query: { workflow_id: options.workflowId, limit: options.limit } });
   }
 
+  /** Ask a running run to stop; `false` when it had already ended. */
   async cancelRun(runId: string): Promise<boolean> {
     const answer = await this.http.json<{ cancelled?: boolean } | undefined>("POST", `/api/runs/${enc(runId)}/cancel`);
     return Boolean(answer?.cancelled);
   }
 
-  /** Wait until the run finished (or waits for a person, unless `stopAtApproval` is off). */
+  /**
+   * Wait until the run finished (or waits for a person, unless `stopAtApproval` is off). Throws
+   * {@link NodestroTimeoutError} when it has not by `timeoutMs` (the run keeps running).
+   */
   async waitForRun(runId: string, options: WaitOptions = {}): Promise<Run> {
-    const timeoutMs = options.timeoutMs ?? 300_000;
-    const deadline = Date.now() + timeoutMs;
-    for (;;) {
-      const run = await this.getRun(runId);
-      const status = run.status;
-      if (FINISHED.has(status) || ((options.stopAtApproval ?? true) && status === WAITING)) {
-        if (options.raiseOnFailure && (status === "failed" || status === "cancelled")) {
-          throw new NodestroRunFailed(run as { status?: string; id?: string; error?: unknown });
-        }
-        return run;
-      }
-      if (Date.now() >= deadline) throw new NodestroTimeoutError(`Run ${runId} is still ${status} after ${timeoutMs} ms`);
-      await sleep(options.pollMs ?? 500);
+    const stopAtApproval = options.stopAtApproval ?? true;
+    const run = await pollUntil(
+      () => this.getRun(runId),
+      (found) => FINISHED.has(found.status) || (stopAtApproval && found.status === WAITING),
+      runId,
+      options,
+    );
+    if (options.raiseOnFailure && (run.status === "failed" || run.status === "cancelled")) {
+      throw new NodestroRunFailed(run as { status?: string; id?: string; error?: unknown });
     }
+    return run;
   }
 
-  /** The live events of a run: `snapshot` (the run), `event` (one step), `end`. */
-  events(runId: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<ServerEvent> {
-    return this.http.events(`/api/runs/${enc(runId)}/events`, options);
+  /**
+   * The live events of a run: `snapshot` (the run), `event` (one step), `end`. Leaving the
+   * `for await` loop (or aborting `signal`) closes the connection.
+   */
+  async *events(runId: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<ServerEvent> {
+    yield* this.http.events(`/api/runs/${enc(runId)}/events`, options);
   }
 
-  runFiles(runId: string): Promise<unknown[]> {
+  /** The result files of a run (documents written by its output steps). */
+  async runFiles(runId: string): Promise<ResultFile[]> {
     return this.http.json("GET", `/api/runs/${enc(runId)}/files`);
   }
 
+  /** The content of a result file (held in memory as a whole). */
   async downloadFile(runId: string, fileId: string): Promise<Uint8Array> {
-    const response = await this.http.request("GET", `/api/runs/${enc(runId)}/files/${enc(fileId)}`);
-    return new Uint8Array(await response.arrayBuffer());
+    return this.http.bytes("GET", `/api/runs/${enc(runId)}/files/${enc(fileId)}`);
   }
 
   // ---- people in the loop and continued runs
 
   /** Every approval that waits for a decision (all runs). */
-  listApprovals(): Promise<PendingApproval[]> {
+  async listApprovals(): Promise<PendingApproval[]> {
     return this.http.json("GET", "/api/approvals");
   }
 
-  decideApproval(runId: string, nodeId: string, decision: "approved" | "rejected", comment = ""): Promise<Run> {
+  async decideApproval(runId: string, nodeId: string, decision: "approved" | "rejected", comment = ""): Promise<Run> {
     const body: Schemas["ApprovalDecision"] = { decision, comment };
     return this.http.json("POST", `/api/runs/${enc(runId)}/approvals/${enc(nodeId)}`, { body });
   }
 
   /** Which steps of a failed run would be reused or run again (nothing starts). */
-  resumePlan(runId: string): Promise<ResumePlan> {
+  async resumePlan(runId: string): Promise<ResumePlan> {
     return this.http.json("GET", `/api/runs/${enc(runId)}/resume`);
   }
 
-  resumeRun(runId: string, options: { mode?: "continue" | "restart"; confirmSideEffects?: boolean } = {}): Promise<Run> {
+  async resumeRun(runId: string, options: { mode?: "continue" | "restart"; confirmSideEffects?: boolean } = {}): Promise<Run> {
     const body: Schemas["ResumeRequest"] = {
       mode: options.mode ?? "continue",
       confirm_side_effects: options.confirmSideEffects ?? false,
@@ -177,19 +200,21 @@ export class NodestroClient {
 
   // ---- agents, tools, examples
 
-  validateAgent(agent: AgentConfig | Record<string, unknown>): Promise<ConfigIssue[]> {
+  /** The problems of one agent configuration (empty when it is fine; no model request). */
+  async validateAgent(agent: AgentConfig | Record<string, unknown>): Promise<ConfigIssue[]> {
     return this.http.json("POST", "/api/agents/validate", { body: agent });
   }
 
-  listAgentTemplates(): Promise<Array<Record<string, unknown> & { id: string }>> {
+  async listAgentTemplates(): Promise<AgentTemplate[]> {
     return this.http.json("GET", "/api/agents/templates");
   }
 
-  createAgentTemplate(template: Record<string, unknown>): Promise<Record<string, unknown> & { id: string }> {
+  /** Save an agent as a template (`{ agent: {...} }`). */
+  async createAgentTemplate(template: AgentTemplateIn | Record<string, unknown>): Promise<AgentTemplate> {
     return this.http.json("POST", "/api/agents/templates", { body: template });
   }
 
-  updateAgentTemplate(templateId: string, template: Record<string, unknown>): Promise<unknown> {
+  async updateAgentTemplate(templateId: string, template: AgentTemplateIn | Record<string, unknown>): Promise<AgentTemplate> {
     return this.http.json("PUT", `/api/agents/templates/${enc(templateId)}`, { body: template });
   }
 
@@ -197,15 +222,18 @@ export class NodestroClient {
     await this.http.request("DELETE", `/api/agents/templates/${enc(templateId)}`);
   }
 
-  listTools(): Promise<Array<Record<string, unknown> & { name: string }>> {
+  /** The tools agents can use: built-in, custom and generated ones. */
+  async listTools(): Promise<ToolInfo[]> {
     return this.http.json("GET", "/api/tools");
   }
 
-  listExamples(language?: string): Promise<TemplateSummary[]> {
+  /** The example library (`language`: `de`, `en`, `es`, `fr`, `it` or `pt-BR`). */
+  async listExamples(language?: string): Promise<TemplateSummary[]> {
     return this.http.json("GET", "/api/library", { query: { language } });
   }
 
-  copyExample(templateId: string, options: { language?: string; tests?: boolean } = {}): Promise<Workflow> {
+  /** Copy an example into a new workflow (`tests` also copies its test cases). */
+  async copyExample(templateId: string, options: { language?: string; tests?: boolean } = {}): Promise<Workflow> {
     const body = { language: options.language ?? null, tests: options.tests ?? false };
     return this.http.json("POST", `/api/library/${enc(templateId)}/copy`, { body });
   }
@@ -213,15 +241,16 @@ export class NodestroClient {
   // ---- publishing
 
   /** Publish the workflow as an API (options: `slug`, `note`, `version`, `activate`). */
-  publish(workflowId: string, options: Partial<Schemas["PublishIn"]> = {}): Promise<Record<string, any>> {
+  async publish(workflowId: string, options: Partial<PublishIn> = {}): Promise<PublishOut> {
     return this.http.json("POST", `/api/workflows/${enc(workflowId)}/api/publish`, { body: options });
   }
 
-  /** A key for published workflows; its `token` is returned only this once. */
-  createApiKey(name: string, scopes: KeyIn["scopes"], publications: string[]): Promise<NewApiKey> {
+  /** A key for published workflows; its `token` is returned only this once. `publications` are publication ids. */
+  async createApiKey(name: string, scopes: KeyIn["scopes"], publications: string[]): Promise<NewApiKey> {
     const body: KeyIn = { name, scopes, publications };
     return this.http.json("POST", "/api/api-keys", { body });
   }
 }
 
-export const enc = encodeURIComponent;
+/** One path segment (see {@link pathSegment}). */
+export const enc = pathSegment;
