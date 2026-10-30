@@ -124,10 +124,19 @@ export class Transport {
     const decoder = new TextDecoder();
     const parser = new EventParser();
     const reader = response.body.getReader();
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      yield* parser.push(decoder.decode(value, { stream: true }));
+    let ended = false;
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        yield* parser.push(decoder.decode(value, { stream: true }));
+      }
+      ended = true;
+    } finally {
+      // The consumer stopped early (break, return, an exception) or reading failed: end the connection
+      // instead of leaving it open until garbage collection. A failed stream rejects cancel(); nothing to do.
+      if (!ended) await reader.cancel().catch(() => undefined);
+      reader.releaseLock();
     }
     yield* parser.push(decoder.decode() + "\n\n");
   }
