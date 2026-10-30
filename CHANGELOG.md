@@ -7,7 +7,7 @@
   Collector sie einsammelte. Ereignisse, Abbruch über `signal` und Fehler bleiben unverändert.
 - Python: IDs, Slugs und Versionsnummern werden als einzelne Pfadsegmente kodiert, wie `encodeURIComponent` im
   TypeScript-SDK. Eine ID mit `/`, `?` oder `#` kann so keinen anderen Endpunkt aufrufen.
-- Tests gegen `nodestro-api` am aktuellen Stand.
+- Tests gegen `nodestro-api` am aktuellen Stand (auch Host-Prüfung bei `--host 0.0.0.0`).
 - CI: aktuelle Actions (Node 24), Checkout ohne gespeicherte Zugangsdaten.
 
 ## 0.2.0 (2026-10-29)
