@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Release check (2026-10-30): the `test` extra pins `nodestro-api` at `43595a7` (before: `2868b7b`). That API fixes an
+`assistant.busy` race and refuses damaged backup archives with `400`; its OpenAPI document is unchanged, so the
+generated types are unchanged.
+
 Platform integration (2026-10-30): the `test` extra pins `nodestro-api` at `2868b7b` (before: `1ca296b`), the API of the
 platform integration. Its OpenAPI document is unchanged, so the generated types are unchanged; both SDKs pass their
 tests against a real server of that API (Node.js 20 and 22).
