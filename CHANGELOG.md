@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Server workers and container images (2026-10-31): the `test` extra pins `nodestro-api` at `817c8c4` (before:
+`c0e61bd`), which adds the server's worker processes (ADR-0004) and tools with libraries in the Docker sandbox
+(ADR-0006 point 6). The desktop app the SDK talks to is unchanged; the OpenAPI document is unchanged, so the
+generated types are unchanged.
+
 Server logins (2026-10-31): the `test` extra pins `nodestro-api` at `c0e61bd` (before: `0f439ea`), which adds
 OpenID Connect logins, tenants and roles for the server profile (ADR-0003). The desktop app the SDK talks to is
 unchanged, and so are its OpenAPI document and the generated types.
