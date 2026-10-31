@@ -307,3 +307,15 @@ describe("model prices and usage", () => {
     expect((noKey as NodestroAPIError).code).toBe("pricing.billing_key_missing");
   });
 });
+
+describe("release gate", () => {
+  it("reports, validates and switches the gate", async () => {
+    const workflow = await nodestro.createWorkflow({ ...simple(), name: "SDK gate TS" });
+    expect((await nodestro.releaseGate(workflow.id)).status).toBe("off");
+    const unknown = await nodestro.releaseGate(workflow.id, { gate: { suite_ids: ["suite_none"] } }).catch((error: unknown) => error);
+    expect((unknown as NodestroAPIError).code).toBe("gate.suite_unknown");
+    const { publication } = await nodestro.publish(workflow.id, { slug: "sdk-gate-ts" });
+    expect(publication.gate).toBeNull();
+    expect((await nodestro.setReleaseGate(publication.id, null)).gate).toBeNull();
+  });
+});

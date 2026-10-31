@@ -305,10 +305,31 @@ class NodestroClient:
     # ---- publishing ------------------------------------------------------------------------
 
     def publish(self, workflow_id: str, **options: Any) -> models.PublishOut:
-        """Publish the workflow as an API (options: ``slug``, ``note``, ``version``, ``activate``)."""
+        """Publish the workflow as an API.
+
+        Options: ``slug``, ``note``, ``version``, ``activate``, ``gate`` (switch the release gate on with this
+        release) and ``override`` (``{"reason": ...}``: release although non-critical gate items failed).
+        """
         return cast(
             models.PublishOut,
             self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/api/publish", json_body=options),
+        )
+
+    def release_gate(
+        self, workflow_id: str, *, version: int | None = None, gate: models.ReleaseGate | None = None
+    ) -> models.GateReport:
+        """What the release gate says about a saved version (``gate``: try one before switching it on)."""
+        body: dict[str, Any] = {"version": version, "gate": gate}
+        return cast(
+            models.GateReport,
+            self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/api/gate", json_body=body),
+        )
+
+    def set_release_gate(self, publication_id: str, gate: models.ReleaseGate | None) -> models.Publication:
+        """Switch the release gate of a publication on, change it, or switch it off (``None``)."""
+        return cast(
+            models.Publication,
+            self._http.json("PUT", f"/api/publications/{path_segment(publication_id)}/gate", json_body={"gate": gate}),
         )
 
     def create_api_key(self, name: str, scopes: Sequence[str], publications: Sequence[str]) -> models.NewApiKey:
