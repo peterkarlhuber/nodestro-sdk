@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Operating profiles (2026-10-31): the `test` extra pins `nodestro-api` at `b794ebe` (before: `43595a7`), which adds
+the operating profile and a permission on every studio route and refuses to offer the studio API to a network. Its
+OpenAPI document is unchanged (`make contract` produces no diff), so the generated types are unchanged; the SDK
+talks to published APIs with keys, which are unchanged.
+
 Release check (2026-10-30): the `test` extra pins `nodestro-api` at `43595a7` (before: `2868b7b`). That API fixes an
 `assistant.busy` race and refuses damaged backup archives with `400`; its OpenAPI document is unchanged, so the
 generated types are unchanged.
