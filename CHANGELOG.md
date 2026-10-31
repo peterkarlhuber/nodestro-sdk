@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 5ca1c75 (2026-10-31)
+
+- Pin of `nodestro-api` at `5ca1c75` (before: `1c34474`): Nodestro Local Docker (the `local-container` profile, no
+  OpenAPI change) and the test case proposal from a failed run (evolution plan Q-4). The contract copy
+  `openapi/nodestro-api.json` and the generated types (Python `models.py`, TypeScript `generated/openapi.ts`) now
+  include `POST /api/runs/{id}/test-case` and `CaseOrigin`; there are no client methods for it yet.
+
 Pins (2026-10-31): the `test` extra pins `nodestro-api` at `1c34474` (before: `3c0ffa2`), which pins
 `nodestro-runtime` `d2cb987` and `nodestro-examples` `1c2f1e4`. No OpenAPI or client changes.
 

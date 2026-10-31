@@ -2569,6 +2569,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{run_id}/test-case": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose Test Case
+         * @description A redacted test case from a failed run (Q-4). Nothing is stored; save it into a series to keep it.
+         */
+        post: operations["propose_test_case_api_runs__run_id__test_case_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schedules": {
         parameters: {
             query?: never;
@@ -4931,6 +4951,60 @@ export interface components {
             change: string;
             /** Name */
             name: string;
+        };
+        /**
+         * CaseOrigin
+         * @description Where a test case proposed from a run came from (Q-4).
+         */
+        CaseOrigin: {
+            /** Error Code */
+            error_code?: string | null;
+            /**
+             * Personal Data
+             * @default true
+             */
+            personal_data: boolean;
+            /**
+             * Proposed At
+             * Format: date-time
+             */
+            proposed_at?: string;
+            /** Replaced */
+            replaced?: {
+                [key: string]: number;
+            };
+            /**
+             * Run At
+             * Format: date-time
+             */
+            run_at: string;
+            /** Run Id */
+            run_id: string;
+            /** Run Status */
+            run_status: string;
+            /** Workflow Version */
+            workflow_version?: number | null;
+        };
+        /**
+         * CaseProposal
+         * @description A test case proposed from a failed run; stored only when it is saved into a series.
+         */
+        CaseProposal: {
+            case: components["schemas"]["TestCase"];
+            /** Missing Files */
+            missing_files?: string[];
+            /** Problems */
+            problems?: components["schemas"]["FieldError"][];
+            /** Workflow Id */
+            workflow_id: string;
+        };
+        /** CaseProposalIn */
+        CaseProposalIn: {
+            /**
+             * Personal Data
+             * @default true
+             */
+            personal_data: boolean;
         };
         /** CaseResult */
         CaseResult: {
@@ -9275,6 +9349,7 @@ export interface components {
              * @default
              */
             name: string;
+            origin?: components["schemas"]["CaseOrigin"] | null;
             /** Values */
             values?: {
                 [key: string]: unknown;
@@ -15295,6 +15370,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    propose_test_case_api_runs__run_id__test_case_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseProposalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseProposal"];
                 };
             };
             /** @description Validation Error */
