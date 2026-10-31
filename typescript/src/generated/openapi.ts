@@ -2717,6 +2717,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{run_id}/tool-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Run Tool Approvals */
+        get: operations["run_tool_approvals_api_runs__run_id__tool_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/tool-approvals/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Tool Approval
+         * @description Approve or reject one tool call; the waiting run continues at its next look (within about a second).
+         */
+        post: operations["decide_tool_approval_api_runs__run_id__tool_approvals__request_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schedules": {
         parameters: {
             query?: never;
@@ -2858,6 +2895,109 @@ export interface paths {
         put: operations["put_settings_api_settings_put"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tool-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open Tool Approvals
+         * @description Every question that waits for a person, oldest first (also after a restart).
+         */
+        get: operations["open_tool_approvals_api_tool_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tool-approvals/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tool Approval Audit */
+        get: operations["tool_approval_audit_api_tool_approvals_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tool-approvals/legacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tool Approvals State */
+        get: operations["tool_approvals_state_api_tool_approvals_legacy_get"];
+        put?: never;
+        /**
+         * Stamp Legacy Bindings
+         * @description The activation step: stamp existing bindings of workflows, workflow versions and published releases as legacy
+         *     exemptions (visible, bound to the tool version they run with). Idempotent; it does not switch approvals on.
+         */
+        post: operations["stamp_legacy_bindings_api_tool_approvals_legacy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tool-pre-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pre Grants
+         * @description Every pre-grant of the tenant, newest first, revoked and expired ones included.
+         */
+        get: operations["list_pre_grants_api_tool_pre_grants_get"];
+        put?: never;
+        /**
+         * Create Pre Grant
+         * @description Approve one tool version in advance for one schedule, batch or test series (never MCP or destructive tools).
+         */
+        post: operations["create_pre_grant_api_tool_pre_grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tool-pre-grants/{scope}/{scope_id}/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Pre Grant
+         * @description Revoke a pre-grant; it no longer applies from the next call on (revoking twice changes nothing).
+         */
+        delete: operations["revoke_pre_grant_api_tool_pre_grants__scope___scope_id___grant_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -6615,6 +6755,39 @@ export interface components {
             /** Description */
             description: string;
         };
+        /** LegacyBinding */
+        LegacyBinding: {
+            /** Bound Version */
+            bound_version: number;
+            /** Node Id */
+            node_id: string;
+            /** Release */
+            release?: string | null;
+            /** Tool */
+            tool: string;
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /** Workflow Version */
+            workflow_version?: number | null;
+        };
+        /**
+         * LegacyReport
+         * @description What the activation step stamped (shown as *exceptions from before S-2*).
+         */
+        LegacyReport: {
+            /** Bindings */
+            bindings?: components["schemas"]["LegacyBinding"][];
+            /**
+             * Versions
+             * @default 0
+             */
+            versions: number;
+            /**
+             * Workflows
+             * @default 0
+             */
+            workflows: number;
+        };
         /** LibraryCopy */
         LibraryCopy: {
             /** Language */
@@ -6703,7 +6876,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "server_added" | "server_changed" | "server_removed" | "token_changed" | "tools_discovered" | "tool_approved" | "tool_rejected" | "tool_changed" | "tool_removed" | "call_refused" | "oauth_connected" | "oauth_disconnected";
+            kind: "server_added" | "server_changed" | "server_removed" | "token_changed" | "tools_discovered" | "tool_approved" | "tool_rejected" | "tool_changed" | "tool_removed" | "call_refused" | "oauth_started" | "oauth_connected" | "oauth_failed" | "oauth_disconnected";
             /** Server Id */
             server_id?: string | null;
             /** Tool */
@@ -7539,6 +7712,20 @@ export interface components {
              */
             y: number;
         };
+        /** PreGrantIn */
+        PreGrantIn: {
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "schedule" | "batch" | "benchmark";
+            /** Scope Id */
+            scope_id: string;
+            /** Tool */
+            tool: string;
+        };
         /** PreviewInput */
         PreviewInput: {
             /**
@@ -7975,7 +8162,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "published" | "activated" | "enabled" | "disabled" | "network_on" | "network_off" | "settings" | "renamed" | "exported" | "gate_on" | "gate_changed" | "gate_off" | "gate_override";
+            kind: "published" | "activated" | "enabled" | "disabled" | "network_on" | "network_off" | "settings" | "renamed" | "exported" | "gate_on" | "gate_changed" | "gate_off" | "gate_override" | "legacy_stamped";
         };
         /** PublicationListItem */
         PublicationListItem: {
@@ -8685,8 +8872,17 @@ export interface components {
         };
         /** Run */
         Run: {
+            /**
+             * Active Seconds
+             * @default 0
+             */
+            active_seconds: number;
             /** Api Key Id */
             api_key_id?: string | null;
+            /** Budget Hard Maximum */
+            budget_hard_maximum?: boolean | null;
+            /** Budget Usd */
+            budget_usd?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -9769,6 +9965,114 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** ToolApprovalDecision */
+        ToolApprovalDecision: {
+            /** Arguments Hash */
+            arguments_hash: string;
+            /**
+             * Comment
+             * @default
+             */
+            comment: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approved" | "rejected";
+        };
+        /**
+         * ToolApprovalEvent
+         * @description One entry of a tenant's approval audit trail: who decided, granted or revoked what, when; and every refused
+         *     decision with its problem code. Never holds the call's arguments (only their hash).
+         */
+        ToolApprovalEvent: {
+            /** Actor */
+            actor: string;
+            /** Arguments Hash */
+            arguments_hash?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id?: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped";
+            /** Outcome */
+            outcome?: string | null;
+            /** Pre Grant Id */
+            pre_grant_id?: string | null;
+            /** Request Id */
+            request_id?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Tool */
+            tool?: string | null;
+        };
+        /** ToolApprovalRequest */
+        ToolApprovalRequest: {
+            /** Arguments Hash */
+            arguments_hash: string;
+            /** Call Id */
+            call_id: string;
+            capability: components["schemas"]["ToolCapability"];
+            /** Closed Because */
+            closed_because?: string | null;
+            /** Comment */
+            comment?: string | null;
+            /**
+             * Deadline
+             * Format: date-time
+             */
+            deadline: string;
+            /** Decided At */
+            decided_at?: string | null;
+            /** Decided By */
+            decided_by?: string | null;
+            /** Definition Hash */
+            definition_hash?: string | null;
+            /** Id */
+            id?: string;
+            /** Input */
+            input?: {
+                [key: string]: unknown;
+            };
+            /** Iteration */
+            iteration?: number[];
+            /** Node Id */
+            node_id: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at?: string;
+            /** Run Id */
+            run_id: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected" | "expired" | "cancelled";
+            /** Tool */
+            tool: string;
+            /** Version */
+            version?: number | null;
+        };
+        /** ToolApprovalsState */
+        ToolApprovalsState: {
+            /** Enabled */
+            enabled: boolean;
+            legacy?: components["schemas"]["LegacyReport"] | null;
+        };
         /** ToolAttempt */
         ToolAttempt: {
             /** Code */
@@ -10114,6 +10418,41 @@ export interface components {
             /** Tool Name */
             tool_name?: string | null;
         };
+        /**
+         * ToolPreGrant
+         * @description A person's advance approval of one tool for one unattended scope (D10c): narrow, traceable, revocable.
+         *
+         *     Matches only the tool name, its version (own and generated tools) and the scope; voided by a new tool version,
+         *     by its expiry and by revocation. Never covers ``destructive`` or MCP tools.
+         */
+        ToolPreGrant: {
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Granted At
+             * Format: date-time
+             */
+            granted_at: string;
+            /** Granted By */
+            granted_by: string;
+            /** Id */
+            id: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Revoked By */
+            revoked_by?: string | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "schedule" | "batch" | "benchmark";
+            /** Scope Id */
+            scope_id: string;
+            /** Tool */
+            tool: string;
+            /** Version */
+            version?: number | null;
+        };
         /** ToolRunRequest */
         ToolRunRequest: {
             /** Input */
@@ -10212,6 +10551,11 @@ export interface components {
              * @default 0
              */
             total_tokens: number;
+            /**
+             * Uncapped Requests
+             * @default 0
+             */
+            uncapped_requests: number;
             /**
              * Unpriced Requests
              * @default 0
@@ -10464,6 +10808,7 @@ export interface components {
             edges?: components["schemas"]["Edge"][];
             /** Id */
             id?: string;
+            limits?: components["schemas"]["WorkflowLimits"];
             /**
              * Name
              * @default Neuer Workflow
@@ -10513,6 +10858,7 @@ export interface components {
             description: string;
             /** Edges */
             edges?: components["schemas"]["Edge"][];
+            limits?: components["schemas"]["WorkflowLimits"];
             /**
              * Name
              * @default Neuer Workflow
@@ -10533,6 +10879,7 @@ export interface components {
             description: string;
             /** Edges */
             edges?: components["schemas"]["Edge"][];
+            limits?: components["schemas"]["WorkflowLimits"];
             /**
              * Name
              * @default Neuer Workflow
@@ -10540,6 +10887,18 @@ export interface components {
             name: string;
             /** Nodes */
             nodes?: components["schemas"]["Node"][];
+        };
+        /**
+         * WorkflowLimits
+         * @description Execution limits of a workflow's runs (Adaptive Orchestration M2); ``None``: no limit of this kind.
+         */
+        WorkflowLimits: {
+            /** Max Duration S */
+            max_duration_s?: number | null;
+            /** Max Parallel */
+            max_parallel?: number | null;
+            /** Max Steps */
+            max_steps?: number | null;
         };
         /** WorkflowSummary */
         WorkflowSummary: {
@@ -16231,6 +16590,73 @@ export interface operations {
             };
         };
     };
+    run_tool_approvals_api_runs__run_id__tool_approvals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolApprovalRequest"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_tool_approval_api_runs__run_id__tool_approvals__request_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToolApprovalDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolApprovalRequest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_schedules_api_schedules_get: {
         parameters: {
             query?: never;
@@ -16566,6 +16992,183 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Settings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_tool_approvals_api_tool_approvals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolApprovalRequest"][];
+                };
+            };
+        };
+    };
+    tool_approval_audit_api_tool_approvals_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolApprovalEvent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tool_approvals_state_api_tool_approvals_legacy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolApprovalsState"];
+                };
+            };
+        };
+    };
+    stamp_legacy_bindings_api_tool_approvals_legacy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolApprovalsState"];
+                };
+            };
+        };
+    };
+    list_pre_grants_api_tool_pre_grants_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolPreGrant"][];
+                };
+            };
+        };
+    };
+    create_pre_grant_api_tool_pre_grants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreGrantIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolPreGrant"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_pre_grant_api_tool_pre_grants__scope___scope_id___grant_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope: "schedule" | "batch" | "benchmark";
+                scope_id: string;
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolPreGrant"];
                 };
             };
             /** @description Validation Error */
