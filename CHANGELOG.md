@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Tool approvals, pin: nodestro-api ac9d706 (2026-10-31)
+
+- Pin of `nodestro-api` at `ac9d706` (before: `a06ccea`; runtime `0aee6a9`, before `8597544`). The regenerated types
+  add the per-call tool approval routes (`/api/tool-approvals`, `/api/runs/{run_id}/tool-approvals/{request_id}`,
+  `/api/tool-pre-grants`, audit and activation; Evolution S-2b) and the new run fields (budget reservations, run, time
+  and step limits). No client code changes; existing calls are unchanged.
+
 ### Connected MCP services, pin: nodestro-api a06ccea (2026-10-31)
 
 - Pin of `nodestro-api` at `a06ccea` (before: `43a61cd`; same runtime `8597544`), which adds the `/api/mcp` routes

@@ -725,6 +725,21 @@ class KnowledgeUpdate(TypedDict):
     description: str
 
 
+class LegacyBinding(TypedDict):
+    bound_version: int
+    node_id: str
+    release: NotRequired[str | None]
+    tool: str
+    workflow_id: NotRequired[str | None]
+    workflow_version: NotRequired[int | None]
+
+
+class LegacyReport(TypedDict):
+    bindings: NotRequired[list[LegacyBinding]]
+    versions: NotRequired[int]
+    workflows: NotRequired[int]
+
+
 class LibraryCopy(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     tests: NotRequired[bool]
@@ -768,7 +783,9 @@ class McpEvent(TypedDict):
         'tool_changed',
         'tool_removed',
         'call_refused',
+        'oauth_started',
         'oauth_connected',
+        'oauth_failed',
         'oauth_disconnected',
     ]
     server_id: NotRequired[str | None]
@@ -994,6 +1011,13 @@ class Position(TypedDict):
     y: NotRequired[float]
 
 
+class PreGrantIn(TypedDict):
+    expires_at: NotRequired[str | None]
+    scope: Literal['schedule', 'batch', 'benchmark']
+    scope_id: str
+    tool: str
+
+
 class PreviewInput(TypedDict):
     chars: NotRequired[int]
     label: str
@@ -1163,6 +1187,7 @@ class PublicationEvent(TypedDict):
         'gate_changed',
         'gate_off',
         'gate_override',
+        'legacy_stamped',
     ]
 
 
@@ -1656,6 +1681,37 @@ class TestResult(TypedDict):
     ok: bool
 
 
+class ToolApprovalDecision(TypedDict):
+    arguments_hash: str
+    comment: NotRequired[str]
+    decision: Literal['approved', 'rejected']
+
+
+class ToolApprovalEvent(TypedDict):
+    actor: str
+    arguments_hash: NotRequired[str | None]
+    at: NotRequired[str]
+    details: NotRequired[dict[str, Any]]
+    id: NotRequired[str]
+    kind: Literal[
+        'decided',
+        'decision_refused',
+        'pre_granted',
+        'pre_grant_revoked',
+        'legacy_stamped',
+    ]
+    outcome: NotRequired[str | None]
+    pre_grant_id: NotRequired[str | None]
+    request_id: NotRequired[str | None]
+    run_id: NotRequired[str | None]
+    tool: NotRequired[str | None]
+
+
+class ToolApprovalsState(TypedDict):
+    enabled: bool
+    legacy: NotRequired[LegacyReport | None]
+
+
 class ToolAttempt(TypedDict):
     code: str
     description: str
@@ -1776,6 +1832,19 @@ class ToolJob(TypedDict):
     tool_name: NotRequired[str | None]
 
 
+class ToolPreGrant(TypedDict):
+    expires_at: NotRequired[str | None]
+    granted_at: str
+    granted_by: str
+    id: str
+    revoked_at: NotRequired[str | None]
+    revoked_by: NotRequired[str | None]
+    scope: Literal['schedule', 'batch', 'benchmark']
+    scope_id: str
+    tool: str
+    version: NotRequired[int | None]
+
+
 class ToolRunRequest(TypedDict):
     input: NotRequired[dict[str, Any]]
 
@@ -1813,6 +1882,7 @@ class Usage(TypedDict):
     stale_price_requests: NotRequired[int]
     thinking_tokens: NotRequired[int]
     total_tokens: NotRequired[int]
+    uncapped_requests: NotRequired[int]
     unpriced_requests: NotRequired[int]
     web_search_requests: NotRequired[int]
 
@@ -1918,6 +1988,12 @@ class WorkflowCheck(TypedDict):
     ok: bool
     problems: list[CheckIssue]
     warnings: NotRequired[int]
+
+
+class WorkflowLimits(TypedDict):
+    max_duration_s: NotRequired[float | None]
+    max_parallel: NotRequired[int | None]
+    max_steps: NotRequired[int | None]
 
 
 class WorkflowSummary(TypedDict):
@@ -2582,6 +2658,29 @@ class SuiteIn(TypedDict):
     workflow_id: str
 
 
+class ToolApprovalRequest(TypedDict):
+    arguments_hash: str
+    call_id: str
+    capability: ToolCapability
+    closed_because: NotRequired[str | None]
+    comment: NotRequired[str | None]
+    deadline: str
+    decided_at: NotRequired[str | None]
+    decided_by: NotRequired[str | None]
+    definition_hash: NotRequired[str | None]
+    id: NotRequired[str]
+    input: NotRequired[dict[str, Any]]
+    iteration: NotRequired[list[int]]
+    node_id: str
+    requested_at: NotRequired[str]
+    run_id: str
+    status: NotRequired[
+        Literal['pending', 'approved', 'rejected', 'expired', 'cancelled']
+    ]
+    tool: str
+    version: NotRequired[int | None]
+
+
 class ToolDraft(TypedDict):
     agents: NotRequired[list[str]]
     check: NotRequired[NodestroRuntimeToolLibraryCheckResult | None]
@@ -2853,6 +2952,7 @@ class Workflow(TypedDict):
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
     id: NotRequired[str]
+    limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
     updated_at: NotRequired[str]
@@ -2862,6 +2962,7 @@ class WorkflowImport(TypedDict):
     budget_usd: NotRequired[float | None]
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
+    limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
     python: NotRequired[ExportedDefinition | None]
@@ -2871,6 +2972,7 @@ class WorkflowIn(TypedDict):
     budget_usd: NotRequired[float | None]
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
+    limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
 
@@ -2963,7 +3065,10 @@ class Refresh(TypedDict):
 
 
 class Run(TypedDict):
+    active_seconds: NotRequired[float]
     api_key_id: NotRequired[str | None]
+    budget_hard_maximum: NotRequired[bool | None]
+    budget_usd: NotRequired[float | None]
     created_at: NotRequired[str]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
