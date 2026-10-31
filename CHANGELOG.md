@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Server logins (2026-10-31): the `test` extra pins `nodestro-api` at `c0e61bd` (before: `0f439ea`), which adds
+OpenID Connect logins, tenants and roles for the server profile (ADR-0003). The desktop app the SDK talks to is
+unchanged, and so are its OpenAPI document and the generated types.
+
 Desktop launch secret (2026-10-31): the `test` extra pins `nodestro-api` at `0f439ea` (before: `cd4b198`), which adds
 the desktop app's per-launch secret (`NODESTRO_LAUNCH_SECRET`). Without that variable nothing changes for SDK
 clients; the OpenAPI document is unchanged, so the generated types are unchanged.
