@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 262fb4d (2026-10-31)
+
+- Pin of `nodestro-api` at `262fb4d` (before: `5ca1c75`), which pins `nodestro-runtime` `b6b757b` (the engine on the
+  `orkexa.flow` kernel, loop connections, MCP tool provenance). The contract copy `openapi/nodestro-api.json` and the
+  generated types (Python `models.py`, TypeScript `generated/openapi.ts`) now include `Edge.loop` (`EdgeLoop`),
+  `NodeRun.iteration`, `NodeRun.earlier`, `Run.flow_state`, the MCP fields of `ToolInfo` and
+  `ToolCallRecord.provenance`. Run event streams of published APIs may carry `loop_iteration` events; the clients
+  pass every event through as before. No client method changes.
+
 ### Pin: nodestro-api 5ca1c75 (2026-10-31)
 
 - Pin of `nodestro-api` at `5ca1c75` (before: `1c34474`): Nodestro Local Docker (the `local-container` profile, no

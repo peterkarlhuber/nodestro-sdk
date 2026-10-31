@@ -5607,12 +5607,32 @@ export interface components {
         Edge: {
             /** Id */
             id?: string;
+            loop?: components["schemas"]["EdgeLoop"] | null;
             /** Source */
             source: string;
             /** Source Handle */
             source_handle?: string | null;
             /** Target */
             target: string;
+        };
+        /**
+         * EdgeLoop
+         * @description Makes a connection a loop: following it runs the nodes from its target to its source again.
+         *
+         *     A loop leaves a decision or approval node through one of its branches and leads back to a node
+         *     before it. ``max_iterations`` is mandatory and counts the first run; ``on_exhausted`` says what
+         *     happens when the branch is taken once more: ``fail`` ends the run as failed
+         *     (``run.loop_exhausted``), ``continue`` ignores the loop, so the node's other open branches decide.
+         */
+        EdgeLoop: {
+            /** Max Iterations */
+            max_iterations: number;
+            /**
+             * On Exhausted
+             * @default fail
+             * @enum {string}
+             */
+            on_exhausted: "fail" | "continue";
         };
         /** EnableIn */
         EnableIn: {
@@ -6809,6 +6829,8 @@ export interface components {
             /** Child Version */
             child_version?: number | null;
             decision?: components["schemas"]["DecisionRecord"] | null;
+            /** Earlier */
+            earlier?: components["schemas"]["NodeRun"][];
             /** Error */
             error?: string | null;
             /** Error Code */
@@ -6824,6 +6846,8 @@ export interface components {
             fingerprint?: string | null;
             /** Finished At */
             finished_at?: string | null;
+            /** Iteration */
+            iteration?: number[];
             /** Memory */
             memory?: {
                 [key: string]: string;
@@ -8323,6 +8347,10 @@ export interface components {
             file_ids?: string[];
             /** Finished At */
             finished_at?: string | null;
+            /** Flow State */
+            flow_state?: {
+                [key: string]: unknown;
+            } | null;
             /** Id */
             id?: string;
             /** Imported At */
@@ -9410,6 +9438,10 @@ export interface components {
             name: string;
             /** Output */
             output?: string | null;
+            /** Provenance */
+            provenance?: {
+                [key: string]: unknown;
+            };
             /**
              * Started At
              * Format: date-time
@@ -9490,10 +9522,16 @@ export interface components {
         };
         /** ToolInfo */
         ToolInfo: {
+            /** Capability */
+            capability?: {
+                [key: string]: string;
+            } | null;
             /** Code */
             code?: string | null;
             /** Created At */
             created_at?: string | null;
+            /** Definition Hash */
+            definition_hash?: string | null;
             /** Description */
             description: string;
             /** Function Name */
@@ -9506,11 +9544,17 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "builtin" | "custom" | "generated";
+            kind: "builtin" | "custom" | "generated" | "mcp";
+            /** Mcp Name */
+            mcp_name?: string | null;
             /** Name */
             name: string;
             /** Requirement */
             requirement?: string | null;
+            /** Server Id */
+            server_id?: string | null;
+            /** Server Name */
+            server_name?: string | null;
             /** Tests */
             tests?: string | null;
             /**
