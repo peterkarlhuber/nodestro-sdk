@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Server deployment (2026-10-31): the `test` extra pins `nodestro-api` at `f119cfc` (before: `817c8c4`), which adds the
+`nodestro-server` command (migrations, API, workers, checks, backups) and HTTPS-only identity providers apart from
+loopback development. The desktop app the SDK talks to is unchanged; the OpenAPI document is unchanged, so the
+generated types are unchanged.
+
 Server workers and container images (2026-10-31): the `test` extra pins `nodestro-api` at `817c8c4` (before:
 `c0e61bd`), which adds the server's worker processes (ADR-0004) and tools with libraries in the Docker sandbox
 (ADR-0006 point 6). The desktop app the SDK talks to is unchanged; the OpenAPI document is unchanged, so the
