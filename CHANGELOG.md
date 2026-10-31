@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+Model prices and costs (PRICING-1, 2026-10-31): the `test` extra pins `nodestro-api` at `ec860c9` (before: `f55bd80`),
+which adds the `/api/pricing` routes and the cost states of `/api/usage`. Types regenerated from its OpenAPI document.
+
+- Python `NodestroClient`: `usage`, `list_prices`, `pricing_status`, `pricing_history`, `sync_prices`,
+  `list_price_reviews`, `decide_price_review`, `set_price_override`, `remove_price_override`, `reconcile_costs`.
+- TypeScript `NodestroClient`: `usage`, `listPrices`, `pricingStatus`, `pricingHistory`, `syncPrices`,
+  `listPriceReviews`, `decidePriceReview`, `setPriceOverride`, `removePriceOverride`, `reconcileCosts`, and the types
+  `UsageReport`, `PriceEntry`, `PricingOverview`, `PricingEvent`, `SyncReport`, `PriceReview`, `SubmitResult`,
+  `OverrideIn`, `ReconciliationIn`, `ReconciliationReport`.
+- Model ids with `/` (e.g. `org/model`) are sent as checked path segments.
+
 "Used in" (2026-10-31): the `test` extra pins `nodestro-api` at `f55bd80` (before: `a08c9c3`), which adds the read-only
 route `GET /api/used-by?kind=knowledge|tool|memory[&ref=…]`. The OpenAPI document is copied from that version
 (`make contract`); the generated types gain `Reference` and `ReferenceUser` in Python and TypeScript.

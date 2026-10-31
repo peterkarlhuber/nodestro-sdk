@@ -219,6 +219,19 @@ class BenchmarkSummary(TypedDict):
     undecided: NotRequired[int]
 
 
+class BillingKeyIn(TypedDict):
+    admin_key: str
+    scope_ids: NotRequired[list[str]]
+
+
+class BillingKeyOut(TypedDict):
+    configured: bool
+    origin: Literal['stored', 'environment', 'none']
+    provider: Literal['openai', 'anthropic']
+    scope_ids: NotRequired[list[str]]
+    storable: bool
+
+
 class BodyInspectApiBackupInspectPost(TypedDict):
     file: str
 
@@ -742,6 +755,10 @@ class ModelInfo(TypedDict):
     label: str
     model: str
     output_usd_per_mtok: NotRequired[float | None]
+    price_quality: NotRequired[str | None]
+    price_source: NotRequired[str | None]
+    price_status: NotRequired[str]
+    price_version: NotRequired[str | None]
     provider: str
     recommended: NotRequired[bool]
     tier: str
@@ -807,6 +824,19 @@ class OutputField(TypedDict):
     ]
 
 
+class OverrideIn(TypedDict):
+    cache_read_usd_per_mtok: NotRequired[float | str | None]
+    cache_write_1h_usd_per_mtok: NotRequired[float | str | None]
+    cache_write_5m_usd_per_mtok: NotRequired[float | str | None]
+    input_usd_per_mtok: float | str
+    note: NotRequired[str | None]
+    output_usd_per_mtok: float | str
+    quality: NotRequired[Literal['contract', 'verified', 'estimated', 'unverified']]
+    source: NotRequired[str]
+    source_url: NotRequired[str | None]
+    version: NotRequired[str | None]
+
+
 class PackageApproval(TypedDict):
     approved_at: NotRequired[str]
     installation: str
@@ -857,6 +887,88 @@ class PreviewInput(TypedDict):
     status: Literal['available', 'pending']
 
 
+class PriceChange(TypedDict):
+    field: NotRequired[str]
+    kind: Literal['added', 'removed', 'changed']
+    model: str
+    needs_review: NotRequired[bool]
+    new: NotRequired[str | None]
+    old: NotRequired[str | None]
+    provider: str
+    ratio: NotRequired[str | None]
+
+
+class PriceEntry(TypedDict):
+    cache_read_usd_per_mtok: NotRequired[str | None]
+    cache_write_1h_usd_per_mtok: NotRequired[str | None]
+    cache_write_5m_usd_per_mtok: NotRequired[str | None]
+    checked_at: NotRequired[str | None]
+    currency: str
+    has_long_context: NotRequired[bool]
+    input_usd_per_mtok: str
+    model: str
+    output_usd_per_mtok: str
+    overridden: NotRequired[bool]
+    provider: str
+    quality: str
+    reference: NotRequired[PriceEntry | None]
+    source: str
+    source_url: NotRequired[str | None]
+    staleness: Literal['ok', 'warning', 'critical']
+    status: Literal['current', 'stale', 'unknown', 'pending_review', 'custom']
+    tariffs: NotRequired[list[str]]
+    version: NotRequired[str | None]
+
+
+class PriceIssue(TypedDict):
+    code: str
+    message: str
+    model: NotRequired[str]
+    provider: NotRequired[str]
+    severity: Literal['error', 'warning']
+
+
+class PricingEvent(TypedDict):
+    at: NotRequired[str]
+    changes: NotRequired[list[PriceChange]]
+    detail: NotRequired[str | None]
+    id: NotRequired[str]
+    kind: Literal[
+        'activated',
+        'unchanged',
+        'rejected',
+        'review_requested',
+        'review_approved',
+        'review_rejected',
+        'override_set',
+        'override_removed',
+    ]
+    model: NotRequired[str | None]
+    provider: NotRequired[str | None]
+    recorded_ns: NotRequired[int]
+    scope: NotRequired[Literal['reference', 'workspace']]
+    version: NotRequired[str | None]
+
+
+class PricingOverview(TypedDict):
+    activated_at: str | None
+    active_version: str
+    counts: dict[str, int]
+    critical_after_days: float
+    last_attempt_at: str | None
+    last_error: str | None
+    last_success_at: str | None
+    overrides: int
+    pending_reviews: list[str]
+    price_mode: str
+    reference_read_only: bool
+    refresh_interval_hours: float
+    review_change_percent: float
+    staleness: Literal['ok', 'warning', 'critical']
+    sync_enabled: bool
+    warn_after_hours: float
+
+
 class Problem(TypedDict):
     code: str
     message: str
@@ -890,6 +1002,13 @@ class ProviderInfo(TypedDict):
     id: Literal['anthropic', 'openai', 'gemini', 'compatible', 'ollama', 'vllm']
     label: str
     needs_key: bool
+
+
+class ProviderResult(TypedDict):
+    complete_until: NotRequired[str | None]
+    error: NotRequired[str | None]
+    ok: bool
+    provider: str
 
 
 class ProviderSettingsIn(TypedDict):
@@ -973,6 +1092,28 @@ class QualityCriterion(TypedDict):
     description: str
     name: str
     required: NotRequired[bool]
+
+
+class ReconciliationIn(TypedDict):
+    absolute_threshold_usd: NotRequired[float | str]
+    end: str
+    keys: NotRequired[dict[Literal['openai', 'anthropic'], BillingKeyIn]]
+    relative_threshold_percent: NotRequired[float | str]
+    start: str
+
+
+class ReconciliationRow(TypedDict):
+    billed_usd: str | None
+    day: str
+    difference_usd: NotRequired[str | None]
+    estimated_usd: str | None
+    model: NotRequired[str | None]
+    note: NotRequired[str | None]
+    provider: str
+    relative_difference: NotRequired[str | None]
+    status: Literal[
+        'ok', 'warning', 'incomplete', 'pending', 'not_comparable', 'unattributed'
+    ]
 
 
 class ReferenceUser(TypedDict):
@@ -1090,10 +1231,22 @@ class RetryRequest(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
 
 
+class ReviewDecision(TypedDict):
+    note: NotRequired[str | None]
+
+
 class ReviewItem(TypedDict):
     label: str
     node_id: str
     value: NotRequired[Any]
+
+
+class ReviewOut(TypedDict):
+    changes: list[Any]
+    created_at: NotRequired[str | None]
+    issues: list[Any]
+    source: str
+    version: str
 
 
 class RunIn(TypedDict):
@@ -1219,6 +1372,7 @@ class Settings(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     ocr_available: NotRequired[bool]
     ocr_enabled: NotRequired[bool]
+    price_mode: NotRequired[Literal['standard', 'strict']]
     providers: NotRequired[list[ProviderStatus]]
     sandbox: NotRequired[Literal['subprocess', 'docker']]
 
@@ -1232,6 +1386,7 @@ class SettingsIn(TypedDict):
     default_model: NotRequired[str | None]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     ocr_enabled: NotRequired[bool | None]
+    price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
     sandbox: NotRequired[Literal['subprocess', 'docker'] | None]
 
@@ -1252,6 +1407,17 @@ class Snapshot(TypedDict):
     secrets: NotRequired[int]
     truncated: NotRequired[bool]
     variant: NotRequired[Literal['saved', 'draft']]
+    version: NotRequired[str | None]
+
+
+class SourceReport(TypedDict):
+    changes: NotRequired[int]
+    error: NotRequired[str | None]
+    held_for_review: NotRequired[int]
+    invalid: NotRequired[int]
+    ok: bool
+    outcome: NotRequired[str | None]
+    source: str
     version: NotRequired[str | None]
 
 
@@ -1282,11 +1448,29 @@ class StorageInfo(TypedDict):
     unreferenced: NotRequired[int]
 
 
+class SubmitResult(TypedDict):
+    active_version: str
+    changes: NotRequired[list[PriceChange]]
+    issues: NotRequired[list[PriceIssue]]
+    outcome: Literal['activated', 'unchanged', 'pending_review', 'rejected']
+    reason: NotRequired[str | None]
+    review_version: NotRequired[str | None]
+
+
 class SubworkflowConfig(TypedDict):
     input_template: NotRequired[str]
     values: NotRequired[dict[str, str]]
     version: NotRequired[int | None]
     workflow_id: NotRequired[str]
+
+
+class SyncReport(TypedDict):
+    active_version: str
+    finished_at: str
+    ran: bool
+    skipped_reason: NotRequired[str | None]
+    sources: NotRequired[list[SourceReport]]
+    started_at: str
 
 
 class TemplateAgent(TypedDict):
@@ -1459,24 +1643,39 @@ class UploadResult(TypedDict):
 class Usage(TypedDict):
     cache_creation_input_tokens: NotRequired[int]
     cache_read_input_tokens: NotRequired[int]
+    cost_complete: NotRequired[bool | None]
     estimated_cost_usd: NotRequired[float | None]
     input_tokens: NotRequired[int]
+    known_cost_usd: NotRequired[float | None]
+    missing_cost_components: NotRequired[list[str]]
     output_tokens: NotRequired[int]
+    pricing_quality: NotRequired[str | None]
+    pricing_sources: NotRequired[list[str]]
+    pricing_versions: NotRequired[list[str]]
     requests: NotRequired[int]
+    stale_price_requests: NotRequired[int]
     thinking_tokens: NotRequired[int]
     total_tokens: NotRequired[int]
+    unpriced_requests: NotRequired[int]
     web_search_requests: NotRequired[int]
 
 
 class UsageBucket(TypedDict):
+    cost_state: NotRequired[Literal['known', 'partial', 'unknown', 'none']]
     estimated_cost_usd: NotRequired[float]
     input_tokens: NotRequired[int]
     key: str
+    known_cost_usd: NotRequired[float]
     label: str
+    missing_cost_components: NotRequired[list[str]]
     operations: NotRequired[int]
     output_tokens: NotRequired[int]
+    pricing_quality: NotRequired[str | None]
+    pricing_sources: NotRequired[list[str]]
+    pricing_versions: NotRequired[list[str]]
     requests: NotRequired[int]
     runs: NotRequired[int]
+    stale_price_requests: NotRequired[int]
     total_tokens: NotRequired[int]
     unpriced: NotRequired[int]
 
@@ -2056,6 +2255,17 @@ class QualityConfig(TypedDict):
     enabled: NotRequired[bool]
     judge_model: NotRequired[str]
     max_revisions: NotRequired[int]
+
+
+class ReconciliationReport(TypedDict):
+    absolute_threshold_usd: str
+    created_at: str
+    end: str
+    providers: list[ProviderResult]
+    relative_threshold: str
+    rows: list[ReconciliationRow]
+    start: str
+    warnings: int
 
 
 class Reference(TypedDict):
