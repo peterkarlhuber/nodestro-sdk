@@ -2987,7 +2987,9 @@ export interface paths {
         /**
          * Stamp Legacy Bindings
          * @description The activation step: stamp existing bindings of workflows, workflow versions and published releases as legacy
-         *     exemptions (visible, bound to the tool version they run with). Idempotent; it does not switch approvals on.
+         *     exemptions (visible, bound to the tool version they run with). It runs once: a repeated call stamps nothing, so
+         *     an assignment or release made after the first call never becomes an exemption. It does not switch approvals on;
+         *     run it, review the report, and only then set ``NODESTRO_TOOL_APPROVALS=1``.
          */
         post: operations["stamp_legacy_bindings_api_tool_approvals_legacy_post"];
         delete?: never;
@@ -6814,6 +6816,12 @@ export interface components {
         LegacyReport: {
             /** Bindings */
             bindings?: components["schemas"]["LegacyBinding"][];
+            /** Publications Stamped At */
+            publications_stamped_at?: string | null;
+            /** Stamped At */
+            stamped_at?: string | null;
+            /** Stamped By */
+            stamped_by?: string | null;
             /**
              * Versions
              * @default 0
@@ -7079,6 +7087,36 @@ export interface components {
             unattended_enabled: boolean;
             /** Write Tools Enabled */
             write_tools_enabled: boolean;
+        };
+        /**
+         * McpToolRef
+         * @description An MCP tool frozen in a release bundle (WP-9): the approved definition the release was published with.
+         *
+         *     It names the server by id and slug only: no address, no token, no credentials. A release run uses the tool only
+         *     while the tenant still has the same server with this tool approved at exactly this hash and classification
+         *     (``mcp.release_tool_changed`` otherwise). Defined here, not in :mod:`nodestro_runtime.mcp`, so a runtime copy
+         *     without the MCP client (an exported project) can still read bundles.
+         */
+        McpToolRef: {
+            /**
+             * Access
+             * @enum {string}
+             */
+            access: "read" | "write" | "destructive";
+            /** Definition */
+            definition?: {
+                [key: string]: unknown;
+            };
+            /** Hash */
+            hash: string;
+            /** Name */
+            name: string;
+            /** Server Id */
+            server_id: string;
+            /** Server Slug */
+            server_slug: string;
+            /** Tool Name */
+            tool_name: string;
         };
         /** McpToolView */
         McpToolView: {
@@ -8660,6 +8698,10 @@ export interface components {
             format_version: number;
             /** Knowledge */
             knowledge?: components["schemas"]["nodestro_runtime__release__KnowledgeRef"][];
+            /** Mcp Tools */
+            mcp_tools?: {
+                [key: string]: components["schemas"]["McpToolRef"];
+            };
             /** Memory */
             memory?: components["schemas"]["MemoryRef"][];
             /** Models */

@@ -736,6 +736,9 @@ class LegacyBinding(TypedDict):
 
 class LegacyReport(TypedDict):
     bindings: NotRequired[list[LegacyBinding]]
+    publications_stamped_at: NotRequired[str | None]
+    stamped_at: NotRequired[str | None]
+    stamped_by: NotRequired[str | None]
     versions: NotRequired[int]
     workflows: NotRequired[int]
 
@@ -803,6 +806,16 @@ class McpStatus(TypedDict):
     token_vault: bool
     unattended_enabled: bool
     write_tools_enabled: bool
+
+
+class McpToolRef(TypedDict):
+    access: Literal['read', 'write', 'destructive']
+    definition: NotRequired[dict[str, Any]]
+    hash: str
+    name: str
+    server_id: str
+    server_slug: str
+    tool_name: str
 
 
 class MemoryConfig(TypedDict):
@@ -3219,6 +3232,7 @@ class ReleaseBundle(TypedDict):
     format: NotRequired[str]
     format_version: NotRequired[int]
     knowledge: NotRequired[list[NodestroRuntimeReleaseKnowledgeRef]]
+    mcp_tools: NotRequired[dict[str, McpToolRef]]
     memory: NotRequired[list[MemoryRef]]
     models: NotRequired[list[str]]
     output_schema: NotRequired[dict[str, Any]]
