@@ -1396,13 +1396,6 @@ class SendRequest(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
 
 
-class ServerToolInfo(TypedDict):
-    definition: dict[str, Any]
-    description: str
-    key: str
-    label: str
-
-
 class Settings(TypedDict):
     architect_budget_usd: NotRequired[float | None]
     architect_max_repairs: NotRequired[int]
@@ -1594,7 +1587,29 @@ class ToolAttempt(TypedDict):
     tests: str
 
 
+class ToolBinding(TypedDict):
+    ask: NotRequired[Literal['auto', 'always', 'never']]
+    bound_version: NotRequired[int | None]
+    legacy: NotRequired[bool]
+    reason: NotRequired[str | None]
+
+
+class ToolCallApproval(TypedDict):
+    capability: NotRequired[dict[str, str]]
+    code: NotRequired[str | None]
+    comment: NotRequired[str | None]
+    deadline: NotRequired[str | None]
+    decided_at: NotRequired[str | None]
+    decided_by: NotRequired[str | None]
+    pre_grant_id: NotRequired[str | None]
+    request_id: NotRequired[str | None]
+    status: Literal[
+        'allowed', 'pending', 'approved', 'rejected', 'expired', 'cancelled', 'denied'
+    ]
+
+
 class ToolCallRecord(TypedDict):
+    approval: NotRequired[ToolCallApproval | None]
     finished_at: NotRequired[str | None]
     id: str
     input: NotRequired[dict[str, Any]]
@@ -1603,6 +1618,12 @@ class ToolCallRecord(TypedDict):
     output: NotRequired[str | None]
     provenance: NotRequired[dict[str, Any]]
     started_at: NotRequired[str]
+
+
+class ToolCapability(TypedDict):
+    access: Literal['read', 'write', 'destructive']
+    reach: Literal['internal', 'external']
+    source: Literal['nodestro', 'author', 'admin', 'derived', 'default']
 
 
 class ToolChoice(TypedDict):
@@ -1616,7 +1637,7 @@ class ToolDependencyRequest(TypedDict):
 
 
 class ToolInfo(TypedDict):
-    capability: NotRequired[dict[str, str] | None]
+    capability: NotRequired[ToolCapability]
     code: NotRequired[str | None]
     created_at: NotRequired[str | None]
     definition_hash: NotRequired[str | None]
@@ -2199,16 +2220,6 @@ class MemorySeed(TypedDict):
     files: list[MemorySeedFile]
 
 
-class Meta(TypedDict):
-    capabilities: list[str]
-    efforts: NotRequired[list[str]]
-    library_version: str
-    models: list[ModelInfo]
-    providers: list[ProviderInfo]
-    server_tools: list[ServerToolInfo]
-    version: str
-
-
 class NodeRun(TypedDict):
     approval: NotRequired[ApprovalRecord | None]
     child_run_id: NotRequired[str | None]
@@ -2439,6 +2450,14 @@ class SentMessage(TypedDict):
     user: ChatMessage
 
 
+class ServerToolInfo(TypedDict):
+    capability: NotRequired[ToolCapability]
+    definition: dict[str, Any]
+    description: str
+    key: str
+    label: str
+
+
 class Suite(TypedDict):
     cases: NotRequired[list[TestCase]]
     created_at: NotRequired[str]
@@ -2512,6 +2531,7 @@ class AgentConfig(TypedDict):
     thinking: NotRequired[Literal['adaptive', 'between_tools', 'disabled'] | None]
     thinking_display: NotRequired[Literal['summarized', 'omitted', 'updates'] | None]
     tool_choice: NotRequired[ToolChoice]
+    tool_policies: NotRequired[dict[str, ToolBinding]]
     tools: NotRequired[list[str]]
 
 
@@ -2688,6 +2708,16 @@ class GateRecord(TypedDict):
 class MemoryProposal(TypedDict):
     cost_usd: float | None
     seed: MemorySeed
+
+
+class Meta(TypedDict):
+    capabilities: list[str]
+    efforts: NotRequired[list[str]]
+    library_version: str
+    models: list[ModelInfo]
+    providers: list[ProviderInfo]
+    server_tools: list[ServerToolInfo]
+    version: str
 
 
 class Node(TypedDict):

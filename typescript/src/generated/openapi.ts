@@ -3531,6 +3531,10 @@ export interface components {
             /** Thinking Display */
             thinking_display?: ("summarized" | "omitted" | "updates") | null;
             tool_choice?: components["schemas"]["ToolChoice"];
+            /** Tool Policies */
+            tool_policies?: {
+                [key: string]: components["schemas"]["ToolBinding"];
+            };
             /** Tools */
             tools?: string[];
         };
@@ -8851,6 +8855,12 @@ export interface components {
          * @description A tool run by the provider itself; these are Anthropic's server tools.
          */
         ServerToolInfo: {
+            /** @default {
+             *       "access": "write",
+             *       "reach": "external",
+             *       "source": "default"
+             *     } */
+            capability: components["schemas"]["ToolCapability"];
             /** Definition */
             definition: {
                 [key: string]: unknown;
@@ -9419,8 +9429,67 @@ export interface components {
             /** Tests */
             tests: string;
         };
+        /**
+         * ToolBinding
+         * @description When an agent asks before calling one of its tools.
+         *
+         *     - ``auto`` (every new binding): ask when the tool does more than read.
+         *     - ``always``: ask for every call.
+         *     - ``never``: do not ask. Counts only for ``read`` tools, for ``write`` tools with a ``reason`` and for legacy
+         *       exemptions; never for ``destructive`` tools. Otherwise it is treated as ``auto``.
+         *
+         *     A **legacy exemption** (``legacy``) is a binding that existed before S-2; it holds only for the tool version it
+         *     was bound to (``bound_version``): a new version of the tool ends it.
+         */
+        ToolBinding: {
+            /**
+             * Ask
+             * @default auto
+             * @enum {string}
+             */
+            ask: "auto" | "always" | "never";
+            /** Bound Version */
+            bound_version?: number | null;
+            /**
+             * Legacy
+             * @default false
+             */
+            legacy: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * ToolCallApproval
+         * @description What the per-call approval rules did with one call.
+         */
+        ToolCallApproval: {
+            /** Capability */
+            capability?: {
+                [key: string]: string;
+            };
+            /** Code */
+            code?: string | null;
+            /** Comment */
+            comment?: string | null;
+            /** Deadline */
+            deadline?: string | null;
+            /** Decided At */
+            decided_at?: string | null;
+            /** Decided By */
+            decided_by?: string | null;
+            /** Pre Grant Id */
+            pre_grant_id?: string | null;
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "allowed" | "pending" | "approved" | "rejected" | "expired" | "cancelled" | "denied";
+        };
         /** ToolCallRecord */
         ToolCallRecord: {
+            approval?: components["schemas"]["ToolCallApproval"] | null;
             /** Finished At */
             finished_at?: string | null;
             /** Id */
@@ -9447,6 +9516,27 @@ export interface components {
              * Format: date-time
              */
             started_at?: string;
+        };
+        /**
+         * ToolCapability
+         * @description What a tool may do (see the module documentation).
+         */
+        ToolCapability: {
+            /**
+             * Access
+             * @enum {string}
+             */
+            access: "read" | "write" | "destructive";
+            /**
+             * Reach
+             * @enum {string}
+             */
+            reach: "internal" | "external";
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "nodestro" | "author" | "admin" | "derived" | "default";
         };
         /** ToolChoice */
         ToolChoice: {
@@ -9522,10 +9612,12 @@ export interface components {
         };
         /** ToolInfo */
         ToolInfo: {
-            /** Capability */
-            capability?: {
-                [key: string]: string;
-            } | null;
+            /** @default {
+             *       "access": "write",
+             *       "reach": "external",
+             *       "source": "default"
+             *     } */
+            capability: components["schemas"]["ToolCapability"];
             /** Code */
             code?: string | null;
             /** Created At */

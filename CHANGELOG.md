@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 43a61cd (2026-10-31)
+
+- Pin of `nodestro-api` at `43a61cd` (before: `262fb4d`). That api pins `nodestro-runtime` `8597544`, which brings
+  the sandbox gateway security fixes for Nodestro Local Docker (runtime PRs #33 and #37) and the tool approval
+  groundwork, off by default. The contract copy and the generated types (Python `models.py`, TypeScript
+  `generated/openapi.ts`) now include `ToolCapability`, `ToolBinding`, `ToolCallApproval` and the `capability`
+  fields of the tool listings.
+
 ### Pin: nodestro-api 262fb4d (2026-10-31)
 
 - Pin of `nodestro-api` at `262fb4d` (before: `5ca1c75`), which pins `nodestro-runtime` `b6b757b` (the engine on the
