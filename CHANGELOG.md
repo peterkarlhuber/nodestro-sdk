@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Default judge for designed agents (2026-10-31): the `test` extra pins `nodestro-api` at `a08c9c3` (before: `f119cfc`),
+which gives agents designed by the Agent Architect and the Workflow Architect the configured default model as their
+quality judge and reports a default model without structured output (`draft.judge_unsupported`). The OpenAPI
+document is unchanged, so the generated types are unchanged.
+
 Server deployment (2026-10-31): the `test` extra pins `nodestro-api` at `f119cfc` (before: `817c8c4`), which adds the
 `nodestro-server` command (migrations, API, workers, checks, backups) and HTTPS-only identity providers apart from
 loopback development. The desktop app the SDK talks to is unchanged; the OpenAPI document is unchanged, so the
