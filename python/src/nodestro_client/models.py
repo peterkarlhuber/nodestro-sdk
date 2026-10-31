@@ -430,11 +430,9 @@ class DraftAgentChange(TypedDict):
     node_id: str
 
 
-class Edge(TypedDict):
-    id: NotRequired[str]
-    source: str
-    source_handle: NotRequired[str | None]
-    target: str
+class EdgeLoop(TypedDict):
+    max_iterations: int
+    on_exhausted: NotRequired[Literal['fail', 'continue']]
 
 
 class EnableIn(TypedDict):
@@ -1603,6 +1601,7 @@ class ToolCallRecord(TypedDict):
     is_error: NotRequired[bool]
     name: str
     output: NotRequired[str | None]
+    provenance: NotRequired[dict[str, Any]]
     started_at: NotRequired[str]
 
 
@@ -1617,14 +1616,19 @@ class ToolDependencyRequest(TypedDict):
 
 
 class ToolInfo(TypedDict):
+    capability: NotRequired[dict[str, str] | None]
     code: NotRequired[str | None]
     created_at: NotRequired[str | None]
+    definition_hash: NotRequired[str | None]
     description: str
     function_name: NotRequired[str | None]
     input_schema: NotRequired[dict[str, Any] | None]
-    kind: Literal['builtin', 'custom', 'generated']
+    kind: Literal['builtin', 'custom', 'generated', 'mcp']
+    mcp_name: NotRequired[str | None]
     name: str
     requirement: NotRequired[str | None]
+    server_id: NotRequired[str | None]
+    server_name: NotRequired[str | None]
     tests: NotRequired[str | None]
     trust: NotRequired[Literal['trusted', 'user-authored', 'untrusted']]
     version: NotRequired[int]
@@ -2129,6 +2133,14 @@ class ConversationDetail(TypedDict):
     usage: NotRequired[Usage]
 
 
+class Edge(TypedDict):
+    id: NotRequired[str]
+    loop: NotRequired[EdgeLoop | None]
+    source: str
+    source_handle: NotRequired[str | None]
+    target: str
+
+
 class ExportCheck(TypedDict):
     dependencies: NotRequired[list[str]]
     files: NotRequired[list[str]]
@@ -2202,6 +2214,7 @@ class NodeRun(TypedDict):
     child_run_id: NotRequired[str | None]
     child_version: NotRequired[int | None]
     decision: NotRequired[DecisionRecord | None]
+    earlier: NotRequired[list[NodeRun]]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
     error_params: NotRequired[dict[str, Any]]
@@ -2209,6 +2222,7 @@ class NodeRun(TypedDict):
     files: NotRequired[list[ProvidedFile]]
     fingerprint: NotRequired[str | None]
     finished_at: NotRequired[str | None]
+    iteration: NotRequired[list[int]]
     memory: NotRequired[dict[str, str] | None]
     output: NotRequired[Any]
     prompt: NotRequired[str | None]
@@ -2814,6 +2828,7 @@ class Run(TypedDict):
     error_params: NotRequired[dict[str, Any]]
     file_ids: NotRequired[list[str]]
     finished_at: NotRequired[str | None]
+    flow_state: NotRequired[dict[str, Any] | None]
     id: NotRequired[str]
     imported_at: NotRequired[str | None]
     input: NotRequired[str]
