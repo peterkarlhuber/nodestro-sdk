@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+"Used in" (2026-10-31): the `test` extra pins `nodestro-api` at `f55bd80` (before: `a08c9c3`), which adds the read-only
+route `GET /api/used-by?kind=knowledge|tool|memory[&ref=…]`. The OpenAPI document is copied from that version
+(`make contract`); the generated types gain `Reference` and `ReferenceUser` in Python and TypeScript.
+
 Default judge for designed agents (2026-10-31): the `test` extra pins `nodestro-api` at `a08c9c3` (before: `f119cfc`),
 which gives agents designed by the Agent Architect and the Workflow Architect the configured default model as their
 quality judge and reports a default model without structured output (`draft.judge_unsupported`). The OpenAPI

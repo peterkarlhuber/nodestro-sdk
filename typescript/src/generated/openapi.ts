@@ -2736,6 +2736,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/used-by": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Used By
+         * @description Where knowledge files, tools or memory spaces are used: saved workflows, library agents and published APIs.
+         *
+         *     Only objects with at least one user are listed; with ``ref``, only that object. Read only.
+         */
+        get: operations["used_by_api_used_by_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows": {
         parameters: {
             query?: never;
@@ -7030,6 +7052,45 @@ export interface components {
              * @default true
              */
             required: boolean;
+        };
+        /**
+         * Reference
+         * @description The users of one object.
+         */
+        Reference: {
+            /** Ref */
+            ref: string;
+            /** Users */
+            users?: components["schemas"]["ReferenceUser"][];
+        };
+        /**
+         * ReferenceUser
+         * @description One place that uses the object.
+         */
+        ReferenceUser: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "workflow" | "template" | "publication";
+            /** Name */
+            name: string;
+            /** Node Id */
+            node_id?: string | null;
+            /** Node Label */
+            node_label?: string | null;
+            /** Release */
+            release?: number | null;
+            /**
+             * Role
+             * @default agent
+             * @enum {string}
+             */
+            role: "agent" | "start";
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /** Refresh */
         Refresh: {
@@ -14788,6 +14849,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UsageReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    used_by_api_used_by_get: {
+        parameters: {
+            query: {
+                kind: "knowledge" | "tool" | "memory";
+                ref?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reference"][];
                 };
             };
             /** @description Validation Error */
