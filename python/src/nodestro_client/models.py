@@ -262,6 +262,21 @@ class BuiltinSandboxStatus(TypedDict):
     system: NotRequired[str]
 
 
+class CaseOrigin(TypedDict):
+    error_code: NotRequired[str | None]
+    personal_data: NotRequired[bool]
+    proposed_at: NotRequired[str]
+    replaced: NotRequired[dict[str, int]]
+    run_at: str
+    run_id: str
+    run_status: str
+    workflow_version: NotRequired[int | None]
+
+
+class CaseProposalIn(TypedDict):
+    personal_data: NotRequired[bool]
+
+
 class CheckIn(TypedDict):
     version: NotRequired[int | None]
 
@@ -1557,6 +1572,7 @@ class TestCase(TypedDict):
     input: NotRequired[str]
     judge_criteria: NotRequired[str]
     name: NotRequired[str]
+    origin: NotRequired[CaseOrigin | None]
     values: NotRequired[dict[str, Any]]
 
 
@@ -2044,6 +2060,13 @@ class BenchmarkPlan(TypedDict):
     external_tools: NotRequired[list[str]]
     judged_cases: int
     problems: NotRequired[list[dict[str, Any]]]
+
+
+class CaseProposal(TypedDict):
+    case: TestCase
+    missing_files: NotRequired[list[str]]
+    problems: NotRequired[list[FieldError]]
+    workflow_id: str
 
 
 class CaseResult(TypedDict):
