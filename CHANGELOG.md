@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Tool approvals one-time activation, pin: nodestro-api c58d5de (2026-10-31)
+
+- Pin of `nodestro-api` at `c58d5de` (before: `e8eacd4`; runtime `a13f894`, before `40e04b4`). The regenerated types
+  add `LegacyReport.stamped_at`, `stamped_by` and `publications_stamped_at` (marking existing tool assignments is now
+  a one-time step; Evolution S-2 security acceptance) and the frozen MCP tool references of a release
+  (`McpToolRef`, `mcp_tools`). No client code changes; existing calls are unchanged.
+
 ### Teams and orchestrator, pin: nodestro-api e8eacd4 (2026-10-31)
 
 - Pin of `nodestro-api` at `e8eacd4` (before: `ac9d706`; runtime `40e04b4`, before `0aee6a9`). The regenerated types
