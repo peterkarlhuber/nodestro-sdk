@@ -69,6 +69,62 @@ class NodestroClient:
         """The settings as the interface shows them (API keys are never returned)."""
         return cast(models.Settings, self._http.json("GET", "/api/settings"))
 
+    # ---- usage and model prices --------------------------------------------------
+
+    def usage(self, *, days: int = 30) -> models.UsageReport:
+        """Tokens and costs of the last ``days`` days; ``cost_state`` tells known, partial and unknown costs apart."""
+        return cast(models.UsageReport, self._http.json("GET", "/api/usage", params={"days": days}))
+
+    def list_prices(self) -> list[models.PriceEntry]:
+        """Every effective model price with status, quality, source, check date and version."""
+        return cast(list[models.PriceEntry], self._http.json("GET", "/api/pricing"))
+
+    def pricing_status(self) -> models.PricingOverview:
+        """The active price version, the last check, staleness and open reviews."""
+        return cast(models.PricingOverview, self._http.json("GET", "/api/pricing/status"))
+
+    def pricing_history(self, *, limit: int = 200) -> list[models.PricingEvent]:
+        return cast(list[models.PricingEvent], self._http.json("GET", "/api/pricing/history", params={"limit": limit}))
+
+    def sync_prices(self) -> models.SyncReport:
+        """Check the prices against their sources now (desktop; a server answers 403)."""
+        return cast(models.SyncReport, self._http.json("POST", "/api/pricing/sync"))
+
+    def list_price_reviews(self) -> list[models.ReviewOut]:
+        return cast(list[models.ReviewOut], self._http.json("GET", "/api/pricing/reviews"))
+
+    def decide_price_review(
+        self, version: str, decision: Literal["approve", "reject"], *, note: str | None = None
+    ) -> models.SubmitResult | None:
+        """Accept or discard the held-back price changes of a review (``None`` after a rejection)."""
+        path = f"/api/pricing/reviews/{path_segment(version)}/{decision}"
+        body: models.ReviewDecision = {"note": note}
+        if decision == "reject":
+            self._http.request("POST", path, json_body=body)
+            return None
+        return cast(models.SubmitResult, self._http.json("POST", path, json_body=body))
+
+    def set_price_override(
+        self, provider: str, model: str, price: models.OverrideIn | Mapping[str, Any]
+    ) -> models.PriceEntry:
+        """An individual price (USD per million tokens) for one model; it wins over the reference price."""
+        return cast(
+            models.PriceEntry,
+            self._http.json(
+                "PUT", f"/api/pricing/overrides/{path_segment(provider)}/{_model_path(model)}", json_body=dict(price)
+            ),
+        )
+
+    def remove_price_override(self, provider: str, model: str) -> None:
+        self._http.request("DELETE", f"/api/pricing/overrides/{path_segment(provider)}/{_model_path(model)}")
+
+    def reconcile_costs(self, request: models.ReconciliationIn | Mapping[str, Any]) -> models.ReconciliationReport:
+        """Compare Nodestro's estimates with the providers' bills (``start``, ``end``; optional one-off ``keys``)."""
+        return cast(
+            models.ReconciliationReport,
+            self._http.json("POST", "/api/pricing/reconciliation", json_body=dict(request)),
+        )
+
     # ---- workflows ---------------------------------------------------------------
 
     def list_workflows(self) -> list[models.WorkflowSummary]:
@@ -262,3 +318,8 @@ class NodestroClient:
         """
         body: models.KeyIn = {"name": name, "scopes": cast(Any, list(scopes)), "publications": list(publications)}
         return cast(models.NewApiKey, self._http.json("POST", "/api/api-keys", json_body=body))
+
+
+def _model_path(model: str) -> str:
+    """A model id as the path tail of a price route: its ``/``-separated parts, each one a checked path segment."""
+    return "/".join(path_segment(part) for part in model.split("/"))

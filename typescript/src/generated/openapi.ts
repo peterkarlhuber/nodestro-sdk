@@ -1467,6 +1467,223 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Prices
+         * @description Every effective price (reference prices and overrides) with status, quality, source and check date.
+         */
+        get: operations["list_prices_api_pricing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/billing-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Billing Keys
+         * @description Which providers' billing APIs can be asked (never the keys themselves).
+         */
+        get: operations["list_billing_keys_api_pricing_billing_keys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/billing-keys/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Billing Key
+         * @description Store an admin key of a provider's billing API, encrypted (servers only).
+         */
+        put: operations["set_billing_key_api_pricing_billing_keys__provider__put"];
+        post?: never;
+        /** Remove Billing Key */
+        delete: operations["remove_billing_key_api_pricing_billing_keys__provider__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pricing History
+         * @description Price changes, syncs, reviews and overrides, newest first (a server shows its reference events too).
+         */
+        get: operations["pricing_history_api_pricing_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/overrides/{provider}/{model}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Override
+         * @description Store an individual price for one model; it wins over the reference price (history is kept).
+         */
+        put: operations["set_override_api_pricing_overrides__provider___model__put"];
+        post?: never;
+        /**
+         * Remove Override
+         * @description Go back to the reference price.
+         */
+        delete: operations["remove_override_api_pricing_overrides__provider___model__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Reconciliation
+         * @description Compare Nodestro's estimates with the providers' bills (stored or environment keys; default: 30 days).
+         */
+        get: operations["get_reconciliation_api_pricing_reconciliation_get"];
+        put?: never;
+        /**
+         * Post Reconciliation
+         * @description Like ``GET``, with thresholds and, optionally, admin keys for this one request (never stored).
+         */
+        post: operations["post_reconciliation_api_pricing_reconciliation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reviews */
+        get: operations["list_reviews_api_pricing_reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/reviews/{version}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Review */
+        post: operations["approve_review_api_pricing_reviews__version__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/reviews/{version}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Review */
+        post: operations["reject_review_api_pricing_reviews__version__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pricing Status */
+        get: operations["pricing_status_api_pricing_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Prices
+         * @description Check the prices against their sources now (desktop; a server syncs in its worker).
+         */
+        post: operations["sync_prices_api_pricing_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publications": {
         parameters: {
             query?: never;
@@ -4556,6 +4773,32 @@ export interface components {
              */
             undecided: number;
         };
+        /** BillingKeyIn */
+        BillingKeyIn: {
+            /** Admin Key */
+            admin_key: string;
+            /** Scope Ids */
+            scope_ids?: string[];
+        };
+        /** BillingKeyOut */
+        BillingKeyOut: {
+            /** Configured */
+            configured: boolean;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "stored" | "environment" | "none";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "openai" | "anthropic";
+            /** Scope Ids */
+            scope_ids?: string[];
+            /** Storable */
+            storable: boolean;
+        };
         /** Body_inspect_api_backup_inspect_post */
         Body_inspect_api_backup_inspect_post: {
             /** File */
@@ -6182,6 +6425,17 @@ export interface components {
             model: string;
             /** Output Usd Per Mtok */
             output_usd_per_mtok?: number | null;
+            /** Price Quality */
+            price_quality?: string | null;
+            /** Price Source */
+            price_source?: string | null;
+            /**
+             * Price Status
+             * @default unknown
+             */
+            price_status: string;
+            /** Price Version */
+            price_version?: string | null;
             /** Provider */
             provider: string;
             /**
@@ -6438,6 +6692,39 @@ export interface components {
             /** Files */
             files?: components["schemas"]["ResultFileSpec"][];
         };
+        /**
+         * OverrideIn
+         * @description An individual price (USD per million tokens, as decimal strings): a contract price or a correction.
+         */
+        OverrideIn: {
+            /** Cache Read Usd Per Mtok */
+            cache_read_usd_per_mtok?: number | string | null;
+            /** Cache Write 1H Usd Per Mtok */
+            cache_write_1h_usd_per_mtok?: number | string | null;
+            /** Cache Write 5M Usd Per Mtok */
+            cache_write_5m_usd_per_mtok?: number | string | null;
+            /** Input Usd Per Mtok */
+            input_usd_per_mtok: number | string;
+            /** Note */
+            note?: string | null;
+            /** Output Usd Per Mtok */
+            output_usd_per_mtok: number | string;
+            /**
+             * Quality
+             * @default contract
+             * @enum {string}
+             */
+            quality: "contract" | "verified" | "estimated" | "unverified";
+            /**
+             * Source
+             * @default custom
+             */
+            source: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** Version */
+            version?: string | null;
+        };
         /** PackageApproval */
         PackageApproval: {
             /**
@@ -6676,6 +6963,196 @@ export interface components {
             /** Workflow Id */
             workflow_id?: string | null;
         };
+        /**
+         * PriceChange
+         * @description One difference between the active reference prices and a candidate.
+         */
+        PriceChange: {
+            /**
+             * Field
+             * @default
+             */
+            field: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "added" | "removed" | "changed";
+            /** Model */
+            model: string;
+            /**
+             * Needs Review
+             * @default false
+             */
+            needs_review: boolean;
+            /** New */
+            new?: string | null;
+            /** Old */
+            old?: string | null;
+            /** Provider */
+            provider: string;
+            /** Ratio */
+            ratio?: string | null;
+        };
+        /**
+         * PriceEntry
+         * @description The effective price of one model, with everything a user needs to judge it.
+         */
+        PriceEntry: {
+            /** Cache Read Usd Per Mtok */
+            cache_read_usd_per_mtok?: string | null;
+            /** Cache Write 1H Usd Per Mtok */
+            cache_write_1h_usd_per_mtok?: string | null;
+            /** Cache Write 5M Usd Per Mtok */
+            cache_write_5m_usd_per_mtok?: string | null;
+            /** Checked At */
+            checked_at?: string | null;
+            /** Currency */
+            currency: string;
+            /**
+             * Has Long Context
+             * @default false
+             */
+            has_long_context: boolean;
+            /** Input Usd Per Mtok */
+            input_usd_per_mtok: string;
+            /** Model */
+            model: string;
+            /** Output Usd Per Mtok */
+            output_usd_per_mtok: string;
+            /**
+             * Overridden
+             * @default false
+             */
+            overridden: boolean;
+            /** Provider */
+            provider: string;
+            /** Quality */
+            quality: string;
+            reference?: components["schemas"]["PriceEntry"] | null;
+            /** Source */
+            source: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Staleness
+             * @enum {string}
+             */
+            staleness: "ok" | "warning" | "critical";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "current" | "stale" | "unknown" | "pending_review" | "custom";
+            /** Tariffs */
+            tariffs?: string[];
+            /** Version */
+            version?: string | null;
+        };
+        /**
+         * PriceIssue
+         * @description A finding of :func:`validate_snapshot`. ``error`` drops the price; ``warning`` keeps it.
+         */
+        PriceIssue: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /**
+             * Model
+             * @default
+             */
+            model: string;
+            /**
+             * Provider
+             * @default
+             */
+            provider: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning";
+        };
+        /**
+         * PricingEvent
+         * @description One entry of the price history (``price_events``).
+         */
+        PricingEvent: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Changes */
+            changes?: components["schemas"]["PriceChange"][];
+            /** Detail */
+            detail?: string | null;
+            /** Id */
+            id?: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "activated" | "unchanged" | "rejected" | "review_requested" | "review_approved" | "review_rejected" | "override_set" | "override_removed";
+            /** Model */
+            model?: string | null;
+            /** Provider */
+            provider?: string | null;
+            /** Recorded Ns */
+            recorded_ns?: number;
+            /**
+             * Scope
+             * @default reference
+             * @enum {string}
+             */
+            scope: "reference" | "workspace";
+            /** Version */
+            version?: string | null;
+        };
+        /**
+         * PricingOverview
+         * @description The catalog's state plus what the studio needs to explain it.
+         */
+        PricingOverview: {
+            /** Activated At */
+            activated_at: string | null;
+            /** Active Version */
+            active_version: string;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Critical After Days */
+            critical_after_days: number;
+            /** Last Attempt At */
+            last_attempt_at: string | null;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            /** Overrides */
+            overrides: number;
+            /** Pending Reviews */
+            pending_reviews: string[];
+            /** Price Mode */
+            price_mode: string;
+            /** Reference Read Only */
+            reference_read_only: boolean;
+            /** Refresh Interval Hours */
+            refresh_interval_hours: number;
+            /** Review Change Percent */
+            review_change_percent: number;
+            /**
+             * Staleness
+             * @enum {string}
+             */
+            staleness: "ok" | "warning" | "critical";
+            /** Sync Enabled */
+            sync_enabled: boolean;
+            /** Warn After Hours */
+            warn_after_hours: number;
+        };
         /** Problem */
         Problem: {
             /** Code */
@@ -6772,6 +7249,17 @@ export interface components {
             label: string;
             /** Needs Key */
             needs_key: boolean;
+        };
+        /** ProviderResult */
+        ProviderResult: {
+            /** Complete Until */
+            complete_until?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Provider */
+            provider: string;
         };
         /**
          * ProviderSettingsIn
@@ -7052,6 +7540,88 @@ export interface components {
              * @default true
              */
             required: boolean;
+        };
+        /** ReconciliationIn */
+        ReconciliationIn: {
+            /**
+             * Absolute Threshold Usd
+             * @default 1
+             */
+            absolute_threshold_usd: number | string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /** Keys */
+            keys?: {
+                [key: string]: components["schemas"]["BillingKeyIn"];
+            };
+            /**
+             * Relative Threshold Percent
+             * @default 5
+             */
+            relative_threshold_percent: number | string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+        };
+        /** ReconciliationReport */
+        ReconciliationReport: {
+            /** Absolute Threshold Usd */
+            absolute_threshold_usd: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /** Providers */
+            providers: components["schemas"]["ProviderResult"][];
+            /** Relative Threshold */
+            relative_threshold: string;
+            /** Rows */
+            rows: components["schemas"]["ReconciliationRow"][];
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /** Warnings */
+            warnings: number;
+        };
+        /** ReconciliationRow */
+        ReconciliationRow: {
+            /** Billed Usd */
+            billed_usd: string | null;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Difference Usd */
+            difference_usd?: string | null;
+            /** Estimated Usd */
+            estimated_usd: string | null;
+            /** Model */
+            model?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Provider */
+            provider: string;
+            /** Relative Difference */
+            relative_difference?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "warning" | "incomplete" | "pending" | "not_comparable" | "unattributed";
         };
         /**
          * Reference
@@ -7451,6 +8021,11 @@ export interface components {
              */
             language: "de" | "en" | "es" | "fr" | "pt-BR" | "it";
         };
+        /** ReviewDecision */
+        ReviewDecision: {
+            /** Note */
+            note?: string | null;
+        };
         /** ReviewItem */
         ReviewItem: {
             /** Label */
@@ -7459,6 +8034,22 @@ export interface components {
             node_id: string;
             /** Value */
             value?: unknown;
+        };
+        /**
+         * ReviewOut
+         * @description A snapshot held back because some of its changes need a person's decision.
+         */
+        ReviewOut: {
+            /** Changes */
+            changes: unknown[];
+            /** Created At */
+            created_at?: string | null;
+            /** Issues */
+            issues: unknown[];
+            /** Source */
+            source: string;
+            /** Version */
+            version: string;
         };
         /** Run */
         Run: {
@@ -8041,6 +8632,12 @@ export interface components {
              * @default false
              */
             ocr_enabled: boolean;
+            /**
+             * Price Mode
+             * @default standard
+             * @enum {string}
+             */
+            price_mode: "standard" | "strict";
             /** Providers */
             providers?: components["schemas"]["ProviderStatus"][];
             /**
@@ -8068,6 +8665,8 @@ export interface components {
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
             /** Ocr Enabled */
             ocr_enabled?: boolean | null;
+            /** Price Mode */
+            price_mode?: ("standard" | "strict") | null;
             /** Providers */
             providers?: {
                 [key: string]: components["schemas"]["ProviderSettingsIn"];
@@ -8140,6 +8739,34 @@ export interface components {
             /** Version */
             version?: string | null;
         };
+        /** SourceReport */
+        SourceReport: {
+            /**
+             * Changes
+             * @default 0
+             */
+            changes: number;
+            /** Error */
+            error?: string | null;
+            /**
+             * Held For Review
+             * @default 0
+             */
+            held_for_review: number;
+            /**
+             * Invalid
+             * @default 0
+             */
+            invalid: number;
+            /** Ok */
+            ok: boolean;
+            /** Outcome */
+            outcome?: string | null;
+            /** Source */
+            source: string;
+            /** Version */
+            version?: string | null;
+        };
         /** StartConfig */
         StartConfig: {
             /**
@@ -8208,6 +8835,27 @@ export interface components {
              * @default 0
              */
             unreferenced: number;
+        };
+        /**
+         * SubmitResult
+         * @description What :meth:`PricingService.submit` did with a candidate.
+         */
+        SubmitResult: {
+            /** Active Version */
+            active_version: string;
+            /** Changes */
+            changes?: components["schemas"]["PriceChange"][];
+            /** Issues */
+            issues?: components["schemas"]["PriceIssue"][];
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "activated" | "unchanged" | "pending_review" | "rejected";
+            /** Reason */
+            reason?: string | null;
+            /** Review Version */
+            review_version?: string | null;
         };
         /**
          * SubworkflowConfig
@@ -8288,6 +8936,27 @@ export interface components {
             name: string;
             /** Workflow Id */
             workflow_id: string;
+        };
+        /** SyncReport */
+        SyncReport: {
+            /** Active Version */
+            active_version: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /** Ran */
+            ran: boolean;
+            /** Skipped Reason */
+            skipped_reason?: string | null;
+            /** Sources */
+            sources?: components["schemas"]["SourceReport"][];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
         };
         /** TemplateAgent */
         TemplateAgent: {
@@ -8727,6 +9396,8 @@ export interface components {
              * @default 0
              */
             cache_read_input_tokens: number;
+            /** Cost Complete */
+            cost_complete?: boolean | null;
             /**
              * Estimated Cost Usd
              * @default 0
@@ -8737,16 +9408,31 @@ export interface components {
              * @default 0
              */
             input_tokens: number;
+            /** Known Cost Usd */
+            known_cost_usd?: number | null;
+            /** Missing Cost Components */
+            missing_cost_components?: string[];
             /**
              * Output Tokens
              * @default 0
              */
             output_tokens: number;
+            /** Pricing Quality */
+            pricing_quality?: string | null;
+            /** Pricing Sources */
+            pricing_sources?: string[];
+            /** Pricing Versions */
+            pricing_versions?: string[];
             /**
              * Requests
              * @default 0
              */
             requests: number;
+            /**
+             * Stale Price Requests
+             * @default 0
+             */
+            stale_price_requests: number;
             /**
              * Thinking Tokens
              * @default 0
@@ -8758,6 +9444,11 @@ export interface components {
              */
             total_tokens: number;
             /**
+             * Unpriced Requests
+             * @default 0
+             */
+            unpriced_requests: number;
+            /**
              * Web Search Requests
              * @default 0
              */
@@ -8765,6 +9456,12 @@ export interface components {
         };
         /** UsageBucket */
         UsageBucket: {
+            /**
+             * Cost State
+             * @default none
+             * @enum {string}
+             */
+            cost_state: "known" | "partial" | "unknown" | "none";
             /**
              * Estimated Cost Usd
              * @default 0
@@ -8777,8 +9474,15 @@ export interface components {
             input_tokens: number;
             /** Key */
             key: string;
+            /**
+             * Known Cost Usd
+             * @default 0
+             */
+            known_cost_usd: number;
             /** Label */
             label: string;
+            /** Missing Cost Components */
+            missing_cost_components?: string[];
             /**
              * Operations
              * @default 0
@@ -8789,6 +9493,12 @@ export interface components {
              * @default 0
              */
             output_tokens: number;
+            /** Pricing Quality */
+            pricing_quality?: string | null;
+            /** Pricing Sources */
+            pricing_sources?: string[];
+            /** Pricing Versions */
+            pricing_versions?: string[];
             /**
              * Requests
              * @default 0
@@ -8799,6 +9509,11 @@ export interface components {
              * @default 0
              */
             runs: number;
+            /**
+             * Stale Price Requests
+             * @default 0
+             */
+            stale_price_requests: number;
             /**
              * Total Tokens
              * @default 0
@@ -12230,6 +12945,400 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_prices_api_pricing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceEntry"][];
+                };
+            };
+        };
+    };
+    list_billing_keys_api_pricing_billing_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingKeyOut"][];
+                };
+            };
+        };
+    };
+    set_billing_key_api_pricing_billing_keys__provider__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "openai" | "anthropic";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingKeyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingKeyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_billing_key_api_pricing_billing_keys__provider__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "openai" | "anthropic";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_history_api_pricing_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingEvent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_override_api_pricing_overrides__provider___model__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceEntry"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_override_api_pricing_overrides__provider___model__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_reconciliation_api_pricing_reconciliation_get: {
+        parameters: {
+            query?: {
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_reconciliation_api_pricing_reconciliation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconciliationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reviews_api_pricing_reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"][];
+                };
+            };
+        };
+    };
+    approve_review_api_pricing_reviews__version__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmitResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_review_api_pricing_reviews__version__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_status_api_pricing_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingOverview"];
+                };
+            };
+        };
+    };
+    sync_prices_api_pricing_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncReport"];
                 };
             };
         };

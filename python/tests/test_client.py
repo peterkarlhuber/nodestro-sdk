@@ -311,3 +311,28 @@ def test_published_cancel_resume_versions_and_reconnect(nodestro: NodestroClient
         assert no_version.value.status == 404
         assert api.usage(days=1)["runs"] >= 2
         assert [item["run_id"] for item in api.runs(status="cancelled")] == [run["run_id"]]
+
+
+def test_model_prices_usage_and_reconciliation(nodestro: NodestroClient) -> None:
+    prices = nodestro.list_prices()
+    assert any(price["provider"] == "anthropic" and price["quality"] == "verified" for price in prices)
+    status = nodestro.pricing_status()
+    assert status["active_version"] and status["reference_read_only"] is False
+    entry = nodestro.set_price_override(
+        "openai", "org/gpt-sdk", {"input_usd_per_mtok": "1", "output_usd_per_mtok": "4", "note": "SDK test"}
+    )
+    assert entry["overridden"] is True and entry["model"] == "org/gpt-sdk" and entry["status"] == "custom"
+    assert any(event["kind"] == "override_set" for event in nodestro.pricing_history(limit=50))
+    nodestro.remove_price_override("openai", "org/gpt-sdk")
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.remove_price_override("openai", "org/gpt-sdk")
+    assert missing.value.status == 404
+    assert nodestro.list_price_reviews() == []
+    with pytest.raises(NodestroAPIError) as unknown:
+        nodestro.decide_price_review("nothing", "reject")
+    assert unknown.value.code == "pricing.review_not_found"
+    report = nodestro.usage(days=7)
+    assert report["total"]["cost_state"] in {"known", "partial", "unknown", "none"}
+    with pytest.raises(NodestroAPIError) as no_key:
+        nodestro.reconcile_costs({"start": "2026-10-01", "end": "2026-10-02"})
+    assert no_key.value.code == "pricing.billing_key_missing"

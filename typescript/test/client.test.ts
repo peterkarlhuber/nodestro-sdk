@@ -281,3 +281,29 @@ describe("published workflow API, further operations", () => {
     expect((await api.runs({ status: "cancelled" })).map((item) => item.run_id)).toEqual([run.run_id]);
   });
 });
+
+describe("model prices and usage", () => {
+  it("lists prices, keeps overrides with history and reports cost states", async () => {
+    const prices = await nodestro.listPrices();
+    expect(prices.some((price) => price.provider === "anthropic" && price.quality === "verified")).toBe(true);
+    const status = await nodestro.pricingStatus();
+    expect(status.reference_read_only).toBe(false);
+    const entry = await nodestro.setPriceOverride("openai", "org/gpt-sdk-ts", {
+      input_usd_per_mtok: "1",
+      output_usd_per_mtok: "4",
+    });
+    expect(entry.overridden).toBe(true);
+    expect(entry.model).toBe("org/gpt-sdk-ts");
+    expect((await nodestro.pricingHistory(50)).some((event) => event.kind === "override_set")).toBe(true);
+    await nodestro.removePriceOverride("openai", "org/gpt-sdk-ts");
+    const missing = await nodestro.removePriceOverride("openai", "org/gpt-sdk-ts").catch((error: unknown) => error);
+    expect((missing as NodestroAPIError).status).toBe(404);
+    expect(await nodestro.listPriceReviews()).toEqual([]);
+    const unknown = await nodestro.decidePriceReview("nothing", "reject").catch((error: unknown) => error);
+    expect((unknown as NodestroAPIError).code).toBe("pricing.review_not_found");
+    const usage = await nodestro.usage(7);
+    expect(["known", "partial", "unknown", "none"]).toContain(usage.total.cost_state);
+    const noKey = await nodestro.reconcileCosts({ start: "2026-10-01", end: "2026-10-02" }).catch((error: unknown) => error);
+    expect((noKey as NodestroAPIError).code).toBe("pricing.billing_key_missing");
+  });
+});

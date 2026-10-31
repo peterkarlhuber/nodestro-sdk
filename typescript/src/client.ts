@@ -37,6 +37,18 @@ export type Publication = Stored<Schemas["Publication"]>;
 export type PublishOut = Omit<Schemas["PublishOut"], "publication"> & { publication: Publication };
 export type NewApiKey = Schemas["NewApiKey"];
 export type KeyIn = Schemas["KeyIn"];
+export type UsageReport = Schemas["UsageReport"];
+export type PriceEntry = Schemas["PriceEntry"];
+export type PricingOverview = Schemas["PricingOverview"];
+export type PricingEvent = Schemas["PricingEvent"];
+export type SyncReport = Schemas["SyncReport"];
+export type PriceReview = Schemas["ReviewOut"];
+export type SubmitResult = Schemas["SubmitResult"];
+/** Fields with server defaults (quality, source, ...) may be left out. */
+export type OverrideIn = Pick<Schemas["OverrideIn"], "input_usd_per_mtok" | "output_usd_per_mtok"> & Partial<Schemas["OverrideIn"]>;
+/** Fields with server defaults (thresholds) may be left out. */
+export type ReconciliationIn = Pick<Schemas["ReconciliationIn"], "start" | "end"> & Partial<Schemas["ReconciliationIn"]>;
+export type ReconciliationReport = Schemas["ReconciliationReport"];
 
 /** Run states that end a run, and the state of a run waiting for a person. */
 export const FINISHED = new Set(["succeeded", "failed", "cancelled"]);
@@ -238,6 +250,60 @@ export class NodestroClient {
     return this.http.json("POST", `/api/library/${enc(templateId)}/copy`, { body });
   }
 
+  // ---- usage and model prices
+
+  /** Tokens and costs of the last `days` days; `cost_state` tells known, partial and unknown costs apart. */
+  async usage(days = 30): Promise<UsageReport> {
+    return this.http.json("GET", `/api/usage?days=${encodeURIComponent(String(days))}`);
+  }
+
+  /** Every effective model price with status, quality, source, check date and version. */
+  async listPrices(): Promise<PriceEntry[]> {
+    return this.http.json("GET", "/api/pricing");
+  }
+
+  /** The active price version, the last check, staleness and open reviews. */
+  async pricingStatus(): Promise<PricingOverview> {
+    return this.http.json("GET", "/api/pricing/status");
+  }
+
+  async pricingHistory(limit = 200): Promise<PricingEvent[]> {
+    return this.http.json("GET", `/api/pricing/history?limit=${encodeURIComponent(String(limit))}`);
+  }
+
+  /** Check the prices against their sources now (desktop; a server answers 403). */
+  async syncPrices(): Promise<SyncReport> {
+    return this.http.json("POST", "/api/pricing/sync");
+  }
+
+  async listPriceReviews(): Promise<PriceReview[]> {
+    return this.http.json("GET", "/api/pricing/reviews");
+  }
+
+  /** Accept or discard the held-back price changes of a review (`null` after a rejection). */
+  async decidePriceReview(version: string, decision: "approve" | "reject", note?: string): Promise<SubmitResult | null> {
+    const path = `/api/pricing/reviews/${enc(version)}/${decision}`;
+    if (decision === "reject") {
+      await this.http.request("POST", path, { body: { note: note ?? null } });
+      return null;
+    }
+    return this.http.json("POST", path, { body: { note: note ?? null } });
+  }
+
+  /** An individual price (USD per million tokens) for one model; it wins over the reference price. */
+  async setPriceOverride(provider: string, model: string, price: OverrideIn): Promise<PriceEntry> {
+    return this.http.json("PUT", `/api/pricing/overrides/${enc(provider)}/${modelPath(model)}`, { body: price });
+  }
+
+  async removePriceOverride(provider: string, model: string): Promise<void> {
+    await this.http.request("DELETE", `/api/pricing/overrides/${enc(provider)}/${modelPath(model)}`);
+  }
+
+  /** Compare Nodestro's estimates with the providers' bills (`start`, `end`; optional one-off `keys`). */
+  async reconcileCosts(request: ReconciliationIn): Promise<ReconciliationReport> {
+    return this.http.json("POST", "/api/pricing/reconciliation", { body: request });
+  }
+
   // ---- publishing
 
   /** Publish the workflow as an API (options: `slug`, `note`, `version`, `activate`). */
@@ -254,3 +320,8 @@ export class NodestroClient {
 
 /** One path segment (see {@link pathSegment}). */
 export const enc = pathSegment;
+
+/** A model id as the path tail of a price route: its `/`-separated parts, each one a checked path segment. */
+function modelPath(model: string): string {
+  return model.split("/").map(pathSegment).join("/");
+}
