@@ -350,3 +350,30 @@ def test_the_release_gate(nodestro: NodestroClient) -> None:
         nodestro.set_release_gate(publication["id"], {"suite_ids": ["suite_none"]})
     assert refused.value.code == "gate.suite_unknown"
     assert nodestro.set_release_gate(publication["id"], None)["gate"] is None
+
+
+def test_connected_mcp_services(nodestro: NodestroClient) -> None:
+    status = nodestro.mcp_status()
+    assert status["write_tools_enabled"] is False and status["endpoint_list"] is None
+    with pytest.raises(NodestroAPIError) as unsafe:
+        nodestro.add_mcp_server({"name": "Plain", "url": "http://mcp.example.com/mcp"})
+    assert unsafe.value.status == 400 and unsafe.value.code == "mcp.https_required"
+    server = nodestro.add_mcp_server(
+        {"name": "Docs", "url": "https://mcp.invalid/mcp", "auth": "bearer", "token": "sdk-secret-token"}
+    )
+    assert server["token_set"] is True and "sdk-secret-token" not in str(server)
+    assert server["id"] in {item["id"] for item in nodestro.list_mcp_servers()}
+    with pytest.raises(NodestroAPIError) as unreachable:
+        nodestro.discover_mcp_tools(server["id"])
+    assert unreachable.value.code in {"mcp.dns_failed", "mcp.unreachable", "mcp.unavailable"}
+    assert nodestro.list_mcp_tools(server["id"]) == []
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.decide_mcp_tool(server["id"], "search", approve=True, access="read")
+    assert missing.value.status == 404
+    changed = nodestro.update_mcp_server(server["id"], {"name": "Docs 2", "url": "https://mcp.invalid/mcp"})
+    assert changed["name"] == "Docs 2" and changed["token_set"] is True  # an omitted token is kept
+    events = nodestro.mcp_events(limit=20)
+    assert {"server_added", "server_changed"} <= {event["kind"] for event in events}
+    assert "sdk-secret-token" not in str(events)
+    nodestro.remove_mcp_server(server["id"])
+    assert server["id"] not in {item["id"] for item in nodestro.list_mcp_servers()}

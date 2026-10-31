@@ -319,3 +319,28 @@ describe("release gate", () => {
     expect((await nodestro.setReleaseGate(publication.id, null)).gate).toBeNull();
   });
 });
+
+describe("connected MCP services", () => {
+  it("adds, lists, changes and removes a server without returning its token", async () => {
+    const status = await nodestro.mcpStatus();
+    expect(status.write_tools_enabled).toBe(false);
+    const unsafe = await nodestro.addMcpServer({ name: "Plain", url: "http://mcp.example.com/mcp" }).catch((error: unknown) => error);
+    expect((unsafe as NodestroAPIError).code).toBe("mcp.https_required");
+    const server = await nodestro.addMcpServer({ name: "Docs TS", url: "https://mcp.invalid/mcp", auth: "bearer", token: "ts-secret-token" });
+    expect(server.token_set).toBe(true);
+    expect(JSON.stringify(server)).not.toContain("ts-secret-token");
+    expect((await nodestro.listMcpServers()).map((item) => item.id)).toContain(server.id);
+    const unreachable = await nodestro.discoverMcpTools(server.id).catch((error: unknown) => error);
+    expect(["mcp.dns_failed", "mcp.unreachable", "mcp.unavailable"]).toContain((unreachable as NodestroAPIError).code);
+    expect(await nodestro.listMcpTools(server.id)).toEqual([]);
+    const missing = await nodestro.decideMcpTool(server.id, "search", { approve: true, access: "read" }).catch((error: unknown) => error);
+    expect((missing as NodestroAPIError).status).toBe(404);
+    const changed = await nodestro.updateMcpServer(server.id, { name: "Docs TS 2", url: "https://mcp.invalid/mcp" });
+    expect(changed.token_set).toBe(true);
+    const events = await nodestro.mcpEvents(20);
+    expect(events.some((event) => event.kind === "server_added")).toBe(true);
+    expect(JSON.stringify(events)).not.toContain("ts-secret-token");
+    await nodestro.removeMcpServer(server.id);
+    expect((await nodestro.listMcpServers()).map((item) => item.id)).not.toContain(server.id);
+  });
+});

@@ -291,6 +291,65 @@ class NodestroClient:
         """The tools agents can use: built-in, custom and generated ones."""
         return cast(list[models.ToolInfo], self._http.json("GET", "/api/tools"))
 
+    # ---- connected MCP services ------------------------------------------------------------
+
+    def mcp_status(self) -> models.McpStatus:
+        """Whether MCP is available here: token vault, operator endpoint list, loopback, unattended runs, write gate."""
+        return cast(models.McpStatus, self._http.json("GET", "/api/mcp/status"))
+
+    def list_mcp_servers(self) -> list[models.McpServerView]:
+        """The connected MCP servers (tokens are never returned, only ``token_set`` and ``token_storage``)."""
+        return cast(list[models.McpServerView], self._http.json("GET", "/api/mcp/servers"))
+
+    def add_mcp_server(self, server: models.McpServerIn | Mapping[str, Any]) -> models.McpServerView:
+        """Connect an MCP server (``name``, ``url``, optional ``auth`` and write-only ``token``); needs ``admin``."""
+        return cast(models.McpServerView, self._http.json("POST", "/api/mcp/servers", json_body=dict(server)))
+
+    def update_mcp_server(self, server_id: str, server: models.McpServerIn | Mapping[str, Any]) -> models.McpServerView:
+        """Change a server; an omitted ``token`` keeps the stored one, ``""`` removes it."""
+        return cast(
+            models.McpServerView,
+            self._http.json("PUT", f"/api/mcp/servers/{path_segment(server_id)}", json_body=dict(server)),
+        )
+
+    def remove_mcp_server(self, server_id: str) -> None:
+        self._http.request("DELETE", f"/api/mcp/servers/{path_segment(server_id)}")
+
+    def discover_mcp_tools(self, server_id: str) -> models.McpDiscovery:
+        """Connect to the server and list its tools; new and changed definitions wait for an administrator."""
+        return cast(
+            models.McpDiscovery, self._http.json("POST", f"/api/mcp/servers/{path_segment(server_id)}/discover")
+        )
+
+    def list_mcp_tools(self, server_id: str) -> list[models.McpToolView]:
+        return cast(
+            list[models.McpToolView], self._http.json("GET", f"/api/mcp/servers/{path_segment(server_id)}/tools")
+        )
+
+    def decide_mcp_tool(
+        self,
+        server_id: str,
+        name: str,
+        *,
+        approve: bool,
+        access: Literal["read", "write", "destructive"] | None = None,
+        expected_hash: str | None = None,
+    ) -> models.McpToolView:
+        """Approve (with a classification) or reject a tool's current definition.
+
+        ``expected_hash`` is the definition hash you reviewed: the server refuses when the definition changed since."""
+        body: dict[str, Any] = {"approve": approve}
+        if access is not None:
+            body["access"] = access
+        if expected_hash is not None:
+            body["expected_hash"] = expected_hash
+        path = f"/api/mcp/servers/{path_segment(server_id)}/tools/{path_segment(name)}/decision"
+        return cast(models.McpToolView, self._http.json("POST", path, json_body=body))
+
+    def mcp_events(self, *, limit: int = 100) -> list[models.McpEvent]:
+        """The audit log of the MCP configuration (never tokens or tool arguments)."""
+        return cast(list[models.McpEvent], self._http.json("GET", "/api/mcp/events", params={"limit": limit}))
+
     def list_examples(self, language: str | None = None) -> list[models.TemplateSummary]:
         """The example library (``language``: ``de``, ``en``, ``es``, ``fr``, ``it`` or ``pt-BR``)."""
         return cast(list[models.TemplateSummary], self._http.json("GET", "/api/library", params={"language": language}))

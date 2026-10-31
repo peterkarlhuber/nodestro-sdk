@@ -32,6 +32,13 @@ export type ResultFile = Stored<Schemas["ResultFile"]>;
 export type AgentTemplate = Stored<Schemas["AgentTemplate"]>;
 export type AgentTemplateIn = Schemas["AgentTemplateIn"];
 export type ToolInfo = Schemas["ToolInfo"];
+export type McpStatus = Schemas["McpStatus"];
+export type McpServerView = Schemas["McpServerView"];
+export type McpServerIn = Schemas["McpServerIn"];
+export type McpDiscovery = Schemas["McpDiscovery"];
+export type McpToolView = Schemas["McpToolView"];
+export type McpEvent = Schemas["McpEvent"];
+export type McpAccess = "read" | "write" | "destructive";
 export type PublishIn = Schemas["PublishIn"];
 export type ReleaseGate = Schemas["ReleaseGate"];
 /** A gate as sent: `min_pass_rate` defaults to 1 (every case clean). */
@@ -246,6 +253,61 @@ export class NodestroClient {
   }
 
   /** The example library (`language`: `de`, `en`, `es`, `fr`, `it` or `pt-BR`). */
+  // ---- connected MCP services
+
+  /** Whether MCP is available here: token vault, operator endpoint list, loopback, unattended runs, write gate. */
+  async mcpStatus(): Promise<McpStatus> {
+    return this.http.json("GET", "/api/mcp/status");
+  }
+
+  /** The connected MCP servers (tokens are never returned, only `token_set` and `token_storage`). */
+  async listMcpServers(): Promise<McpServerView[]> {
+    return this.http.json("GET", "/api/mcp/servers");
+  }
+
+  /** Connect an MCP server (`name`, `url`, optional `auth` and write-only `token`); needs `admin`. */
+  async addMcpServer(server: Partial<McpServerIn> & { name: string; url: string }): Promise<McpServerView> {
+    return this.http.json("POST", "/api/mcp/servers", { body: server });
+  }
+
+  /** Change a server; an omitted `token` keeps the stored one, `""` removes it. */
+  async updateMcpServer(serverId: string, server: Partial<McpServerIn> & { name: string; url: string }): Promise<McpServerView> {
+    return this.http.json("PUT", `/api/mcp/servers/${enc(serverId)}`, { body: server });
+  }
+
+  async removeMcpServer(serverId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/mcp/servers/${enc(serverId)}`);
+  }
+
+  /** Connect to the server and list its tools; new and changed definitions wait for an administrator. */
+  async discoverMcpTools(serverId: string): Promise<McpDiscovery> {
+    return this.http.json("POST", `/api/mcp/servers/${enc(serverId)}/discover`);
+  }
+
+  async listMcpTools(serverId: string): Promise<McpToolView[]> {
+    return this.http.json("GET", `/api/mcp/servers/${enc(serverId)}/tools`);
+  }
+
+  /**
+   * Approve (with a classification) or reject a tool's current definition. `expectedHash` is the definition hash you
+   * reviewed: the server refuses when the definition changed since.
+   */
+  async decideMcpTool(
+    serverId: string,
+    name: string,
+    decision: { approve: boolean; access?: McpAccess; expectedHash?: string },
+  ): Promise<McpToolView> {
+    const body: Record<string, unknown> = { approve: decision.approve };
+    if (decision.access !== undefined) body.access = decision.access;
+    if (decision.expectedHash !== undefined) body.expected_hash = decision.expectedHash;
+    return this.http.json("POST", `/api/mcp/servers/${enc(serverId)}/tools/${enc(name)}/decision`, { body });
+  }
+
+  /** The audit log of the MCP configuration (never tokens or tool arguments). */
+  async mcpEvents(limit = 100): Promise<McpEvent[]> {
+    return this.http.json("GET", `/api/mcp/events?limit=${encodeURIComponent(String(limit))}`);
+  }
+
   async listExamples(language?: string): Promise<TemplateSummary[]> {
     return this.http.json("GET", "/api/library", { query: { language } });
   }

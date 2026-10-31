@@ -746,6 +746,83 @@ class LockedPackage(TypedDict):
     version: str
 
 
+class McpDecision(TypedDict):
+    access: NotRequired[Literal['read', 'write', 'destructive'] | None]
+    approve: bool
+    expected_hash: NotRequired[str | None]
+
+
+class McpEvent(TypedDict):
+    actor: NotRequired[str | None]
+    at: NotRequired[str]
+    details: NotRequired[dict[str, Any]]
+    id: NotRequired[str]
+    kind: Literal[
+        'server_added',
+        'server_changed',
+        'server_removed',
+        'token_changed',
+        'tools_discovered',
+        'tool_approved',
+        'tool_rejected',
+        'tool_changed',
+        'tool_removed',
+        'call_refused',
+        'oauth_connected',
+        'oauth_disconnected',
+    ]
+    server_id: NotRequired[str | None]
+    tool: NotRequired[str | None]
+
+
+class McpServerIn(TypedDict):
+    allow_loopback: NotRequired[bool]
+    auth: NotRequired[Literal['none', 'bearer', 'oauth']]
+    enabled: NotRequired[bool]
+    max_output_chars: NotRequired[int]
+    max_parallel_calls: NotRequired[int]
+    name: str
+    timeout_seconds: NotRequired[float]
+    token: NotRequired[str | None]
+    url: str
+
+
+class McpServerView(TypedDict):
+    allow_loopback: bool
+    auth: Literal['none', 'bearer', 'oauth']
+    created_at: str
+    enabled: bool
+    id: str
+    last_checked_at: str | None
+    last_error_code: str | None
+    last_error_params: dict[str, Any]
+    max_output_chars: int
+    max_parallel_calls: int
+    name: str
+    oauth: NotRequired[dict[str, Any]]
+    protocol_version: str | None
+    server_name: str | None
+    server_version: str | None
+    slug: str
+    timeout_seconds: float
+    token_set: bool
+    token_storage: Literal['none', 'vault', 'session']
+    tools_approved: NotRequired[int]
+    tools_pending: NotRequired[int]
+    tools_total: NotRequired[int]
+    updated_at: str
+    url: str
+
+
+class McpStatus(TypedDict):
+    available: bool
+    endpoint_list: list[str] | None
+    loopback_possible: bool
+    token_vault: bool
+    unattended_enabled: bool
+    write_tools_enabled: bool
+
+
 class MemoryConfig(TypedDict):
     mode: NotRequired[Literal['none', 'run', 'persistent']]
     space: NotRequired[str | None]
@@ -1631,6 +1708,15 @@ class ToolChoice(TypedDict):
     type: NotRequired[Literal['auto', 'none', 'any', 'tool']]
 
 
+class ToolDefinition(TypedDict):
+    annotations: NotRequired[dict[str, Any]]
+    description: NotRequired[str]
+    input_schema: NotRequired[dict[str, Any]]
+    name: str
+    output_schema: NotRequired[dict[str, Any] | None]
+    title: NotRequired[str | None]
+
+
 class ToolDependencyRequest(TypedDict):
     code: str
     tests: NotRequired[str]
@@ -2215,6 +2301,25 @@ class InstallState(TypedDict):
     step: NotRequired[str | None]
 
 
+class McpToolView(TypedDict):
+    access: Literal['read', 'write', 'destructive']
+    approved_at: NotRequired[str | None]
+    approved_by: NotRequired[str | None]
+    approved_definition: NotRequired[ToolDefinition | None]
+    approved_hash: NotRequired[str | None]
+    definition: ToolDefinition
+    discovered_at: str
+    hash: str
+    last_seen_at: str
+    name: str
+    refusal: NotRequired[str | None]
+    server_id: str
+    status: str
+    suggested_access: Literal['read', 'write', 'destructive']
+    tool_name: str
+    usable: bool
+
+
 class MemorySeed(TypedDict):
     explanation: str
     files: list[MemorySeedFile]
@@ -2703,6 +2808,13 @@ class GateRecord(TypedDict):
     override_by: NotRequired[str | None]
     override_reason: NotRequired[str | None]
     report: GateReport
+
+
+class McpDiscovery(TypedDict):
+    protocol_version: str | None
+    server: McpServerView
+    skipped: NotRequired[list[dict[str, str]]]
+    tools: list[McpToolView]
 
 
 class MemoryProposal(TypedDict):
