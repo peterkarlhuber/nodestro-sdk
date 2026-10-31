@@ -336,3 +336,17 @@ def test_model_prices_usage_and_reconciliation(nodestro: NodestroClient) -> None
     with pytest.raises(NodestroAPIError) as no_key:
         nodestro.reconcile_costs({"start": "2026-10-01", "end": "2026-10-02"})
     assert no_key.value.code == "pricing.billing_key_missing"
+
+
+def test_the_release_gate(nodestro: NodestroClient) -> None:
+    workflow = nodestro.create_workflow({**simple(), "name": "SDK gate"})
+    assert nodestro.release_gate(workflow["id"])["status"] == "off"
+    with pytest.raises(NodestroAPIError) as unknown:
+        nodestro.release_gate(workflow["id"], gate={"suite_ids": ["suite_none"]})
+    assert unknown.value.code == "gate.suite_unknown"
+    publication = nodestro.publish(workflow["id"], slug="sdk-gate")["publication"]
+    assert publication["gate"] is None
+    with pytest.raises(NodestroAPIError) as refused:
+        nodestro.set_release_gate(publication["id"], {"suite_ids": ["suite_none"]})
+    assert refused.value.code == "gate.suite_unknown"
+    assert nodestro.set_release_gate(publication["id"], None)["gate"] is None

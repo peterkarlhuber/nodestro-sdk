@@ -1808,6 +1808,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/publications/{publication_id}/gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Gate
+         * @description Switch the release gate of a publication on, change it, or switch it off (recorded in the history).
+         */
+        put: operations["set_gate_api_publications__publication_id__gate_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publications/{publication_id}/guide": {
         parameters: {
             query?: never;
@@ -3105,6 +3125,26 @@ export interface paths {
         put?: never;
         /** Api Check */
         post: operations["api_check_api_workflows__workflow_id__api_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/api/gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gate Report
+         * @description What the release gate says about a saved version (``status="off"`` without a gate).
+         */
+        post: operations["gate_report_api_workflows__workflow_id__api_gate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5812,6 +5852,84 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** GateCheckIn */
+        GateCheckIn: {
+            gate?: components["schemas"]["ReleaseGate"] | null;
+            /** Version */
+            version?: number | null;
+        };
+        /** GateIn */
+        GateIn: {
+            gate?: components["schemas"]["ReleaseGate"] | null;
+        };
+        /** GateItem */
+        GateItem: {
+            /** Code */
+            code: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "critical" | "deterministic" | "judge";
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /** Passed */
+            passed: boolean;
+            /**
+             * Probabilistic
+             * @default false
+             */
+            probabilistic: boolean;
+            /** Run Id */
+            run_id?: string | null;
+            /** Suite Id */
+            suite_id: string;
+            /**
+             * Suite Name
+             * @default
+             */
+            suite_name: string;
+            /** Threshold */
+            threshold?: number | null;
+            /** Value */
+            value?: number | null;
+        };
+        /**
+         * GateOverride
+         * @description The written reason for releasing despite failed non-critical gate items.
+         */
+        GateOverride: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * GateRecord
+         * @description What the gate said when a release was created, and the override if one was given.
+         */
+        GateRecord: {
+            /** Override At */
+            override_at?: string | null;
+            /** Override By */
+            override_by?: string | null;
+            /** Override Reason */
+            override_reason?: string | null;
+            report: components["schemas"]["GateReport"];
+        };
+        /** GateReport */
+        GateReport: {
+            gate?: components["schemas"]["ReleaseGate"] | null;
+            /** Items */
+            items?: components["schemas"]["GateItem"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "off" | "passed" | "overridable" | "blocked";
+            /** Workflow Version */
+            workflow_version?: number | null;
+        };
         /**
          * Guide
          * @description What the gallery and the documentation explain about one example.
@@ -7364,6 +7482,7 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            gate?: components["schemas"]["ReleaseGate"] | null;
             /** History */
             history?: components["schemas"]["PublicationEvent"][];
             /** Id */
@@ -7401,7 +7520,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "published" | "activated" | "enabled" | "disabled" | "network_on" | "network_off" | "settings" | "renamed" | "exported";
+            kind: "published" | "activated" | "enabled" | "disabled" | "network_on" | "network_off" | "settings" | "renamed" | "exported" | "gate_on" | "gate_changed" | "gate_off" | "gate_override";
         };
         /** PublicationListItem */
         PublicationListItem: {
@@ -7437,11 +7556,13 @@ export interface components {
              * @default true
              */
             activate: boolean;
+            gate?: components["schemas"]["ReleaseGate"] | null;
             /**
              * Note
              * @default
              */
             note: string;
+            override?: components["schemas"]["GateOverride"] | null;
             /** Slug */
             slug?: string | null;
             /** Version */
@@ -7715,6 +7836,7 @@ export interface components {
             created_at?: string;
             /** Digest */
             digest: string;
+            gate?: components["schemas"]["GateRecord"] | null;
             /** Id */
             id?: string;
             /**
@@ -7801,6 +7923,21 @@ export interface components {
              */
             warnings: number;
         };
+        /**
+         * ReleaseGate
+         * @description What a new release of a publication must show (opt-in per publication).
+         */
+        ReleaseGate: {
+            /** Judge Min Score */
+            judge_min_score?: number | null;
+            /**
+             * Min Pass Rate
+             * @default 1
+             */
+            min_pass_rate: number;
+            /** Suite Ids */
+            suite_ids: string[];
+        };
         /** ReleaseSummary */
         ReleaseSummary: {
             /** Active */
@@ -7816,6 +7953,8 @@ export interface components {
             created_at: string;
             /** Digest */
             digest: string;
+            /** Gate */
+            gate?: ("passed" | "overridden") | null;
             /** Id */
             id: string;
             /** Note */
@@ -13670,6 +13809,41 @@ export interface operations {
             };
         };
     };
+    set_gate_api_publications__publication_id__gate_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Publication"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_guide_api_publications__publication_id__guide_post: {
         parameters: {
             query?: never;
@@ -16346,6 +16520,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gate_report_api_workflows__workflow_id__api_gate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateCheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateReport"];
                 };
             };
             /** @description Validation Error */

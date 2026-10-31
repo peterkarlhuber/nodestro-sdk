@@ -33,6 +33,12 @@ export type AgentTemplate = Stored<Schemas["AgentTemplate"]>;
 export type AgentTemplateIn = Schemas["AgentTemplateIn"];
 export type ToolInfo = Schemas["ToolInfo"];
 export type PublishIn = Schemas["PublishIn"];
+export type ReleaseGate = Schemas["ReleaseGate"];
+/** A gate as sent: `min_pass_rate` defaults to 1 (every case clean). */
+export type ReleaseGateIn = Omit<ReleaseGate, "min_pass_rate"> & { min_pass_rate?: number };
+export type GateReport = Schemas["GateReport"];
+export type GateItem = Schemas["GateItem"];
+export type GateOverride = Schemas["GateOverride"];
 export type Publication = Stored<Schemas["Publication"]>;
 export type PublishOut = Omit<Schemas["PublishOut"], "publication"> & { publication: Publication };
 export type NewApiKey = Schemas["NewApiKey"];
@@ -306,9 +312,22 @@ export class NodestroClient {
 
   // ---- publishing
 
-  /** Publish the workflow as an API (options: `slug`, `note`, `version`, `activate`). */
+  /**
+   * Publish the workflow as an API (options: `slug`, `note`, `version`, `activate`, `gate` to switch the release gate
+   * on with this release, `override: { reason }` to release although non-critical gate items failed).
+   */
   async publish(workflowId: string, options: Partial<PublishIn> = {}): Promise<PublishOut> {
     return this.http.json("POST", `/api/workflows/${enc(workflowId)}/api/publish`, { body: options });
+  }
+
+  /** What the release gate says about a saved version (`gate`: try one before switching it on). */
+  async releaseGate(workflowId: string, options: { version?: number | null; gate?: ReleaseGateIn | null } = {}): Promise<GateReport> {
+    return this.http.json("POST", `/api/workflows/${enc(workflowId)}/api/gate`, { body: options });
+  }
+
+  /** Switch the release gate of a publication on, change it, or switch it off (`null`). */
+  async setReleaseGate(publicationId: string, gate: ReleaseGateIn | null): Promise<Publication> {
+    return this.http.json("PUT", `/api/publications/${enc(publicationId)}/gate`, { body: { gate } });
   }
 
   /** A key for published workflows; its `token` is returned only this once. `publications` are publication ids. */

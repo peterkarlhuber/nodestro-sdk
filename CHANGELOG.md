@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+Release gate (evolution plan Q-3, 2026-10-31): the `test` extra pins `nodestro-api` at `3c0ffa2` (before: `3782f19`),
+which adds the opt-in release gate of a publication. Types regenerated: `ReleaseGate`, `GateReport`, `GateItem`,
+`GateOverride`, `GateRecord`, `Publication.gate`, `Release.gate`, `ReleaseSummary.gate`, `PublishIn.gate` and
+`PublishIn.override`.
+
+- Python `NodestroClient`: `release_gate(workflow_id, version=..., gate=...)` and
+  `set_release_gate(publication_id, gate)` (`None` switches it off); `publish` documents `gate` and `override`.
+- TypeScript `NodestroClient`: `releaseGate(workflowId, { version, gate })` and `setReleaseGate(publicationId, gate)`
+  (`null` switches it off), and the types `ReleaseGate`, `ReleaseGateIn`, `GateReport`, `GateItem`, `GateOverride`.
+
 Assistant live events (2026-10-31): the `test` extra pins `nodestro-api` at `3782f19` (before: `665f1ce`), which
 fixes the payload of the assistant's live SSE events. No OpenAPI or client changes.
 

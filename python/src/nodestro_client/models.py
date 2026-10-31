@@ -533,6 +533,23 @@ class FormatsInfo(TypedDict):
     limits: dict[str, int]
 
 
+class GateItem(TypedDict):
+    code: str
+    kind: Literal['critical', 'deterministic', 'judge']
+    params: NotRequired[dict[str, Any]]
+    passed: bool
+    probabilistic: NotRequired[bool]
+    run_id: NotRequired[str | None]
+    suite_id: str
+    suite_name: NotRequired[str]
+    threshold: NotRequired[float | None]
+    value: NotRequired[float | None]
+
+
+class GateOverride(TypedDict):
+    reason: str
+
+
 class Guide(TypedDict):
     adapt: str
     flow: str
@@ -1052,6 +1069,10 @@ class PublicationEvent(TypedDict):
         'settings',
         'renamed',
         'exported',
+        'gate_on',
+        'gate_changed',
+        'gate_off',
+        'gate_override',
     ]
 
 
@@ -1070,13 +1091,6 @@ class PublicationPatch(TypedDict):
     limits: NotRequired[ApiLimits | None]
     network: NotRequired[bool | None]
     slug: NotRequired[str | None]
-
-
-class PublishIn(TypedDict):
-    activate: NotRequired[bool]
-    note: NotRequired[str]
-    slug: NotRequired[str | None]
-    version: NotRequired[int | None]
 
 
 class PythonLock(TypedDict):
@@ -1141,12 +1155,19 @@ class ReleaseCheckSummary(TypedDict):
     warnings: NotRequired[int]
 
 
+class ReleaseGate(TypedDict):
+    judge_min_score: NotRequired[float | None]
+    min_pass_rate: NotRequired[float]
+    suite_ids: list[str]
+
+
 class ReleaseSummary(TypedDict):
     active: bool
     agents: int
     approvals: int
     created_at: str
     digest: str
+    gate: NotRequired[Literal['passed', 'overridden'] | None]
     id: str
     note: str
     number: int
@@ -2108,6 +2129,22 @@ class ExportedDefinition(TypedDict):
     requirements: NotRequired[list[NeededRequirement]]
 
 
+class GateCheckIn(TypedDict):
+    gate: NotRequired[ReleaseGate | None]
+    version: NotRequired[int | None]
+
+
+class GateIn(TypedDict):
+    gate: NotRequired[ReleaseGate | None]
+
+
+class GateReport(TypedDict):
+    gate: NotRequired[ReleaseGate | None]
+    items: NotRequired[list[GateItem]]
+    status: Literal['off', 'passed', 'overridable', 'blocked']
+    workflow_version: NotRequired[int | None]
+
+
 class HTTPValidationError(TypedDict):
     detail: NotRequired[list[ValidationError]]
 
@@ -2228,6 +2265,7 @@ class Publication(TypedDict):
     created_at: NotRequired[str]
     description: NotRequired[str]
     enabled: NotRequired[bool]
+    gate: NotRequired[ReleaseGate | None]
     history: NotRequired[list[PublicationEvent]]
     id: NotRequired[str]
     limits: NotRequired[ApiLimits]
@@ -2236,6 +2274,15 @@ class Publication(TypedDict):
     slug: str
     updated_at: NotRequired[str]
     workflow_id: str
+
+
+class PublishIn(TypedDict):
+    activate: NotRequired[bool]
+    gate: NotRequired[ReleaseGate | None]
+    note: NotRequired[str]
+    override: NotRequired[GateOverride | None]
+    slug: NotRequired[str | None]
+    version: NotRequired[int | None]
 
 
 class PublishOut(TypedDict):
@@ -2594,6 +2641,13 @@ class EnableOut(TypedDict):
     publication: Publication
 
 
+class GateRecord(TypedDict):
+    override_at: NotRequired[str | None]
+    override_by: NotRequired[str | None]
+    override_reason: NotRequired[str | None]
+    report: GateReport
+
+
 class MemoryProposal(TypedDict):
     cost_usd: float | None
     seed: MemorySeed
@@ -2843,6 +2897,7 @@ class Release(TypedDict):
     check: NotRequired[ReleaseCheckSummary]
     created_at: NotRequired[str]
     digest: str
+    gate: NotRequired[GateRecord | None]
     id: NotRequired[str]
     note: NotRequired[str]
     number: int
