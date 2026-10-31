@@ -1385,6 +1385,7 @@ class ToolInfo(TypedDict):
     name: str
     requirement: NotRequired[str | None]
     tests: NotRequired[str | None]
+    trust: NotRequired[Literal['trusted', 'user-authored', 'untrusted']]
     version: NotRequired[int]
 
 
@@ -2593,6 +2594,7 @@ class ReleaseBundle(TypedDict):
     runtime: NotRequired[dict[str, str]]
     server_tools: NotRequired[list[str]]
     subworkflows: NotRequired[list[SubworkflowSnapshot]]
+    tool_trust: NotRequired[dict[str, Literal['trusted', 'user-authored', 'untrusted']]]
     tools: NotRequired[dict[str, dict[str, Any]]]
     workflow: Workflow
     workflow_id: str

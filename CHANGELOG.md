@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Sandbox policy (2026-10-31): the `test` extra pins `nodestro-api` at `cd4b198` (before: `d8ed049`). Its OpenAPI
+document adds `ToolInfo.trust` and `ReleaseBundle.tool_trust` (ADR-0006); the generated types are regenerated
+(`make contract`). Published workflow APIs are unchanged.
+
 Storage seams (2026-10-31): the `test` extra pins `nodestro-api` at `d8ed049` (before: `b794ebe`), which backs up
 and restores through the runtime's public storage methods and refuses backups of a newer database schema. Its
 OpenAPI document is unchanged, so the generated types are unchanged.
