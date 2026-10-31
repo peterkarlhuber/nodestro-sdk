@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Connected MCP services, pin: nodestro-api a06ccea (2026-10-31)
+
+- Pin of `nodestro-api` at `a06ccea` (before: `43a61cd`; same runtime `8597544`), which adds the `/api/mcp` routes
+  (ADR-0007, WP-3). The contract copy and the generated types now include `McpStatus`, `McpServerIn`,
+  `McpServerView`, `McpDiscovery`, `McpToolView`, `McpDecision`, `McpEvent` and `ToolDefinition`.
+- New client methods (Python / TypeScript): `mcp_status` / `mcpStatus`, `list_mcp_servers` / `listMcpServers`,
+  `add_mcp_server` / `addMcpServer`, `update_mcp_server` / `updateMcpServer`, `remove_mcp_server` /
+  `removeMcpServer`, `discover_mcp_tools` / `discoverMcpTools`, `list_mcp_tools` / `listMcpTools`,
+  `decide_mcp_tool` / `decideMcpTool` (with `expected_hash`, the reviewed definition) and `mcp_events` /
+  `mcpEvents`. Tokens are write-only: responses only say whether one is set and where it lives.
+
 ### Pin: nodestro-api 43a61cd (2026-10-31)
 
 - Pin of `nodestro-api` at `43a61cd` (before: `262fb4d`). That api pins `nodestro-runtime` `8597544`, which brings
