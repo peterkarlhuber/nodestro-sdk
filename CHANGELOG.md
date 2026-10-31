@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Teams and orchestrator, pin: nodestro-api e8eacd4 (2026-10-31)
+
+- Pin of `nodestro-api` at `e8eacd4` (before: `ac9d706`; runtime `40e04b4`, before `0aee6a9`). The regenerated types
+  add Adaptive Orchestration M3–M5: output contracts (`OutputNodeConfig.contract`), workflow `capabilities`, the
+  orchestrator node (`OrchestratorConfig`, `OrchestratorMember`, `OrchestratorSelect`, `NodeRun.orchestration`,
+  `child_run_ids`, `decision_usage`), `WorkflowSummary.capabilities`/`contract`, and the MCP OAuth routes (WP-6) and
+  stdio servers (WP-8). No client code changes; existing calls are unchanged.
+
 ### Tool approvals, pin: nodestro-api ac9d706 (2026-10-31)
 
 - Pin of `nodestro-api` at `ac9d706` (before: `a06ccea`; runtime `0aee6a9`, before `8597544`). The regenerated types

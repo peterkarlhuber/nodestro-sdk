@@ -1422,6 +1422,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mcp/servers/{server_id}/oauth/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign Out Oauth */
+        post: operations["sign_out_oauth_api_mcp_servers__server_id__oauth_sign_out_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp/servers/{server_id}/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Oauth
+         * @description Discover the server's authorization server, register Nodestro and return the sign-in URL (PKCE S256).
+         */
+        post: operations["start_oauth_api_mcp_servers__server_id__oauth_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mcp/servers/{server_id}/tools": {
         parameters: {
             query?: never;
@@ -5759,7 +5796,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "workflow" | "tool";
+            kind: "workflow" | "tool" | "mcp";
             /**
              * Label
              * @default
@@ -5950,7 +5987,7 @@ export interface components {
             /** Installed At */
             installed_at?: string | null;
             /** Kind */
-            kind?: ("workflow" | "tool") | null;
+            kind?: ("workflow" | "tool" | "mcp") | null;
             /**
              * Label
              * @default
@@ -6882,6 +6919,11 @@ export interface components {
             /** Tool */
             tool?: string | null;
         };
+        /** McpOAuthStart */
+        McpOAuthStart: {
+            /** Authorization Url */
+            authorization_url: string;
+        };
         /** McpServerIn */
         McpServerIn: {
             /**
@@ -6912,6 +6954,7 @@ export interface components {
             max_parallel_calls: number;
             /** Name */
             name: string;
+            stdio?: components["schemas"]["StdioCommand"] | null;
             /**
              * Timeout Seconds
              * @default 60
@@ -6919,7 +6962,16 @@ export interface components {
             timeout_seconds: number;
             /** Token */
             token?: string | null;
-            /** Url */
+            /**
+             * Transport
+             * @default http
+             * @enum {string}
+             */
+            transport: "http" | "stdio";
+            /**
+             * Url
+             * @default
+             */
             url: string;
         };
         /**
@@ -6941,6 +6993,11 @@ export interface components {
             created_at: string;
             /** Enabled */
             enabled: boolean;
+            /**
+             * Environment State
+             * @default
+             */
+            environment_state: string;
             /** Id */
             id: string;
             /** Last Checked At */
@@ -6969,6 +7026,7 @@ export interface components {
             server_version: string | null;
             /** Slug */
             slug: string;
+            stdio?: components["schemas"]["StdioCommand"] | null;
             /** Timeout Seconds */
             timeout_seconds: number;
             /** Token Set */
@@ -6993,6 +7051,12 @@ export interface components {
              * @default 0
              */
             tools_total: number;
+            /**
+             * Transport
+             * @default http
+             * @enum {string}
+             */
+            transport: "http" | "stdio";
             /**
              * Updated At
              * Format: date-time
@@ -7340,6 +7404,7 @@ export interface components {
              * @default
              */
             label: string;
+            orchestrator?: components["schemas"]["OrchestratorConfig"] | null;
             output?: components["schemas"]["OutputNodeConfig"] | null;
             position?: components["schemas"]["Position"];
             start?: components["schemas"]["StartConfig"] | null;
@@ -7349,16 +7414,19 @@ export interface components {
              * @default agent
              * @enum {string}
              */
-            type: "start" | "agent" | "output" | "condition" | "approval" | "subworkflow";
+            type: "start" | "agent" | "output" | "condition" | "approval" | "subworkflow" | "orchestrator";
         };
         /** NodeRun */
         NodeRun: {
             approval?: components["schemas"]["ApprovalRecord"] | null;
             /** Child Run Id */
             child_run_id?: string | null;
+            /** Child Run Ids */
+            child_run_ids?: string[];
             /** Child Version */
             child_version?: number | null;
             decision?: components["schemas"]["DecisionRecord"] | null;
+            decision_usage?: components["schemas"]["Usage"] | null;
             /** Earlier */
             earlier?: components["schemas"]["NodeRun"][];
             /** Error */
@@ -7381,6 +7449,10 @@ export interface components {
             /** Memory */
             memory?: {
                 [key: string]: string;
+            } | null;
+            /** Orchestration */
+            orchestration?: {
+                [key: string]: unknown;
             } | null;
             /** Output */
             output?: unknown;
@@ -7411,6 +7483,79 @@ export interface components {
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCallRecord"][];
             usage?: components["schemas"]["Usage"];
+        };
+        /**
+         * OrchestratorConfig
+         * @description An AI model that delegates the task to teams of its pool until it can answer (AO M4).
+         *
+         *     It only selects: it creates no agents and no tools, and has no tools of its own. Each chosen team
+         *     runs as a linked child run with its own budget, limits and tool approvals; the orchestrator's
+         *     decisions, reasons and the teams' results are recorded (``NodeRun.orchestration``).
+         */
+        OrchestratorConfig: {
+            /**
+             * Instructions
+             * @default
+             */
+            instructions: string;
+            /**
+             * Max Decisions
+             * @default 8
+             */
+            max_decisions: number;
+            /** Max Per Member */
+            max_per_member?: number | null;
+            /** Members */
+            members?: components["schemas"]["OrchestratorMember"][];
+            /**
+             * Model
+             * @default anthropic:claude-opus-5-5
+             */
+            model: string;
+            select?: components["schemas"]["OrchestratorSelect"] | null;
+            /**
+             * Task Template
+             * @default {{input}}
+             */
+            task_template: string;
+        };
+        /**
+         * OrchestratorMember
+         * @description A team in an orchestrator's pool: a saved workflow, run as a sub-workflow when chosen.
+         */
+        OrchestratorMember: {
+            /** Matched */
+            matched?: string[];
+            /** Version */
+            version?: number | null;
+            /**
+             * Workflow Id
+             * @default
+             */
+            workflow_id: string;
+        };
+        /**
+         * OrchestratorSelect
+         * @description Pool selection by capability (AO M5): saved workflows whose capabilities match join the pool.
+         *
+         *     The selection is made when a run (or a published release) pins its workflows, so it is fixed and
+         *     visible in the run's snapshot: every selected member names the tags it matched. Teams are ordered
+         *     by the number of matching tags, then by name; no score is invented. Workflows with errors, with
+         *     approval steps (not supported inside an orchestrator) and the workflow itself are left out.
+         */
+        OrchestratorSelect: {
+            /** Capabilities */
+            capabilities?: string[];
+            /**
+             * Done
+             * @default false
+             */
+            done: boolean;
+            /**
+             * Max Teams
+             * @default 5
+             */
+            max_teams: number;
         };
         /** Organize */
         Organize: {
@@ -7473,6 +7618,8 @@ export interface components {
         };
         /** OutputNodeConfig */
         OutputNodeConfig: {
+            /** Contract */
+            contract?: components["schemas"]["OutputField"][];
             /** Files */
             files?: components["schemas"]["ResultFileSpec"][];
         };
@@ -7624,7 +7771,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "workflow" | "tool";
+            kind: "workflow" | "tool" | "mcp";
             /**
              * Label
              * @default
@@ -8234,7 +8381,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "workflow" | "tool";
+            kind: "workflow" | "tool" | "mcp";
             /**
              * Label
              * @default
@@ -9619,6 +9766,26 @@ export interface components {
             file_ids?: string[];
         };
         /**
+         * StdioCommand
+         * @description A local MCP server started over stdio (WP-8): Python packages from PyPI, installed only after an administrator
+         *     approved their hash-pinned versions, and run with ``python -m <module> <args>`` in a container of Nodestro's
+         *     sandbox image: no network, read-only root file system, no capabilities, user ``nobody``, memory/CPU/process
+         *     limits. Never on the host.
+         */
+        StdioCommand: {
+            /** Args */
+            args?: string[];
+            /**
+             * Memory Mb
+             * @default 512
+             */
+            memory_mb: number;
+            /** Module */
+            module: string;
+            /** Requirements */
+            requirements: string[];
+        };
+        /**
          * Step
          * @description Something the assistant actually did while answering.
          */
@@ -10794,6 +10961,8 @@ export interface components {
         Workflow: {
             /** Budget Usd */
             budget_usd?: number | null;
+            /** Capabilities */
+            capabilities?: string[];
             /**
              * Created At
              * Format: date-time
@@ -10851,6 +11020,8 @@ export interface components {
         WorkflowImport: {
             /** Budget Usd */
             budget_usd?: number | null;
+            /** Capabilities */
+            capabilities?: string[];
             /**
              * Description
              * @default
@@ -10872,6 +11043,8 @@ export interface components {
         WorkflowIn: {
             /** Budget Usd */
             budget_usd?: number | null;
+            /** Capabilities */
+            capabilities?: string[];
             /**
              * Description
              * @default
@@ -10904,6 +11077,10 @@ export interface components {
         WorkflowSummary: {
             /** Agents */
             agents: number;
+            /** Capabilities */
+            capabilities?: string[];
+            /** Contract */
+            contract?: string[];
             /** Description */
             description: string;
             /** Id */
@@ -13999,6 +14176,68 @@ export interface operations {
             };
         };
     };
+    sign_out_oauth_api_mcp_servers__server_id__oauth_sign_out_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpServerView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_oauth_api_mcp_servers__server_id__oauth_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpOAuthStart"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_tools_api_mcp_servers__server_id__tools_get: {
         parameters: {
             query?: never;
@@ -15786,7 +16025,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                kind: "workflow" | "tool";
+                kind: "workflow" | "tool" | "mcp";
                 ref: string;
             };
             cookie?: never;
@@ -15820,7 +16059,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                kind: "workflow" | "tool";
+                kind: "workflow" | "tool" | "mcp";
                 ref: string;
             };
             cookie?: never;
@@ -15850,7 +16089,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                kind: "workflow" | "tool";
+                kind: "workflow" | "tool" | "mcp";
                 ref: string;
             };
             cookie?: never;

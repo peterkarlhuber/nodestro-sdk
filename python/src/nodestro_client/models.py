@@ -457,7 +457,7 @@ class EnvChange(TypedDict):
 class EnvironmentInfo(TypedDict):
     has_definition: NotRequired[bool]
     installed_at: NotRequired[str | None]
-    kind: NotRequired[Literal['workflow', 'tool'] | None]
+    kind: NotRequired[Literal['workflow', 'tool', 'mcp'] | None]
     label: NotRequired[str]
     orphaned: NotRequired[bool]
     packages: NotRequired[int]
@@ -792,43 +792,8 @@ class McpEvent(TypedDict):
     tool: NotRequired[str | None]
 
 
-class McpServerIn(TypedDict):
-    allow_loopback: NotRequired[bool]
-    auth: NotRequired[Literal['none', 'bearer', 'oauth']]
-    enabled: NotRequired[bool]
-    max_output_chars: NotRequired[int]
-    max_parallel_calls: NotRequired[int]
-    name: str
-    timeout_seconds: NotRequired[float]
-    token: NotRequired[str | None]
-    url: str
-
-
-class McpServerView(TypedDict):
-    allow_loopback: bool
-    auth: Literal['none', 'bearer', 'oauth']
-    created_at: str
-    enabled: bool
-    id: str
-    last_checked_at: str | None
-    last_error_code: str | None
-    last_error_params: dict[str, Any]
-    max_output_chars: int
-    max_parallel_calls: int
-    name: str
-    oauth: NotRequired[dict[str, Any]]
-    protocol_version: str | None
-    server_name: str | None
-    server_version: str | None
-    slug: str
-    timeout_seconds: float
-    token_set: bool
-    token_storage: Literal['none', 'vault', 'session']
-    tools_approved: NotRequired[int]
-    tools_pending: NotRequired[int]
-    tools_total: NotRequired[int]
-    updated_at: str
-    url: str
+class McpOAuthStart(TypedDict):
+    authorization_url: str
 
 
 class McpStatus(TypedDict):
@@ -935,6 +900,18 @@ class NewApiKey(TypedDict):
 
 class NewConversation(TypedDict):
     title: NotRequired[str]
+
+
+class OrchestratorMember(TypedDict):
+    matched: NotRequired[list[str]]
+    version: NotRequired[int | None]
+    workflow_id: NotRequired[str]
+
+
+class OrchestratorSelect(TypedDict):
+    capabilities: NotRequired[list[str]]
+    done: NotRequired[bool]
+    max_teams: NotRequired[int]
 
 
 class Organize(TypedDict):
@@ -1565,6 +1542,13 @@ class StartConfig(TypedDict):
     file_ids: NotRequired[list[str]]
 
 
+class StdioCommand(TypedDict):
+    args: NotRequired[list[str]]
+    memory_mb: NotRequired[int]
+    module: str
+    requirements: list[str]
+
+
 class Step(TypedDict):
     at: NotRequired[str]
     detail: NotRequired[str]
@@ -1998,6 +1982,8 @@ class WorkflowLimits(TypedDict):
 
 class WorkflowSummary(TypedDict):
     agents: int
+    capabilities: NotRequired[list[str]]
+    contract: NotRequired[list[str]]
     description: str
     id: str
     last_run_status: NotRequired[
@@ -2377,6 +2363,50 @@ class InstallState(TypedDict):
     step: NotRequired[str | None]
 
 
+class McpServerIn(TypedDict):
+    allow_loopback: NotRequired[bool]
+    auth: NotRequired[Literal['none', 'bearer', 'oauth']]
+    enabled: NotRequired[bool]
+    max_output_chars: NotRequired[int]
+    max_parallel_calls: NotRequired[int]
+    name: str
+    stdio: NotRequired[StdioCommand | None]
+    timeout_seconds: NotRequired[float]
+    token: NotRequired[str | None]
+    transport: NotRequired[Literal['http', 'stdio']]
+    url: NotRequired[str]
+
+
+class McpServerView(TypedDict):
+    allow_loopback: bool
+    auth: Literal['none', 'bearer', 'oauth']
+    created_at: str
+    enabled: bool
+    environment_state: NotRequired[str]
+    id: str
+    last_checked_at: str | None
+    last_error_code: str | None
+    last_error_params: dict[str, Any]
+    max_output_chars: int
+    max_parallel_calls: int
+    name: str
+    oauth: NotRequired[dict[str, Any]]
+    protocol_version: str | None
+    server_name: str | None
+    server_version: str | None
+    slug: str
+    stdio: NotRequired[StdioCommand | None]
+    timeout_seconds: float
+    token_set: bool
+    token_storage: Literal['none', 'vault', 'session']
+    tools_approved: NotRequired[int]
+    tools_pending: NotRequired[int]
+    tools_total: NotRequired[int]
+    transport: NotRequired[Literal['http', 'stdio']]
+    updated_at: str
+    url: str
+
+
 class McpToolView(TypedDict):
     access: Literal['read', 'write', 'destructive']
     approved_at: NotRequired[str | None]
@@ -2404,8 +2434,10 @@ class MemorySeed(TypedDict):
 class NodeRun(TypedDict):
     approval: NotRequired[ApprovalRecord | None]
     child_run_id: NotRequired[str | None]
+    child_run_ids: NotRequired[list[str]]
     child_version: NotRequired[int | None]
     decision: NotRequired[DecisionRecord | None]
+    decision_usage: NotRequired[Usage | None]
     earlier: NotRequired[list[NodeRun]]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
@@ -2416,6 +2448,7 @@ class NodeRun(TypedDict):
     finished_at: NotRequired[str | None]
     iteration: NotRequired[list[int]]
     memory: NotRequired[dict[str, str] | None]
+    orchestration: NotRequired[dict[str, Any] | None]
     output: NotRequired[Any]
     prompt: NotRequired[str | None]
     proposals: NotRequired[list[KnowledgeProposal]]
@@ -2440,6 +2473,16 @@ class NodeRun(TypedDict):
     usage: NotRequired[Usage]
 
 
+class OrchestratorConfig(TypedDict):
+    instructions: NotRequired[str]
+    max_decisions: NotRequired[int]
+    max_per_member: NotRequired[int | None]
+    members: NotRequired[list[OrchestratorMember]]
+    model: NotRequired[str]
+    select: NotRequired[OrchestratorSelect | None]
+    task_template: NotRequired[str]
+
+
 class OutputConfig(TypedDict):
     fields: NotRequired[list[OutputField]]
     mode: NotRequired[Literal['text', 'structured']]
@@ -2447,6 +2490,7 @@ class OutputConfig(TypedDict):
 
 
 class OutputNodeConfig(TypedDict):
+    contract: NotRequired[list[OutputField]]
     files: NotRequired[list[ResultFileSpec]]
 
 
@@ -2478,7 +2522,7 @@ class Plan(TypedDict):
     error: NotRequired[Problem | None]
     id: NotRequired[str]
     issues: NotRequired[list[ToolIssue]]
-    kind: Literal['workflow', 'tool']
+    kind: Literal['workflow', 'tool', 'mcp']
     label: NotRequired[str]
     lock: NotRequired[str]
     needs_approval: NotRequired[bool]
@@ -2524,7 +2568,7 @@ class PythonEnvironment(TypedDict):
     created_at: NotRequired[str]
     history: NotRequired[list[EnvChange]]
     install: NotRequired[InstallState]
-    kind: Literal['workflow', 'tool']
+    kind: Literal['workflow', 'tool', 'mcp']
     label: NotRequired[str]
     lock: NotRequired[str]
     packages: NotRequired[list[LockedPackage]]
@@ -2875,7 +2919,7 @@ class DependencyStatus(TypedDict):
     history: NotRequired[list[EnvChange]]
     install: NotRequired[InstallState]
     issues: NotRequired[list[ToolIssue]]
-    kind: Literal['workflow', 'tool']
+    kind: Literal['workflow', 'tool', 'mcp']
     label: NotRequired[str]
     needed: NotRequired[list[NeededRequirement]]
     packages: NotRequired[list[LockedPackage]]
@@ -2937,17 +2981,27 @@ class Node(TypedDict):
     condition: NotRequired[ConditionConfig | None]
     id: NotRequired[str]
     label: NotRequired[str]
+    orchestrator: NotRequired[OrchestratorConfig | None]
     output: NotRequired[OutputNodeConfig | None]
     position: NotRequired[Position]
     start: NotRequired[StartConfig | None]
     subworkflow: NotRequired[SubworkflowConfig | None]
     type: NotRequired[
-        Literal['start', 'agent', 'output', 'condition', 'approval', 'subworkflow']
+        Literal[
+            'start',
+            'agent',
+            'output',
+            'condition',
+            'approval',
+            'subworkflow',
+            'orchestrator',
+        ]
     ]
 
 
 class Workflow(TypedDict):
     budget_usd: NotRequired[float | None]
+    capabilities: NotRequired[list[str]]
     created_at: NotRequired[str]
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
@@ -2960,6 +3014,7 @@ class Workflow(TypedDict):
 
 class WorkflowImport(TypedDict):
     budget_usd: NotRequired[float | None]
+    capabilities: NotRequired[list[str]]
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
     limits: NotRequired[WorkflowLimits]
@@ -2970,6 +3025,7 @@ class WorkflowImport(TypedDict):
 
 class WorkflowIn(TypedDict):
     budget_usd: NotRequired[float | None]
+    capabilities: NotRequired[list[str]]
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
     limits: NotRequired[WorkflowLimits]
