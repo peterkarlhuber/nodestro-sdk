@@ -7098,6 +7098,10 @@ export interface components {
             server_tools?: string[];
             /** Subworkflows */
             subworkflows?: components["schemas"]["SubworkflowSnapshot"][];
+            /** Tool Trust */
+            tool_trust?: {
+                [key: string]: "trusted" | "user-authored" | "untrusted";
+            };
             /** Tools */
             tools?: {
                 [key: string]: {
@@ -8526,6 +8530,12 @@ export interface components {
             requirement?: string | null;
             /** Tests */
             tests?: string | null;
+            /**
+             * Trust
+             * @default untrusted
+             * @enum {string}
+             */
+            trust: "trusted" | "user-authored" | "untrusted";
             /**
              * Version
              * @default 1
