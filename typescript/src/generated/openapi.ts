@@ -4378,6 +4378,10 @@ export interface components {
             max_cost_usd?: number | null;
             /** Max Failures */
             max_failures?: number | null;
+            /** Model Overrides */
+            model_overrides?: {
+                [key: string]: string;
+            };
             /**
              * Name
              * @default
@@ -4662,6 +4666,10 @@ export interface components {
              */
             judge: boolean;
             judge_usage?: components["schemas"]["Usage"];
+            /** Models */
+            models?: {
+                [key: string]: string;
+            };
             /** Results */
             results?: components["schemas"]["CaseResult"][];
             /**
@@ -4703,6 +4711,10 @@ export interface components {
             max_cost_usd?: number | null;
             /** Max Failures */
             max_failures?: number | null;
+            /** Models */
+            models?: {
+                [key: string]: string;
+            };
             /** Version */
             version?: number | null;
         };
@@ -4842,6 +4854,32 @@ export interface components {
             description: string;
             /** Files */
             files: string[];
+        };
+        /**
+         * BuiltinSandboxStatus
+         * @description Whether the built-in Linux sandbox isolates AI-generated code on this computer (desktop profile only).
+         */
+        BuiltinSandboxStatus: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * System
+             * @default
+             */
+            system: string;
         };
         /** CaseComparison */
         CaseComparison: {
@@ -8600,6 +8638,7 @@ export interface components {
              * @default anthropic:claude-opus-5-5
              */
             assistant_model: string;
+            builtin_sandbox?: components["schemas"]["BuiltinSandboxStatus"];
             /**
              * Default Budget Usd
              * @default 2

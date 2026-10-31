@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Comparing models in a test series (evolution plan Q-2, 2026-10-31): the `test` extra pins `nodestro-api` at
+`665f1ce` (before: `ec860c9`). Types regenerated: `BenchmarkStart.models` and `BenchmarkRun.models` (agent node id ->
+model), `Batch.model_overrides`, and `Settings.builtin_sandbox` from runtime `45e7774`. No client method changes.
+
 Model prices and costs (PRICING-1, 2026-10-31): the `test` extra pins `nodestro-api` at `ec860c9` (before: `f55bd80`),
 which adds the `/api/pricing` routes and the cost states of `/api/usage`. Types regenerated from its OpenAPI document.
 
