@@ -199,6 +199,7 @@ class BenchmarkStart(TypedDict):
     judge: NotRequired[bool]
     max_cost_usd: NotRequired[float | None]
     max_failures: NotRequired[int | None]
+    models: NotRequired[dict[str, str]]
     version: NotRequired[int | None]
 
 
@@ -252,6 +253,13 @@ class BodyUploadKnowledgeApiKnowledgePost(TypedDict):
     collection: NotRequired[str]
     description: NotRequired[str]
     files: list[str]
+
+
+class BuiltinSandboxStatus(TypedDict):
+    available: NotRequired[bool]
+    detail: NotRequired[str]
+    reason: NotRequired[str]
+    system: NotRequired[str]
 
 
 class CheckIn(TypedDict):
@@ -1365,6 +1373,7 @@ class Settings(TypedDict):
     architect_budget_usd: NotRequired[float | None]
     architect_max_repairs: NotRequired[int]
     assistant_model: NotRequired[str]
+    builtin_sandbox: NotRequired[BuiltinSandboxStatus]
     default_budget_usd: NotRequired[float | None]
     default_model: NotRequired[str]
     default_provider: NotRequired[str]
@@ -2473,6 +2482,7 @@ class Batch(TypedDict):
     kind: NotRequired[Literal['batch', 'benchmark']]
     max_cost_usd: NotRequired[float | None]
     max_failures: NotRequired[int | None]
+    model_overrides: NotRequired[dict[str, str]]
     name: NotRequired[str]
     ref: NotRequired[str | None]
     status: NotRequired[
@@ -2493,6 +2503,7 @@ class BenchmarkRun(TypedDict):
     id: NotRequired[str]
     judge: NotRequired[bool]
     judge_usage: NotRequired[Usage]
+    models: NotRequired[dict[str, str]]
     results: NotRequired[list[CaseResult]]
     status: NotRequired[
         Literal[
