@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Desktop launch secret (2026-10-31): the `test` extra pins `nodestro-api` at `0f439ea` (before: `cd4b198`), which adds
+the desktop app's per-launch secret (`NODESTRO_LAUNCH_SECRET`). Without that variable nothing changes for SDK
+clients; the OpenAPI document is unchanged, so the generated types are unchanged.
+
 Sandbox policy (2026-10-31): the `test` extra pins `nodestro-api` at `cd4b198` (before: `d8ed049`). Its OpenAPI
 document adds `ToolInfo.trust` and `ReleaseBundle.tool_trust` (ADR-0006); the generated types are regenerated
 (`make contract`). Published workflow APIs are unchanged.
