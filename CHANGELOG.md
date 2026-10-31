@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Assistant live events (2026-10-31): the `test` extra pins `nodestro-api` at `3782f19` (before: `665f1ce`), which
+fixes the payload of the assistant's live SSE events. No OpenAPI or client changes.
+
 Comparing models in a test series (evolution plan Q-2, 2026-10-31): the `test` extra pins `nodestro-api` at
 `665f1ce` (before: `ec860c9`). Types regenerated: `BenchmarkStart.models` and `BenchmarkRun.models` (agent node id ->
 model), `Batch.model_overrides`, and `Settings.builtin_sandbox` from runtime `45e7774`. No client method changes.
