@@ -975,6 +975,17 @@ class QualityCriterion(TypedDict):
     required: NotRequired[bool]
 
 
+class ReferenceUser(TypedDict):
+    id: str
+    kind: Literal['workflow', 'template', 'publication']
+    name: str
+    node_id: NotRequired[str | None]
+    node_label: NotRequired[str | None]
+    release: NotRequired[int | None]
+    role: NotRequired[Literal['agent', 'start']]
+    workflow_id: NotRequired[str | None]
+
+
 class ReleaseCheckSummary(TypedDict):
     errors: NotRequired[int]
     infos: NotRequired[int]
@@ -2045,6 +2056,11 @@ class QualityConfig(TypedDict):
     enabled: NotRequired[bool]
     judge_model: NotRequired[str]
     max_revisions: NotRequired[int]
+
+
+class Reference(TypedDict):
+    ref: str
+    users: NotRequired[list[ReferenceUser]]
 
 
 class RunResultOut(TypedDict):
