@@ -20,10 +20,10 @@ jobs:
       run:
         working-directory: python
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -56,12 +56,22 @@ jobs:
           git diff --exit-code -- openapi python/src/nodestro_client/models.py typescript/src/generated
       - name: The wheel and sdist build and the wheel works without the API installed
         run: |
-          python -m pip install build
+          python -m pip install build==1.6.1
           python -m build --outdir "$RUNNER_TEMP/dist" .
           python -m venv "$RUNNER_TEMP/plain"
           "$RUNNER_TEMP/plain/bin/pip" install "$RUNNER_TEMP"/dist/*.whl
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/plain/bin/python" -c "import nodestro_client, importlib.util as u; assert u.find_spec('nodestro_api') is None; assert u.find_spec('nodestro_runtime') is None; print(nodestro_client.__version__)"
+      # Known vulnerabilities in the installed dependencies (as orkexa's CI checks them). Blocking: an advisory that
+      # was reviewed and cannot be fixed yet goes into PIP_AUDIT_IGNORE (space-separated IDs, with the reason here).
+      - name: Dependency audit
+        if: matrix.python == '3.13'
+        env:
+          PIP_AUDIT_IGNORE: ""
+        run: |
+          pip install pip-audit==2.10.1
+          args=(); for id in $PIP_AUDIT_IGNORE; do args+=(--ignore-vuln "$id"); done
+          pip-audit --skip-editable --progress-spinner off "${args[@]}"
 
   typescript:
     runs-on: ubuntu-latest
@@ -70,10 +80,10 @@ jobs:
       matrix:
         node: [20, 22]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -90,13 +100,18 @@ jobs:
           export GIT_CONFIG_KEY_0="url.https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/.insteadOf"
           export GIT_CONFIG_VALUE_0="https://github.com/peterkarlhuber/"
           pip install "./python[test]"
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: typescript/package-lock.json
       - working-directory: typescript
         run: npm ci
+      # Known advisories in the production dependencies of @nodestro/client (blocking).
+      - name: Dependency audit (production dependencies)
+        if: matrix.node == 22
+        working-directory: typescript
+        run: npm audit --omit=dev --audit-level=high
       - working-directory: typescript
         run: npm run typecheck
       - working-directory: typescript
