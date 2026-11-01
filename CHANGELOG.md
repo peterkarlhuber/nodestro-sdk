@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 05e449d (2026-11-01)
+
+- Pin of `nodestro-api` at `05e449d` (before: `476cfc0`; runtime `58cec5c`, before `f71086a`): fixes from the
+  independent MCP re-review. Deciding about an MCP tool call needs `admin` when it was asked as or is now classified
+  `destructive`; approving a call whose tool was classified differently since it was asked is refused (409
+  `tool.approval_stale`); the tool name `memory` is reserved. Regenerated types: no schema or client method changes.
+
 ### Pin: nodestro-api 476cfc0 (2026-11-01)
 
 - Pin of `nodestro-api` at `476cfc0` (before: `ae6cecd`; runtime `f71086a`, before `c86781b`): fixes from the
