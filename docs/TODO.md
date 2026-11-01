@@ -3,7 +3,7 @@
 > Open work for this repository: release blockers, known bugs, security follow-ups, technical debt and planned improvements.
 > GitHub issues are the source of truth for details; this file is the entry point and summary.
 >
-> **Last full review:** 2026-11-01 against `master` at `05080f6`.
+> **Last full review:** 2026-11-01 against `master` at `dbbc7e5`.
 
 ## Summary
 
@@ -11,7 +11,7 @@
 |---|---|
 | P0 Critical | 0 |
 | P1 High | 0 |
-| P2 Medium | 2 |
+| P2 Medium | 1 |
 | P3 Low | 7 |
 | P4 Optional | 4 |
 
@@ -53,14 +53,6 @@ None known.
 None known.
 
 ## Features and enhancements
-
-### SDK-001 · Live Run Chat client methods (LRC-1)
-
-- **Priority:** P2 Medium · **Status:** In progress · **Refs:** PR #46
-- **What:** Client methods for run chat and steering, with types regenerated from api #49.
-- **Next step:** Merge after api #49, re-pinned to the api merge commit, with the types regenerated
-  (`make contract`).
-- **Depends on:** nodestro-api API-015 (api #49)
 
 ### SDK-002 · `If-Match` on workflow updates and cursor paging of runs
 
@@ -127,7 +119,7 @@ None known.
 
 ### SDK-008 · CI requires a read token, so every Dependabot PR fails
 
-- **Priority:** P2 Medium · **Status:** Open · **Refs:** #47, PRs #38-#41
+- **Priority:** P2 Medium · **Status:** Open · **Refs:** #47, PRs #38-#41; same change in runtime #75 (RT-029)
 - **What:** Both CI jobs exit when `NODESTRO_READ` is empty. Dependabot runs get no secrets, and the dependencies
   are public now.
 - **Next step:** Install anonymously and keep the token optional or remove it. Then re-run #38-#41.
@@ -173,9 +165,9 @@ None known.
 
 - **Priority:** P3 Low · **Status:** Needs decision · **Refs:** `python/pyproject.toml` (`requires-python = ">=3.10"`), CI matrix 3.10/3.13
 - **What:** Python 3.10 reached end of life in October 2026, and 3.14 is not tested.
-- **Next step:** Follow the platform decision in nodestro-api API-025, then update `requires-python`, the CI matrix
-  and the README.
-- **Depends on:** nodestro-api API-025
+- **Next step:** Follow the platform decision in nodestro-runtime RT-022, then update `requires-python`, the CI
+  matrix and the README.
+- **Depends on:** nodestro-runtime RT-022
 
 ## Later optimizations
 
@@ -189,9 +181,9 @@ None known.
 
 | This repo item | Other repo | Other item | Relation |
 |---|---|---|---|
-| SDK-001 | nodestro-api | API-015 (api #49) | api merges first; SDK re-pins and regenerates |
 | SDK-005 | nodestro-api | API-012 | needs the server contract |
-| SDK-013 | nodestro-api | API-025 | one platform decision |
+| SDK-013 | nodestro-runtime | RT-022 | one platform decision, held in runtime |
+| SDK-008 | all component repositories | `NODESTRO_READ` CI change (runtime RT-029) | same change everywhere |
 | (pointer) | nodestro-api | API-016, API-017, API-018 | new API fields reach the SDK by regenerating at the next pin |
 
 ## Maintaining this file
