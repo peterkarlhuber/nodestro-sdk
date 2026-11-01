@@ -163,6 +163,8 @@ describe("published workflow API", () => {
     });
     const published = await nodestro.publish(workflow.id, { slug: "sdk-ts-form" });
     const publication = published.publication as { id: string; slug: string };
+    const offered = await nodestro.updatePublication(publication.id, { mcp_tool: true });
+    expect(offered.mcp_tool).toBe(true);
     const key = await nodestro.createApiKey("SDK TS form", ["run", "read"], [publication.id]);
     const api = new PublishedWorkflow(server, publication.slug, { apiKey: key.token });
     const refused = (await api.start({ customer: "ACME" }).catch((error: unknown) => error)) as NodestroAPIError;
@@ -337,6 +339,16 @@ describe("connected MCP services", () => {
     expect((missing as NodestroAPIError).status).toBe(404);
     const changed = await nodestro.updateMcpServer(server.id, { name: "Docs TS 2", url: "https://mcp.invalid/mcp" });
     expect(changed.token_set).toBe(true);
+    const notOAuth = await nodestro.startMcpSignIn(server.id).catch((error: unknown) => error);
+    expect((notOAuth as NodestroAPIError).code).toBe("mcp.oauth_not_configured");
+    const notLocal = await nodestro.mcpServerEnvironment(server.id).catch((error: unknown) => error);
+    expect((notLocal as NodestroAPIError).code).toBe("mcp.stdio_invalid");
+    const noPlan = await nodestro.planMcpServerEnvironment(server.id).catch((error: unknown) => error);
+    expect((noPlan as NodestroAPIError).status).toBe(400);
+    const noSignIn = await nodestro.signOutMcpServer(server.id).catch((error: unknown) => error);
+    expect((noSignIn as NodestroAPIError).code).toBe("mcp.oauth_not_configured");
+    const stats = await nodestro.mcpStats();
+    expect(stats.active_calls).toBe(0);
     const events = await nodestro.mcpEvents(20);
     expect(events.some((event) => event.kind === "server_added")).toBe(true);
     expect(JSON.stringify(events)).not.toContain("ts-secret-token");

@@ -39,6 +39,12 @@ export type McpDiscovery = Schemas["McpDiscovery"];
 export type McpToolView = Schemas["McpToolView"];
 export type McpEvent = Schemas["McpEvent"];
 export type McpAccess = "read" | "write" | "destructive";
+export type McpOAuthStart = Schemas["McpOAuthStart"];
+export type McpStats = Schemas["McpStats"];
+export type McpServerHealth = Schemas["McpServerHealth"];
+export type DependencyStatus = Schemas["DependencyStatus"];
+export type DependencyPlan = Schemas["Plan"];
+export type PublicationPatch = Schemas["PublicationPatch"];
 export type PublishIn = Schemas["PublishIn"];
 export type ReleaseGate = Schemas["ReleaseGate"];
 /** A gate as sent: `min_pass_rate` defaults to 1 (every case clean). */
@@ -303,6 +309,34 @@ export class NodestroClient {
     return this.http.json("POST", `/api/mcp/servers/${enc(serverId)}/tools/${enc(name)}/decision`, { body });
   }
 
+  /**
+   * Start the OAuth sign-in of a server with `auth: "oauth"`; open `authorization_url` in a browser. The authorization
+   * server returns to Nodestro's callback, which stores the credentials sealed.
+   */
+  async startMcpSignIn(serverId: string): Promise<McpOAuthStart> {
+    return this.http.json("POST", `/api/mcp/servers/${enc(serverId)}/oauth/start`);
+  }
+
+  /** Forget a server's OAuth credentials. */
+  async signOutMcpServer(serverId: string): Promise<McpServerView> {
+    return this.http.json("POST", `/api/mcp/servers/${enc(serverId)}/oauth/sign-out`);
+  }
+
+  /** The package environment of a local (stdio) server: approval, installation and image state. */
+  async mcpServerEnvironment(serverId: string): Promise<DependencyStatus> {
+    return this.http.json("GET", `/api/mcp/servers/${enc(serverId)}/environment`);
+  }
+
+  /** Resolve the hash-pinned package versions of a local server for review. */
+  async planMcpServerEnvironment(serverId: string): Promise<DependencyPlan> {
+    return this.http.json("POST", `/api/mcp/servers/${enc(serverId)}/environment/plan`);
+  }
+
+  /** Operational state for administrators: active calls, limits and each server's health (no secrets). */
+  async mcpStats(): Promise<McpStats> {
+    return this.http.json("GET", "/api/mcp/stats");
+  }
+
   /** The audit log of the MCP configuration (never tokens or tool arguments). */
   async mcpEvents(limit = 100): Promise<McpEvent[]> {
     return this.http.json("GET", `/api/mcp/events?limit=${encodeURIComponent(String(limit))}`);
@@ -385,6 +419,14 @@ export class NodestroClient {
   /** What the release gate says about a saved version (`gate`: try one before switching it on). */
   async releaseGate(workflowId: string, options: { version?: number | null; gate?: ReleaseGateIn | null } = {}): Promise<GateReport> {
     return this.http.json("POST", `/api/workflows/${enc(workflowId)}/api/gate`, { body: options });
+  }
+
+  /**
+   * Change a publication's slug, description, network access, limits or `mcp_tool` (offer the API as a tool of
+   * Nodestro's MCP server; it answers only when the operator switched the server on).
+   */
+  async updatePublication(publicationId: string, patch: PublicationPatch): Promise<Publication> {
+    return this.http.json("PATCH", `/api/publications/${enc(publicationId)}`, { body: patch });
   }
 
   /** Switch the release gate of a publication on, change it, or switch it off (`null`). */

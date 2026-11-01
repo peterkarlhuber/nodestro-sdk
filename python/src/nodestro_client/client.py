@@ -346,6 +346,37 @@ class NodestroClient:
         path = f"/api/mcp/servers/{path_segment(server_id)}/tools/{path_segment(name)}/decision"
         return cast(models.McpToolView, self._http.json("POST", path, json_body=body))
 
+    def start_mcp_sign_in(self, server_id: str) -> models.McpOAuthStart:
+        """Start the OAuth sign-in of a server with ``auth="oauth"``; open ``authorization_url`` in a browser. The
+        authorization server returns to Nodestro's callback, which stores the credentials sealed."""
+        return cast(
+            models.McpOAuthStart, self._http.json("POST", f"/api/mcp/servers/{path_segment(server_id)}/oauth/start")
+        )
+
+    def sign_out_mcp_server(self, server_id: str) -> models.McpServerView:
+        """Forget a server's OAuth credentials."""
+        return cast(
+            models.McpServerView,
+            self._http.json("POST", f"/api/mcp/servers/{path_segment(server_id)}/oauth/sign-out"),
+        )
+
+    def mcp_server_environment(self, server_id: str) -> models.DependencyStatus:
+        """The package environment of a local (stdio) server: approval, installation and image state."""
+        return cast(
+            models.DependencyStatus,
+            self._http.json("GET", f"/api/mcp/servers/{path_segment(server_id)}/environment"),
+        )
+
+    def plan_mcp_server_environment(self, server_id: str) -> models.Plan:
+        """Resolve the hash-pinned package versions of a local server for review (approval goes through the
+        ordinary package environment routes with scope ``mcp``)."""
+        path = f"/api/mcp/servers/{path_segment(server_id)}/environment/plan"
+        return cast(models.Plan, self._http.json("POST", path))
+
+    def mcp_stats(self) -> models.McpStats:
+        """Operational state for administrators: active calls, limits and each server's health (no secrets)."""
+        return cast(models.McpStats, self._http.json("GET", "/api/mcp/stats"))
+
     def mcp_events(self, *, limit: int = 100) -> list[models.McpEvent]:
         """The audit log of the MCP configuration (never tokens or tool arguments)."""
         return cast(list[models.McpEvent], self._http.json("GET", "/api/mcp/events", params={"limit": limit}))
@@ -382,6 +413,14 @@ class NodestroClient:
         return cast(
             models.GateReport,
             self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/api/gate", json_body=body),
+        )
+
+    def update_publication(self, publication_id: str, patch: models.PublicationPatch) -> models.Publication:
+        """Change a publication's slug, description, network access, limits or ``mcp_tool`` (offer the API as a tool
+        of Nodestro's MCP server; it answers only when the operator switched the server on)."""
+        return cast(
+            models.Publication,
+            self._http.json("PATCH", f"/api/publications/{path_segment(publication_id)}", json_body=dict(patch)),
         )
 
     def set_release_gate(self, publication_id: str, gate: models.ReleaseGate | None) -> models.Publication:

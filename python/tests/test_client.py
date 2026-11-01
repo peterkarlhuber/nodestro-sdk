@@ -148,6 +148,9 @@ def test_a_published_form_starts_with_its_values(nodestro: NodestroClient, serve
         {**simple(), "nodes": [{"id": "start", "type": "start", "start": form}, *simple()["nodes"][1:]]}
     )
     publication = nodestro.publish(workflow["id"], slug="sdk-form")["publication"]
+    assert not publication.get("mcp_tool")
+    offered = nodestro.update_publication(publication["id"], {"mcp_tool": True, "description": "Form"})
+    assert offered["mcp_tool"] is True and offered["description"] == "Form"
     key = nodestro.create_api_key("SDK form", ["run", "read"], [publication["id"]])
     with PublishedWorkflow(server, publication["slug"], api_key=key["token"]) as api:
         with pytest.raises(NodestroAPIError) as refused:
@@ -372,6 +375,20 @@ def test_connected_mcp_services(nodestro: NodestroClient) -> None:
     assert missing.value.status == 404
     changed = nodestro.update_mcp_server(server["id"], {"name": "Docs 2", "url": "https://mcp.invalid/mcp"})
     assert changed["name"] == "Docs 2" and changed["token_set"] is True  # an omitted token is kept
+    with pytest.raises(NodestroAPIError) as not_oauth:
+        nodestro.start_mcp_sign_in(server["id"])
+    assert not_oauth.value.code == "mcp.oauth_not_configured"
+    with pytest.raises(NodestroAPIError) as not_local:
+        nodestro.mcp_server_environment(server["id"])
+    assert not_local.value.code == "mcp.stdio_invalid"
+    with pytest.raises(NodestroAPIError) as no_plan:
+        nodestro.plan_mcp_server_environment(server["id"])
+    assert no_plan.value.status == 400
+    with pytest.raises(NodestroAPIError) as no_sign_in:
+        nodestro.sign_out_mcp_server(server["id"])
+    assert no_sign_in.value.code == "mcp.oauth_not_configured"
+    stats = nodestro.mcp_stats()
+    assert stats["active_calls"] == 0 and stats["limits"]["max_parallel"] >= 1
     events = nodestro.mcp_events(limit=20)
     assert {"server_added", "server_changed"} <= {event["kind"] for event in events}
     assert "sdk-secret-token" not in str(events)
