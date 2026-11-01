@@ -2432,6 +2432,7 @@ class ChatMessage(TypedDict):
 
 
 class ChatTarget(TypedDict):
+    deciding: NotRequired[bool]
     decisions: NotRequired[int]
     depth: NotRequired[int]
     label: str

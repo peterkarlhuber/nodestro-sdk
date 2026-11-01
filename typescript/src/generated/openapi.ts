@@ -5671,6 +5671,11 @@ export interface components {
          */
         ChatTarget: {
             /**
+             * Deciding
+             * @default false
+             */
+            deciding: boolean;
+            /**
              * Decisions
              * @default 0
              */

@@ -4,7 +4,7 @@
 
 ### Live run chat (LRC-1, 2026-11-01)
 
-- Pin of `nodestro-api` at `13a5ad1` (before: `db6a696`; runtime `ac0ac62`, before `d141b8f`; examples `8f7d0f3`,
+- Pin of `nodestro-api` at `3276855` (before: `db6a696`; runtime `fe6f85d`, before `d141b8f`; examples `5129d75`,
   before `660e9a9`): the live run chat and steering of orchestrators. Regenerated Python and TypeScript types:
   `RunChatView`, `RunMessage`, `ChatMessageIn`, `ChatTarget`, `ChatLimits`, `TeamActivity`, `DecisionNote`,
   `GuidanceRef`; `OrchestratorConfig.live_steering`, `NodeRun.guidance` and `current_decision`, the usage kind
