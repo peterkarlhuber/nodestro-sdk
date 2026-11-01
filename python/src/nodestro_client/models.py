@@ -565,10 +565,12 @@ class GateOverride(TypedDict):
 
 class Guide(TypedDict):
     adapt: str
+    control: str
     flow: str
     input: str
     problem: str
     result: str
+    why: str
 
 
 class GuideDecision(TypedDict):
@@ -744,6 +746,7 @@ class LegacyReport(TypedDict):
 
 
 class LibraryCopy(TypedDict):
+    integrations: NotRequired[dict[str, str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     tests: NotRequired[bool]
 
@@ -1651,7 +1654,11 @@ class SyncReport(TypedDict):
 
 class TemplateAgent(TypedDict):
     description: str
+    integrations: NotRequired[list[str]]
     judge: bool
+    kind: NotRequired[Literal['agent', 'orchestrator']]
+    knowledge: NotRequired[list[str]]
+    memory: NotRequired[bool]
     model: str
     name: str
     node_id: str
@@ -1659,6 +1666,22 @@ class TemplateAgent(TypedDict):
     role: Literal['research', 'analysis', 'planning', 'review', 'writing'] | None
     structured: bool
     tools: list[str]
+
+
+class TemplateIntegration(TypedDict):
+    description: str
+    id: str
+    kind: str
+    name: str
+    offline: str
+    setup: str
+    tools: list[str]
+
+
+class TemplateKnowledge(TypedDict):
+    description: str
+    id: str
+    name: str
 
 
 class TemplateSummary(TypedDict):
@@ -1682,6 +1705,12 @@ class TemplateSummary(TypedDict):
             'documents',
             'proposals',
             'memory',
+            'orchestrator',
+            'knowledge',
+            'integration',
+            'loop',
+            'budget',
+            'contract',
         ]
     ]
     field: str
@@ -1690,9 +1719,21 @@ class TemplateSummary(TypedDict):
     level: Literal['beginner', 'advanced']
     name: str
     number: int
-    pattern: Literal['sequential', 'parallel', 'branching']
+    pattern: Literal['sequential', 'parallel', 'branching', 'adaptive']
     sensitive: bool
+    teams: NotRequired[int]
     tools: list[str]
+
+
+class TemplateTeam(TypedDict):
+    agents: list[TemplateAgent]
+    approval: bool
+    capabilities: list[str]
+    contract: list[str]
+    description: str
+    name: str
+    parameters: list[str]
+    part_id: str
 
 
 class TestCase(TypedDict):
@@ -3259,6 +3300,7 @@ class SubworkflowSnapshot(TypedDict):
 class TemplateDetail(TypedDict):
     agent_details: list[TemplateAgent]
     agents: int
+    budget_usd: NotRequired[float | None]
     category: Literal[
         'industry', 'business', 'customers', 'knowledge', 'administration', 'private'
     ]
@@ -3278,19 +3320,29 @@ class TemplateDetail(TypedDict):
             'documents',
             'proposals',
             'memory',
+            'orchestrator',
+            'knowledge',
+            'integration',
+            'loop',
+            'budget',
+            'contract',
         ]
     ]
     field: str
     guide: Guide
     id: str
     input: str
+    integrations: NotRequired[list[TemplateIntegration]]
+    knowledge: NotRequired[list[TemplateKnowledge]]
     language: str
     level: Literal['beginner', 'advanced']
     name: str
     number: int
-    pattern: Literal['sequential', 'parallel', 'branching']
+    pattern: Literal['sequential', 'parallel', 'branching', 'adaptive']
     samples: NotRequired[list[SampleInfo]]
     sensitive: bool
+    team_details: NotRequired[list[TemplateTeam]]
+    teams: NotRequired[int]
     tests: NotRequired[list[str]]
     tools: list[str]
     workflow: WorkflowIn
