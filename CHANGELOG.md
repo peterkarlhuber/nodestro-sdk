@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 476cfc0 (2026-11-01)
+
+- Pin of `nodestro-api` at `476cfc0` (before: `ae6cecd`; runtime `f71086a`, before `c86781b`): fixes from the
+  independent MCP review. `POST /api/agents/test` also needs `edit` for a configuration that is not exactly a saved
+  one, `POST /api/tools/{name}/run` needs `edit`, deciding about a destructive MCP call needs `admin` (403
+  `access.forbidden`), approving an MCP tool needs `expected_hash` (`mcp.hash_required`). Regenerated types: only
+  route descriptions changed; no schema or client method changes.
+
 ### Pin: nodestro-api ae6cecd (2026-11-01)
 
 - Pin of `nodestro-api` at `ae6cecd` (before: `ebd99b3`; runtime `c86781b`, before `6ac4ae3`): runs paused at a
