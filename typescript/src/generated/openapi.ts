@@ -2612,6 +2612,9 @@ export interface paths {
         /**
          * List Runs
          * @description Stored runs, newest first; sub-workflow runs only with ``include_children`` (they belong to a parent).
+         *
+         *     Paging (AX-25): the answer stays a list; ``X-Has-More`` says whether older runs match, and ``X-Next-Before`` is
+         *     the cursor for ``before`` that continues with them.
          */
         get: operations["list_runs_api_runs_get"];
         put?: never;
@@ -3429,7 +3432,11 @@ export interface paths {
         /** List Workflows */
         get: operations["list_workflows_api_workflows_get"];
         put?: never;
-        /** Create Workflow */
+        /**
+         * Create Workflow
+         * @description Create a workflow. A connection to a node that does not exist is refused (400 ``workflow.edge_dangling``),
+         *     as are two nodes with one id (``workflow.node_duplicate``).
+         */
         post: operations["create_workflow_api_workflows_post"];
         delete?: never;
         options?: never;
@@ -3471,6 +3478,9 @@ export interface paths {
         /**
          * Import Workflow
          * @description Import an exported workflow as a new copy (new id).
+         *
+         *     A file that is not a workflow export (no ``nodes`` list) is refused with 400 ``workflow.import_invalid``; a
+         *     graph the check finds broken with its code (``workflow.edge_dangling``, ``workflow.node_duplicate``).
          */
         post: operations["import_workflow_api_workflows_import_post"];
         delete?: never;
@@ -3511,10 +3521,19 @@ export interface paths {
         /**
          * Update Workflow
          * @description Save a workflow; a changed workflow becomes the next version (``note`` describes it).
+         *
+         *     The revision of a workflow is its ``updated_at`` (AD-07). A client that sends it as ``If-Match`` saves only
+         *     when nobody saved in between; otherwise the answer is 409 ``workflow.conflict`` with the current revision in
+         *     ``params.updated_at``.
          */
         put: operations["update_workflow_api_workflows__workflow_id__put"];
         post?: never;
-        /** Delete Workflow */
+        /**
+         * Delete Workflow
+         * @description Delete a workflow with its versions, schedules, test series and published APIs.
+         *
+         *     Refused with 409 ``workflow.runs_active`` while runs of the workflow are queued or running.
+         */
         delete: operations["delete_workflow_api_workflows__workflow_id__delete"];
         options?: never;
         head?: never;
@@ -7471,6 +7490,12 @@ export interface components {
             library_version: string;
             /** Models */
             models: components["schemas"]["ModelInfo"][];
+            /**
+             * Profile
+             * @default desktop
+             * @enum {string}
+             */
+            profile: "desktop" | "server" | "local-container";
             /** Providers */
             providers: components["schemas"]["ProviderInfo"][];
             /** Server Tools */
@@ -9411,6 +9436,8 @@ export interface components {
             values?: {
                 [key: string]: unknown;
             };
+            /** Warnings */
+            warnings?: components["schemas"]["RunWarning"][];
             workflow: components["schemas"]["Workflow"];
             /** Workflow Id */
             workflow_id: string;
@@ -9550,12 +9577,35 @@ export interface components {
             /** Trigger Ref */
             trigger_ref?: string | null;
             usage: components["schemas"]["Usage"];
+            /** Warnings */
+            warnings?: components["schemas"]["RunWarning"][];
             /** Workflow Id */
             workflow_id: string;
             /** Workflow Name */
             workflow_name: string;
             /** Workflow Version */
             workflow_version?: number | null;
+        };
+        /**
+         * RunWarning
+         * @description Something a run that ended went without (AD-03): e.g. a tool call that was refused, timed out or failed.
+         *
+         *     ``code`` is the call's problem code (``tool.approval_rejected``, ``tool.approval_timeout``, ``tool.not_granted``,
+         *     ``mcp.unreachable``, ...; ``tool.failed`` when the tool's error has no code); ``count`` calls of ``tool`` in
+         *     ``node_id`` had it.
+         */
+        RunWarning: {
+            /** Code */
+            code: string;
+            /**
+             * Count
+             * @default 1
+             */
+            count: number;
+            /** Node Id */
+            node_id: string;
+            /** Tool */
+            tool?: string | null;
         };
         /**
          * SampleInfo
@@ -16846,6 +16896,8 @@ export interface operations {
                 limit?: number;
                 include_children?: boolean;
                 trigger_ref?: string | null;
+                /** @description Only runs older than this cursor: the ``X-Next-Before`` header of the previous page (``<created_at>|<run id>``), or a time (ISO 8601). */
+                before?: string | null;
             };
             header?: never;
             path?: never;
@@ -16856,6 +16908,10 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description ``true`` when older runs match than this page holds */
+                    "X-Has-More"?: "true" | "false";
+                    /** @description The ``before`` cursor of the next (older) page; only with ``X-Has-More: true`` */
+                    "X-Next-Before"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -18694,7 +18750,10 @@ export interface operations {
             query?: {
                 note?: string;
             };
-            header?: never;
+            header?: {
+                /** @description The revision the edit is based on: the workflow's ``updated_at`` as read (quotes optional). A save based on an older revision is refused with 409 ``workflow.conflict``; without the header the save always applies. */
+                "if-match"?: string | null;
+            };
             path: {
                 workflow_id: string;
             };
@@ -18714,6 +18773,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Workflow"];
                 };
+            };
+            /** @description ``workflow.conflict``: the workflow changed since the revision in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

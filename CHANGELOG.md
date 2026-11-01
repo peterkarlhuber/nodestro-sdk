@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Pin: nodestro-api e16202d (2026-11-01)
+
+- Pin of `nodestro-api` at `e16202d` (before: `870ba5f`; runtime `6eacec1`, before `58cec5c`; examples `e370567`):
+  fixes from the internal backend audit. Regenerated Python and TypeScript types: `Meta.profile`
+  (`desktop`, `local-container`, `server`), `Run.warnings` and `RunSummary.warnings` (`RunWarning`), the optional
+  `If-Match` header and 409 `workflow.conflict` of `PUT /api/workflows/{id}`, and the `before` query with the
+  `X-Has-More` / `X-Next-Before` headers of `GET /api/runs`. No new client methods; `update_workflow` and run
+  paging do not use the new options yet.
+
 ### Pin: nodestro-api 870ba5f (2026-11-01)
 
 - Pin of `nodestro-api` at `870ba5f` (before: `05e449d`; examples `5e2d532`, before `3429f5b`): example library
