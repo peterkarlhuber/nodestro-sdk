@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 2948bb3 (2026-11-01)
+
+- Pin of `nodestro-api` at `2948bb3` (before: `a233d57`; runtime `1bc3924`, before `2d55242`): MCP resources (WP-10)
+  are read through one approved tool, `resources/read`, over the existing routes. The OpenAPI document is unchanged,
+  so the types are the same.
+
 ### MCP sign-in, local servers, operation and MCP tool offer (2026-11-01)
 
 - Python: `start_mcp_sign_in`, `sign_out_mcp_server`, `mcp_server_environment`, `plan_mcp_server_environment`,
