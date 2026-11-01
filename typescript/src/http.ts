@@ -348,3 +348,13 @@ export class EventParser {
     }
   }
 }
+
+/**
+ * A new idempotency key: 128 random bits as 32 hex digits. `crypto.getRandomValues` exists in
+ * Node.js 20+ and in every browser page; `crypto.randomUUID` only in secure contexts (HTTPS,
+ * localhost), so a page served over plain HTTP in a local network could not start runs with it.
+ */
+export function newIdempotencyKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}

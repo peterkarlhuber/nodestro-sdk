@@ -6,6 +6,7 @@ Nodestro is multilingual, and the assertions look for them.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import pytest
@@ -394,3 +395,99 @@ def test_connected_mcp_services(nodestro: NodestroClient) -> None:
     assert "sdk-secret-token" not in str(events)
     nodestro.remove_mcp_server(server["id"])
     assert server["id"] not in {item["id"] for item in nodestro.list_mcp_servers()}
+
+
+# ---- live run chat -------------------------------------------------------------------------
+
+
+def until(probe: Any, timeout: float = 30.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if probe():
+            return
+        time.sleep(0.1)
+    raise AssertionError("condition not reached")
+
+
+def orchestrated_run(nodestro: NodestroClient) -> str:
+    """An orchestrator whose team waits at an approval: the run stays paused until the test decides."""
+    team = nodestro.create_workflow(
+        {
+            "name": "SDK Team",
+            "description": "schreibt Entwürfe",
+            "nodes": [
+                {"id": "start", "type": "start"},
+                agent("drafter", "DRAFTER"),
+                {"id": "check", "type": "approval", "label": "Prüfen", "approval": {"on_reject": "branch"}},
+                {"id": "out", "type": "output"},
+            ],
+            "edges": [edge("start", "drafter"), edge("drafter", "check"), edge("check", "out", "approved")],
+        }
+    )
+    lead = nodestro.create_workflow(
+        {
+            "name": "SDK Lead",
+            "nodes": [
+                {"id": "start", "type": "start"},
+                {
+                    "id": "lead",
+                    "type": "orchestrator",
+                    "label": "Lead",
+                    "orchestrator": {"members": [{"workflow_id": team["id"]}]},
+                },
+            ],
+            "edges": [edge("start", "lead")],
+        }
+    )
+    run = nodestro.start_run(lead["id"], input="Angebot")
+    assert nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)["status"] == "paused"
+    return run["id"]
+
+
+def test_the_live_run_chat(nodestro: NodestroClient) -> None:
+    run_id = orchestrated_run(nodestro)
+    view = nodestro.run_chat(run_id)
+    assert view["active"] and view["run_status"] == "paused" and view["messages"] == []
+    (target,) = view["targets"]
+    assert (target["run_id"], target["node_id"], target["label"]) == (run_id, "lead", "Lead")
+    assert target.get("steering") and target["teams"][0]["status"] == "paused"
+
+    order = {"kind": "instruction", "target_run_id": run_id, "node_id": "lead", "content": "Kurz halten"}
+    sent = nodestro.send_run_chat_message(run_id, **order, client_id="sdk-tab-1")  # type: ignore[arg-type]
+    assert sent["status"] == "queued" and not sent.get("client_id")
+    again = nodestro.send_run_chat_message(run_id, **order, client_id="sdk-tab-1")  # type: ignore[arg-type]
+    assert again["id"] == sent["id"]
+    with pytest.raises(NodestroAPIError) as reused:
+        nodestro.send_run_chat_message(
+            run_id, kind="instruction", target_run_id=run_id, node_id="lead", content="Anders", client_id="sdk-tab-1"
+        )
+    assert reused.value.status == 409 and reused.value.code == "run_chat.client_id_reused"
+
+    asked = nodestro.send_run_chat_message(
+        run_id, kind="question", target_run_id=run_id, node_id="lead", content="Wo stehen wir?"
+    )
+    assert asked["status"] == "pending"
+    until(lambda: nodestro.run_chat_message(run_id, asked["id"])["status"] == "answered")
+    messages = nodestro.run_chat(run_id)["messages"]
+    answer = next(item for item in messages if item["kind"] == "answer")
+    assert answer["reply_to"] == asked["id"] and "wartet auf eine Freigabe" in answer["content"]
+    assert [item["id"] for item in messages if item["kind"] == "instruction"] == [sent["id"]]
+
+    (waiting,) = [item for item in nodestro.list_approvals() if item["root_run_id"] == run_id]
+    nodestro.decide_approval(waiting["run_id"], "check", "approved")
+    assert nodestro.wait_for_run(run_id, timeout=30, poll=0.1)["status"] == "succeeded"
+    until(lambda: nodestro.run_chat_message(run_id, sent["id"])["status"] == "considered")
+
+    events = list(nodestro.run_chat_events(run_id, timeout=30))
+    assert [event.event for event in events] == ["snapshot", "end"]
+    assert events[0].data["run_id"] == run_id and not events[0].data["active"]
+    assert events[-1].data == {"status": "succeeded"}
+
+    with pytest.raises(NodestroAPIError) as ended:
+        nodestro.send_run_chat_message(
+            run_id, kind="question", target_run_id=run_id, node_id="lead", content="Und jetzt?"
+        )
+    assert ended.value.status == 409 and ended.value.code == "run_chat.run_not_active"
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.run_chat_message(run_id, "msg_does_not_exist")
+    assert missing.value.status == 404

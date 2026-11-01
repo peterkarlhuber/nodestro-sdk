@@ -8,7 +8,7 @@
 
 import type { components } from "./generated/openapi.js";
 import { type NodestroClientError, NodestroRunFailed } from "./errors.js";
-import { type ClientOptions, type ServerEvent, Transport, pathSegment, pollUntil } from "./http.js";
+import { type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pathSegment, pollUntil } from "./http.js";
 
 export type Schemas = components["schemas"];
 export type Meta = Schemas["Meta"];
@@ -68,6 +68,13 @@ export type OverrideIn = Pick<Schemas["OverrideIn"], "input_usd_per_mtok" | "out
 /** Fields with server defaults (thresholds) may be left out. */
 export type ReconciliationIn = Pick<Schemas["ReconciliationIn"], "start" | "end"> & Partial<Schemas["ReconciliationIn"]>;
 export type ReconciliationReport = Schemas["ReconciliationReport"];
+export type RunChatView = Schemas["RunChatView"];
+export type RunMessage = Schemas["RunMessage"];
+export type ChatMessageIn = Schemas["ChatMessageIn"];
+export type ChatTarget = Schemas["ChatTarget"];
+export type ChatLimits = Schemas["ChatLimits"];
+export type TeamActivity = Schemas["TeamActivity"];
+export type DecisionNote = Schemas["DecisionNote"];
 
 /** Run states that end a run, and the state of a run waiting for a person. */
 export const FINISHED = new Set(["succeeded", "failed", "cancelled"]);
@@ -89,7 +96,7 @@ export interface WaitOptions {
  *
  * `baseUrl` is the address of the installation (`http` or `https`, host, optional port and path
  * prefix; no query). Reads are retried after connection errors and 502/503/504, a request that
- * changes something never. Throws a `TypeError` or `RangeError` for invalid options or ids (`""`,
+ * changes something never (except run chat messages, which carry a `client_id`). Throws a `TypeError` or `RangeError` for invalid options or ids (`""`,
  * `.`, `..`); every other error is a {@link NodestroClientError}.
  */
 export class NodestroClient {
@@ -227,6 +234,45 @@ export class NodestroClient {
       confirm_side_effects: options.confirmSideEffects ?? false,
     };
     return this.http.json("POST", `/api/runs/${enc(runId)}/resume`, { body });
+  }
+
+  // ---- live run chat
+
+  /**
+   * The live chat of a run: messages, the orchestrators one can talk to (with what their teams do now) and the
+   * limits. `runId` may be the top-level run or any run below it; the chat belongs to the top-level run.
+   */
+  async runChat(runId: string): Promise<RunChatView> {
+    return this.http.json("GET", `/api/runs/${enc(runId)}/chat`);
+  }
+
+  /**
+   * Ask a question about the run (answered from the stored run state; it changes nothing) or give the orchestrator
+   * `node_id` of `target_run_id` an instruction for its next decision.
+   *
+   * Every message carries a `client_id` (a new random one unless given), so the automatic retry after a lost answer
+   * or a 502/503/504 returns the stored message instead of sending a second one. Pass your own key (at most 100 of
+   * `A-Z a-z 0-9 . _ : -`) to make your own retries safe too; the same key for another message is refused (409
+   * `run_chat.client_id_reused`). The answer to a question arrives later as a message of kind `answer`.
+   */
+  async sendRunChatMessage(runId: string, body: ChatMessageIn): Promise<RunMessage> {
+    const sent: ChatMessageIn = { ...body, client_id: body.client_id ?? newIdempotencyKey() };
+    return this.http.json("POST", `/api/runs/${enc(runId)}/chat/messages`, { body: sent, retryUnsafe: true });
+  }
+
+  /** One message of the run's chat (e.g. to see whether a question was answered). */
+  async runChatMessage(runId: string, messageId: string): Promise<RunMessage> {
+    return this.http.json("GET", `/api/runs/${enc(runId)}/chat/messages/${enc(messageId)}`);
+  }
+
+  /**
+   * The live events of a run's chat: `snapshot` (the whole view, on every connect), `message` (a new or changed
+   * message), `targets` (what the orchestrators do now), `end` (the run ended and no answer is pending, or access
+   * ended). A reconnect gets a new snapshot. Leaving the `for await` loop (or aborting `signal`) closes the
+   * connection.
+   */
+  async *runChatEvents(runId: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<ServerEvent> {
+    yield* this.http.events(`/api/runs/${enc(runId)}/chat/events`, options);
   }
 
   // ---- agents, tools, examples

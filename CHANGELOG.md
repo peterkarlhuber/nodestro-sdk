@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Live run chat (LRC-1, 2026-11-01)
+
+- Pin of `nodestro-api` at `fb7f438` (before: `4e2c8cd`; runtime `a42b672`, before `ac96c6f`; examples `ebe899a`,
+  before `dcad0d1`): the live run chat and steering of orchestrators. Regenerated Python and TypeScript types:
+  `RunChatView`, `RunMessage`, `ChatMessageIn`, `ChatTarget`, `ChatLimits`, `TeamActivity`, `DecisionNote`,
+  `GuidanceRef`; `OrchestratorConfig.live_steering`, `NodeRun.guidance` and `current_decision`, the usage kind
+  `run_chat`.
+- New client methods: `run_chat` / `runChat`, `send_run_chat_message` / `sendRunChatMessage`, `run_chat_message` /
+  `runChatMessage` and the event stream `run_chat_events` / `runChatEvents` (`snapshot`, `message`, `targets`,
+  `end`). A message without `client_id` gets a random one, so the automatic retry after a lost answer or a
+  502/503/504 returns the stored message instead of sending it twice; other changes are still never retried.
+- TypeScript: `newIdempotencyKey` moved to the HTTP layer (still exported under the same name).
+- The test server (`scripts/test_server.py`) scripts an orchestrator, a team draft (`DRAFTER`) and the chat's
+  answer model.
+
 ### Amazon Bedrock: nodestro-api 4e2c8cd (2026-11-01, branch)
 
 - Test pin of `nodestro-api` at `4e2c8cd` (before: `db6a696`; runtime `ac96c6f`). Types regenerated

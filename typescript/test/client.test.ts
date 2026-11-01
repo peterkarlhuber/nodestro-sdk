@@ -356,3 +356,92 @@ describe("connected MCP services", () => {
     expect((await nodestro.listMcpServers()).map((item) => item.id)).not.toContain(server.id);
   });
 });
+
+async function until(probe: () => Promise<boolean>, timeoutMs = 30_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await probe()) return;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  throw new Error("condition not reached");
+}
+
+/** An orchestrator whose team waits at an approval: the run stays paused until the test decides. */
+async function orchestratedRun(): Promise<string> {
+  const team = await nodestro.createWorkflow({
+    name: "SDK Team TS",
+    description: "schreibt Entwürfe",
+    nodes: [
+      { id: "start", type: "start" },
+      agent("drafter", "DRAFTER"),
+      { id: "check", type: "approval", label: "Prüfen", approval: { on_reject: "branch" } },
+      { id: "out", type: "output" },
+    ],
+    edges: [edge("start", "drafter"), edge("drafter", "check"), edge("check", "out", "approved")],
+  });
+  const lead = await nodestro.createWorkflow({
+    name: "SDK Lead TS",
+    nodes: [
+      { id: "start", type: "start" },
+      { id: "lead", type: "orchestrator", label: "Lead", orchestrator: { members: [{ workflow_id: team.id }] } },
+    ],
+    edges: [edge("start", "lead")],
+  });
+  const run = await nodestro.startRun(lead.id, { input: "Angebot" });
+  expect((await nodestro.waitForRun(run.id, fast)).status).toBe("paused");
+  return run.id;
+}
+
+describe("live run chat", () => {
+  it("shows the chat, takes instructions and questions and ends with the run", async () => {
+    const runId = await orchestratedRun();
+    const view = await nodestro.runChat(runId);
+    expect(view.active).toBe(true);
+    expect(view.run_status).toBe("paused");
+    expect(view.messages).toEqual([]);
+    expect(view.targets).toHaveLength(1);
+    expect([view.targets[0]!.run_id, view.targets[0]!.node_id, view.targets[0]!.label]).toEqual([runId, "lead", "Lead"]);
+    expect(view.targets[0]!.steering).toBe(true);
+
+    // Leaving the loop of a live stream early closes it; the next call still works.
+    for await (const event of nodestro.runChatEvents(runId)) {
+      expect(event.event).toBe("snapshot");
+      break;
+    }
+
+    const order = { kind: "instruction" as const, target_run_id: runId, node_id: "lead", content: "Kurz halten" };
+    const sent = await nodestro.sendRunChatMessage(runId, { ...order, client_id: "sdk-ts-tab-1" });
+    expect(sent.status).toBe("queued");
+    expect(sent.client_id ?? null).toBeNull();
+    const again = await nodestro.sendRunChatMessage(runId, { ...order, client_id: "sdk-ts-tab-1" });
+    expect(again.id).toBe(sent.id);
+    const reused = await failure(nodestro.sendRunChatMessage(runId, { ...order, content: "Anders", client_id: "sdk-ts-tab-1" }));
+    expect(reused).toBeInstanceOf(NodestroAPIError);
+    expect([reused!.status, reused!.code]).toEqual([409, "run_chat.client_id_reused"]);
+
+    const asked = await nodestro.sendRunChatMessage(runId, { kind: "question", target_run_id: runId, node_id: "lead", content: "Wo stehen wir?" });
+    expect(asked.status).toBe("pending");
+    await until(async () => (await nodestro.runChatMessage(runId, asked.id!)).status === "answered");
+    const messages = (await nodestro.runChat(runId)).messages;
+    const answer = messages.find((item) => item.kind === "answer");
+    expect(answer?.reply_to).toBe(asked.id);
+    expect(answer?.content).toContain("wartet auf eine Freigabe");
+
+    const waiting = (await nodestro.listApprovals()).filter((item) => item.root_run_id === runId);
+    expect(waiting).toHaveLength(1);
+    await nodestro.decideApproval(waiting[0]!.run_id, "check", "approved");
+    expect((await nodestro.waitForRun(runId, fast)).status).toBe("succeeded");
+    await until(async () => (await nodestro.runChatMessage(runId, sent.id!)).status === "considered");
+
+    const events = await collect(nodestro.runChatEvents(runId));
+    expect(events.map((event) => event.event)).toEqual(["snapshot", "end"]);
+    expect((events[0]!.data as { run_id: string; active: boolean }).run_id).toBe(runId);
+    expect((events[0]!.data as { active: boolean }).active).toBe(false);
+    expect(events[1]!.data).toEqual({ status: "succeeded" });
+
+    const ended = await failure(nodestro.sendRunChatMessage(runId, { kind: "question", target_run_id: runId, node_id: "lead", content: "Und jetzt?" }));
+    expect(ended).toBeInstanceOf(NodestroAPIError);
+    expect([ended!.status, ended!.code]).toEqual([409, "run_chat.run_not_active"]);
+    expect((await failure(nodestro.runChatMessage(runId, "msg_does_not_exist")))!.status).toBe(404);
+  });
+});

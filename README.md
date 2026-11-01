@@ -13,7 +13,7 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 ## Two clients
 
 - **`NodestroClient`** talks to the studio REST API of an installation (`/api`): workflows and their versions,
-  pre-checks, runs, live events, approvals, continuing failed runs, result files, agents and agent templates,
+  pre-checks, runs, live events, approvals, the live run chat, continuing failed runs, result files, agents and agent templates,
   tools, the example library, publishing, and API keys.
 - **`PublishedWorkflow`** talks to one published workflow API (`/api/published/{slug}`) with a Nodestro API key:
   start (with an `Idempotency-Key`), status, result, waiting, events with `Last-Event-ID`, cancelling,
@@ -24,7 +24,8 @@ Both clients offer the same operations under language-typical names (`wait_for_r
 
 - **Timeouts and retries.** Reads are retried after connection errors and 502/503/504 (3 attempts, exponential
   backoff with jitter). Requests that change something are never retried, except starts of published workflows,
-  which carry an idempotency key, so a retry returns the same run instead of starting a second one.
+  which carry an idempotency key, so a retry returns the same run instead of starting a second one, and run chat
+  messages, which carry a `client_id`, so a retry returns the stored message instead of sending it twice.
 - **One error class for both API error formats.** `NodestroAPIError` with `status`, `code` (for example
   `auth.missing`, `run.agents_invalid`) and `params`; `NodestroConnectionError`, `NodestroTimeoutError` and
   `NodestroRunFailed` for the rest. All derive from `NodestroClientError`.
