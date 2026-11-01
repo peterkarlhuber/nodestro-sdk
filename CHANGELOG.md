@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 7997bb4 (2026-11-01)
+
+- Pin of `nodestro-api` at `7997bb4` (before: `e16202d`): only the examples pin moves (`1ead26c`, localized guide
+  terminology). No API change, so the generated types are unchanged.
+
 ### Pin: nodestro-api e16202d (2026-11-01)
 
 - Pin of `nodestro-api` at `e16202d` (before: `870ba5f`; runtime `6eacec1`, before `58cec5c`; examples `e370567`):
