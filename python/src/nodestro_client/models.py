@@ -1442,6 +1442,13 @@ class RunInput(TypedDict):
     source: str
 
 
+class RunWarning(TypedDict):
+    code: str
+    count: NotRequired[int]
+    node_id: str
+    tool: NotRequired[str | None]
+
+
 class SampleInfo(TypedDict):
     description: str
     field: str
@@ -2777,6 +2784,7 @@ class RunSummary(TypedDict):
     ]
     trigger_ref: NotRequired[str | None]
     usage: Usage
+    warnings: NotRequired[list[RunWarning]]
     workflow_id: str
     workflow_name: str
     workflow_version: NotRequired[int | None]
@@ -3098,6 +3106,7 @@ class Meta(TypedDict):
     efforts: NotRequired[list[str]]
     library_version: str
     models: list[ModelInfo]
+    profile: NotRequired[Literal['desktop', 'server', 'local-container']]
     providers: list[ProviderInfo]
     server_tools: list[ServerToolInfo]
     version: str
@@ -3285,6 +3294,7 @@ class Run(TypedDict):
     trigger_ref: NotRequired[str | None]
     usage: NotRequired[Usage]
     values: NotRequired[dict[str, Any]]
+    warnings: NotRequired[list[RunWarning]]
     workflow: Workflow
     workflow_id: str
     workflow_name: str
