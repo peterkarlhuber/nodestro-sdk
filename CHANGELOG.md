@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Pin: nodestro-api db6a696 (2026-11-01)
+
+- Pin of `nodestro-api` at `db6a696` (before: `7997bb4`): the runtime pin moves to `d141b8f` (PostgreSQL read
+  performance, migration 0006) and the examples pin to `660e9a9`. The OpenAPI document is unchanged.
+
 ### Pin: nodestro-api 7997bb4 (2026-11-01)
 
 - Pin of `nodestro-api` at `7997bb4` (before: `e16202d`): only the examples pin moves (`1ead26c`, localized guide
