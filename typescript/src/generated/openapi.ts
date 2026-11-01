@@ -7748,6 +7748,11 @@ export interface components {
          */
         OrchestratorConfig: {
             /**
+             * Allow Values
+             * @default false
+             */
+            allow_values: boolean;
+            /**
              * Instructions
              * @default
              */
@@ -7757,8 +7762,18 @@ export interface components {
              * @default 8
              */
             max_decisions: number;
+            /**
+             * Max Parallel
+             * @default 1
+             */
+            max_parallel: number;
             /** Max Per Member */
             max_per_member?: number | null;
+            /**
+             * Max Team
+             * @default 5
+             */
+            max_team: number;
             /** Members */
             members?: components["schemas"]["OrchestratorMember"][];
             /**
@@ -7767,6 +7782,11 @@ export interface components {
              */
             model: string;
             select?: components["schemas"]["OrchestratorSelect"] | null;
+            /**
+             * Staffing
+             * @default false
+             */
+            staffing: boolean;
             /**
              * Task Template
              * @default {{input}}
@@ -7795,7 +7815,8 @@ export interface components {
          *     The selection is made when a run (or a published release) pins its workflows, so it is fixed and
          *     visible in the run's snapshot: every selected member names the tags it matched. Teams are ordered
          *     by the number of matching tags, then by name; no score is invented. Workflows with errors, with
-         *     approval steps (not supported inside an orchestrator) and the workflow itself are left out.
+         *     and the workflow itself are left out. Teams with approval steps are offered: the orchestrator waits while
+         *     one of them waits for a person (AO M6b).
          */
         OrchestratorSelect: {
             /** Capabilities */
