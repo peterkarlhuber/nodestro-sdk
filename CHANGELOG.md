@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Pin: nodestro-api ebd99b3 (2026-11-01)
+
+- Pin of `nodestro-api` at `ebd99b3` (before: `ee67eac`; runtime `6ac4ae3`, before `081705d`): security fix for
+  stale tools in server workers (S-2 pilot finding F1). No API, OpenAPI or type change.
+
 ### Pin: nodestro-api ee67eac (2026-11-01)
 
 - Pin of `nodestro-api` at `ee67eac` (before: `2948bb3`; runtime `081705d`, before `1bc3924`): orchestrators with
