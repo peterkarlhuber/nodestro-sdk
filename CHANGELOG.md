@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Pin: nodestro-api ee67eac (2026-11-01)
+
+- Pin of `nodestro-api` at `ee67eac` (before: `2948bb3`; runtime `081705d`, before `1bc3924`): orchestrators with
+  dynamic teams and approvals inside teams (Adaptive Orchestration M6b). `OrchestratorConfig` gains the optional
+  fields `max_parallel` (teams at once, 1 to 5), `staffing` (the orchestrator assembles its team at run time),
+  `max_team` and `allow_values` (team form values); Python and TypeScript types are regenerated. The orchestration
+  record of a node run is an open object, so its new `pending` and `outcomes` data need no type change.
+
 ### Pin: nodestro-api 2948bb3 (2026-11-01)
 
 - Pin of `nodestro-api` at `2948bb3` (before: `a233d57`; runtime `1bc3924`, before `2d55242`): MCP resources (WP-10)

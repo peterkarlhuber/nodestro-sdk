@@ -2544,12 +2544,16 @@ class NodeRun(TypedDict):
 
 
 class OrchestratorConfig(TypedDict):
+    allow_values: NotRequired[bool]
     instructions: NotRequired[str]
     max_decisions: NotRequired[int]
+    max_parallel: NotRequired[int]
     max_per_member: NotRequired[int | None]
+    max_team: NotRequired[int]
     members: NotRequired[list[OrchestratorMember]]
     model: NotRequired[str]
     select: NotRequired[OrchestratorSelect | None]
+    staffing: NotRequired[bool]
     task_template: NotRequired[str]
 
 
