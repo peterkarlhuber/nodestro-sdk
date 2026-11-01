@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Pin: nodestro-api 870ba5f (2026-11-01)
+
+- Pin of `nodestro-api` at `870ba5f` (before: `05e449d`; examples `5e2d532`, before `3429f5b`): example library
+  format 2. `POST /api/library/{id}/copy` takes `integrations` (integration id -> MCP server id); it also
+  creates the template's parts as workflows and stores its knowledge files. The library's preview models gain
+  teams, knowledge, integrations, budget and the guide parts `control` and `why`. Regenerated Python and TypeScript
+  types; no new client methods.
+
 ### Pin: nodestro-api 05e449d (2026-11-01)
 
 - Pin of `nodestro-api` at `05e449d` (before: `476cfc0`; runtime `58cec5c`, before `f71086a`): fixes from the

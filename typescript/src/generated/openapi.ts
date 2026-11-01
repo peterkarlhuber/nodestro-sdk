@@ -1337,9 +1337,14 @@ export interface paths {
          * Copy Library Template
          * @description Create an ordinary, independent workflow from a template; the template itself never changes.
          *
-         *     Parts the template runs as sub-workflows are copied first, as workflows of their own; the
-         *     copy's sub-workflow nodes are pinned to their first version. With ``tests`` the template's
-         *     test cases become a test series of the copy; their sample files are stored as input files.
+         *     Parts the template runs as sub-workflows or orchestrator teams are copied first, as workflows of their own;
+         *     every reference is pinned to their first version. Knowledge files are stored in the knowledge base (collection
+         *     "Examples: <name>" in the copy's language; identical files of an earlier copy are reused). Agents get model
+         *     tiers mapped to the workspace's provider. Integrations named in ``integrations`` are connected to the chosen MCP
+         *     server (only approved read-only tools); the others run in their labelled offline mode. With ``tests`` the
+         *     template's test cases become a test series of the copy; their sample files are stored as input files.
+         *
+         *     Everything is checked before anything is stored, and a copy that fails half-way leaves nothing behind.
          */
         post: operations["copy_library_template_api_library__template_id__copy_post"];
         delete?: never;
@@ -6446,6 +6451,8 @@ export interface components {
         Guide: {
             /** Adapt */
             adapt: string;
+            /** Control */
+            control: string;
             /** Flow */
             flow: string;
             /** Input */
@@ -6454,6 +6461,8 @@ export interface components {
             problem: string;
             /** Result */
             result: string;
+            /** Why */
+            why: string;
         };
         /** GuideDecision */
         GuideDecision: {
@@ -6939,6 +6948,10 @@ export interface components {
         };
         /** LibraryCopy */
         LibraryCopy: {
+            /** Integrations */
+            integrations?: {
+                [key: string]: string;
+            };
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
             /**
@@ -10264,8 +10277,23 @@ export interface components {
         TemplateAgent: {
             /** Description */
             description: string;
+            /** Integrations */
+            integrations?: string[];
             /** Judge */
             judge: boolean;
+            /**
+             * Kind
+             * @default agent
+             * @enum {string}
+             */
+            kind: "agent" | "orchestrator";
+            /** Knowledge */
+            knowledge?: string[];
+            /**
+             * Memory
+             * @default false
+             */
+            memory: boolean;
             /** Model */
             model: string;
             /** Name */
@@ -10287,6 +10315,8 @@ export interface components {
             agent_details: components["schemas"]["TemplateAgent"][];
             /** Agents */
             agents: number;
+            /** Budget Usd */
+            budget_usd?: number | null;
             /**
              * Category
              * @enum {string}
@@ -10297,7 +10327,7 @@ export interface components {
             /** Featured */
             featured: boolean;
             /** Features */
-            features: ("tools" | "structured" | "judge" | "review" | "decision" | "approval" | "form" | "subworkflow" | "files" | "documents" | "proposals" | "memory")[];
+            features: ("tools" | "structured" | "judge" | "review" | "decision" | "approval" | "form" | "subworkflow" | "files" | "documents" | "proposals" | "memory" | "orchestrator" | "knowledge" | "integration" | "loop" | "budget" | "contract")[];
             /** Field */
             field: string;
             guide: components["schemas"]["Guide"];
@@ -10305,6 +10335,10 @@ export interface components {
             id: string;
             /** Input */
             input: string;
+            /** Integrations */
+            integrations?: components["schemas"]["TemplateIntegration"][];
+            /** Knowledge */
+            knowledge?: components["schemas"]["TemplateKnowledge"][];
             /** Language */
             language: string;
             /**
@@ -10320,16 +10354,49 @@ export interface components {
              * Pattern
              * @enum {string}
              */
-            pattern: "sequential" | "parallel" | "branching";
+            pattern: "sequential" | "parallel" | "branching" | "adaptive";
             /** Samples */
             samples?: components["schemas"]["SampleInfo"][];
             /** Sensitive */
             sensitive: boolean;
+            /** Team Details */
+            team_details?: components["schemas"]["TemplateTeam"][];
+            /**
+             * Teams
+             * @default 0
+             */
+            teams: number;
             /** Tests */
             tests?: string[];
             /** Tools */
             tools: string[];
             workflow: components["schemas"]["WorkflowIn"];
+        };
+        /** TemplateIntegration */
+        TemplateIntegration: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Offline */
+            offline: string;
+            /** Setup */
+            setup: string;
+            /** Tools */
+            tools: string[];
+        };
+        /** TemplateKnowledge */
+        TemplateKnowledge: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** TemplateSummary */
         TemplateSummary: {
@@ -10345,7 +10412,7 @@ export interface components {
             /** Featured */
             featured: boolean;
             /** Features */
-            features: ("tools" | "structured" | "judge" | "review" | "decision" | "approval" | "form" | "subworkflow" | "files" | "documents" | "proposals" | "memory")[];
+            features: ("tools" | "structured" | "judge" | "review" | "decision" | "approval" | "form" | "subworkflow" | "files" | "documents" | "proposals" | "memory" | "orchestrator" | "knowledge" | "integration" | "loop" | "budget" | "contract")[];
             /** Field */
             field: string;
             /** Id */
@@ -10365,11 +10432,38 @@ export interface components {
              * Pattern
              * @enum {string}
              */
-            pattern: "sequential" | "parallel" | "branching";
+            pattern: "sequential" | "parallel" | "branching" | "adaptive";
             /** Sensitive */
             sensitive: boolean;
+            /**
+             * Teams
+             * @default 0
+             */
+            teams: number;
             /** Tools */
             tools: string[];
+        };
+        /**
+         * TemplateTeam
+         * @description A team an orchestrator of the template can delegate to (a part, copied as a workflow of its own).
+         */
+        TemplateTeam: {
+            /** Agents */
+            agents: components["schemas"]["TemplateAgent"][];
+            /** Approval */
+            approval: boolean;
+            /** Capabilities */
+            capabilities: string[];
+            /** Contract */
+            contract: string[];
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Parameters */
+            parameters: string[];
+            /** Part Id */
+            part_id: string;
         };
         /** TestCase */
         TestCase: {
