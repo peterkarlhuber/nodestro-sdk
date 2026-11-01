@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Pin: nodestro-api ae6cecd (2026-11-01)
+
+- Pin of `nodestro-api` at `ae6cecd` (before: `ebd99b3`; runtime `c86781b`, before `6ac4ae3`): runs paused at a
+  tool approval (AO M6b, behind `NODESTRO_TOOL_APPROVAL_CHECKPOINTS`, default off). Regenerated types:
+  `ToolApprovalRequest` gains `checkpointed`, `use` (`open`, `executed`, `stale`, `closed`) and `executed_at`; the
+  audit event kinds gain `suspended`, `resumed`, `executed`, `stale`, `result_lost` and `switch_off`. Types only; no
+  client method changes.
+
 ### Pin: nodestro-api ebd99b3 (2026-11-01)
 
 - Pin of `nodestro-api` at `ebd99b3` (before: `ee67eac`; runtime `6ac4ae3`, before `081705d`): security fix for

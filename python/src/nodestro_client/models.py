@@ -1737,6 +1737,12 @@ class ToolApprovalEvent(TypedDict):
         'pre_granted',
         'pre_grant_revoked',
         'legacy_stamped',
+        'suspended',
+        'resumed',
+        'executed',
+        'stale',
+        'result_lost',
+        'switch_off',
     ]
     outcome: NotRequired[str | None]
     pre_grant_id: NotRequired[str | None]
@@ -2781,12 +2787,14 @@ class ToolApprovalRequest(TypedDict):
     arguments_hash: str
     call_id: str
     capability: ToolCapability
+    checkpointed: NotRequired[bool]
     closed_because: NotRequired[str | None]
     comment: NotRequired[str | None]
     deadline: str
     decided_at: NotRequired[str | None]
     decided_by: NotRequired[str | None]
     definition_hash: NotRequired[str | None]
+    executed_at: NotRequired[str | None]
     id: NotRequired[str]
     input: NotRequired[dict[str, Any]]
     iteration: NotRequired[list[int]]
@@ -2797,6 +2805,7 @@ class ToolApprovalRequest(TypedDict):
         Literal['pending', 'approved', 'rejected', 'expired', 'cancelled']
     ]
     tool: str
+    use: NotRequired[Literal['open', 'executed', 'stale', 'closed']]
     version: NotRequired[int | None]
 
 
