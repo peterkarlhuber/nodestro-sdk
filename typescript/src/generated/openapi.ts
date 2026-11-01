@@ -70,7 +70,10 @@ export interface paths {
          * Test Agent
          * @description Run one agent with its current configuration on a test task; not a workflow run.
          *
-         *     The result is returned, never stored as a run; its usage goes to the ledger.
+         *     The result is returned, never stored as a run; its usage goes to the ledger. Testing costs money (``run``); a
+         *     configuration that is not exactly a saved one (a node of ``workflow_id`` or an agent template) is a free choice of
+         *     prompt and tools and also needs ``edit``, like saving it would. Every tool call follows the same per-call rules as
+         *     in a workflow run (the runtime's agent test refuses calls that would ask a person).
          */
         post: operations["test_agent_api_agents_test_post"];
         delete?: never;
@@ -3351,7 +3354,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Run Tool */
+        /**
+         * Run Tool
+         * @description The tool editor's test panel: run one tool with free input, outside any run and without asking anybody.
+         *
+         *     Needs ``edit`` (it belongs to editing the tool) and ``run`` (it executes code). MCP tools that change data never
+         *     run here (``mcp.write_not_supported``); they run only in workflow runs that ask before every call.
+         */
         post: operations["run_tool_api_tools__name__run_post"];
         delete?: never;
         options?: never;
