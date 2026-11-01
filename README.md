@@ -78,6 +78,8 @@ tests refuse any other server, because they create workflows, publications and k
 The CI needs the repository secret `NODESTRO_READ` (read access to orkexa and the Nodestro repositories); it is
 only handed to the dependency installation step.
 
+Open work (known bugs, follow-ups and planned improvements) is listed in [docs/TODO.md](docs/TODO.md).
+
 Part of the Nodestro platform; see the
 [platform overview](https://github.com/peterkarlhuber/nodestro-studio/blob/master/docs/PLATFORM.md).
 
