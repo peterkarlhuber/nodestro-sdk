@@ -799,10 +799,26 @@ class McpOAuthStart(TypedDict):
     authorization_url: str
 
 
+class McpServerHealth(TypedDict):
+    calls: int
+    consecutive_failures: int
+    cooling_down_seconds: float
+    failures: int
+    last_duration_ms: NotRequired[int | None]
+    last_error_code: NotRequired[str | None]
+
+
+class McpStats(TypedDict):
+    active_calls: int
+    limits: dict[str, float]
+    servers: dict[str, McpServerHealth]
+
+
 class McpStatus(TypedDict):
     available: bool
     endpoint_list: list[str] | None
     loopback_possible: bool
+    stdio_possible: NotRequired[bool]
     token_vault: bool
     unattended_enabled: bool
     write_tools_enabled: bool
@@ -816,6 +832,22 @@ class McpToolRef(TypedDict):
     server_id: str
     server_slug: str
     tool_name: str
+
+
+class Measurement(TypedDict):
+    available: NotRequired[bool]
+    avg_duration_s: NotRequired[float | None]
+    benchmark_run_id: str
+    cases: int
+    cost_per_case_usd: NotRequired[float | None]
+    created_at: Any
+    current: bool
+    excluded: NotRequired[list[str]]
+    judge_score: NotRequired[float | None]
+    model: str
+    new_failures: NotRequired[list[str]]
+    pass_rate: float
+    passed: int
 
 
 class MemoryConfig(TypedDict):
@@ -872,6 +904,12 @@ class ModelInfo(TypedDict):
     provider: str
     recommended: NotRequired[bool]
     tier: str
+
+
+class ModelPolicy(TypedDict):
+    min_pass_rate: NotRequired[float | None]
+    no_new_failures: NotRequired[bool]
+    objective: NotRequired[Literal['cost', 'duration', 'quality']]
 
 
 class NeededRequirement(TypedDict):
@@ -1178,6 +1216,8 @@ class PublicationEvent(TypedDict):
         'gate_off',
         'gate_override',
         'legacy_stamped',
+        'mcp_tool_on',
+        'mcp_tool_off',
     ]
 
 
@@ -1194,6 +1234,7 @@ class PublicationListItem(TypedDict):
 class PublicationPatch(TypedDict):
     description: NotRequired[str | None]
     limits: NotRequired[ApiLimits | None]
+    mcp_tool: NotRequired[bool | None]
     network: NotRequired[bool | None]
     slug: NotRequired[str | None]
 
@@ -2235,6 +2276,7 @@ class BatchPlan(TypedDict):
     fields: NotRequired[list[str]]
     invalid: int
     items: list[BatchItem]
+    tool_warnings: NotRequired[list[Problem]]
     total: int
     valid: int
 
@@ -2246,6 +2288,7 @@ class BenchmarkPlan(TypedDict):
     external_tools: NotRequired[list[str]]
     judged_cases: int
     problems: NotRequired[list[dict[str, Any]]]
+    tool_warnings: NotRequired[list[Problem]]
 
 
 class CaseProposal(TypedDict):
@@ -2444,6 +2487,20 @@ class MemorySeed(TypedDict):
     files: list[MemorySeedFile]
 
 
+class ModelChoice(TypedDict):
+    current_model: str
+    measurements: NotRequired[list[Measurement]]
+    node_id: str
+    outcome: Literal['switch', 'keep', 'no_baseline', 'no_measurement']
+    policy: ModelPolicy
+    recommended: NotRequired[str | None]
+    required_pass_rate: NotRequired[float | None]
+    skipped: NotRequired[dict[str, int]]
+    suite_id: str
+    warnings: NotRequired[list[str]]
+    workflow_id: str
+
+
 class NodeRun(TypedDict):
     approval: NotRequired[ApprovalRecord | None]
     child_run_id: NotRequired[str | None]
@@ -2555,6 +2612,7 @@ class Publication(TypedDict):
     history: NotRequired[list[PublicationEvent]]
     id: NotRequired[str]
     limits: NotRequired[ApiLimits]
+    mcp_tool: NotRequired[bool]
     name: str
     network: NotRequired[bool]
     slug: str
@@ -2862,6 +2920,8 @@ class Batch(TypedDict):
 
 
 class BenchmarkRun(TypedDict):
+    agent_models: NotRequired[dict[str, str]]
+    basis: NotRequired[str | None]
     batch_id: NotRequired[str | None]
     created_at: NotRequired[str]
     finished_at: NotRequired[str | None]
@@ -2876,6 +2936,7 @@ class BenchmarkRun(TypedDict):
         ]
     ]
     stop_code: NotRequired[str | None]
+    suite_basis: NotRequired[str | None]
     suite_id: str
     suite_name: str
     summary: NotRequired[BenchmarkSummary]

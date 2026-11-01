@@ -892,6 +892,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/benchmarks/{suite_id}/model-choice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Benchmark Model Choice
+         * @description The model one agent should use by a policy and the series' measured test runs (AO M6); nothing changes.
+         */
+        get: operations["benchmark_model_choice_api_benchmarks__suite_id__model_choice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/benchmarks/{suite_id}/plan": {
         parameters: {
             query?: never;
@@ -1422,6 +1442,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mcp/servers/{server_id}/environment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server Environment
+         * @description The state of a local (stdio) server's packages: approval needed, installing, ready, ... (WP-8).
+         */
+        get: operations["server_environment_api_mcp_servers__server_id__environment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp/servers/{server_id}/environment/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan Server Environment
+         * @description Resolve the hash-pinned versions of a stdio server's packages for review; an administrator approves the plan
+         *     with ``POST /api/python/plans/{plan_id}/approve``, which installs it as a sandbox image.
+         */
+        post: operations["plan_server_environment_api_mcp_servers__server_id__environment_plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mcp/servers/{server_id}/oauth/sign-out": {
         parameters: {
             query?: never;
@@ -1487,6 +1548,26 @@ export interface paths {
         put?: never;
         /** Decide Tool */
         post: operations["decide_tool_api_mcp_servers__server_id__tools__name__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mcp Stats
+         * @description Calls in flight, the operator's limits (``NODESTRO_MCP_*``) and each server's health since the start.
+         */
+        get: operations["mcp_stats_api_mcp_stats_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2820,7 +2901,8 @@ export interface paths {
         put?: never;
         /**
          * Preview Schedule
-         * @description The next slots and everything that would keep the schedule off; nothing is saved.
+         * @description The next slots and everything that would keep the schedule off; nothing is saved. ``schedule_id``: the saved
+         *     schedule being edited (its tool pre-grants count for the warnings).
          */
         post: operations["preview_schedule_api_schedules_preview_post"];
         delete?: never;
@@ -4931,6 +5013,8 @@ export interface components {
             invalid: number;
             /** Items */
             items: components["schemas"]["BatchItem"][];
+            /** Tool Warnings */
+            tool_warnings?: components["schemas"]["Problem"][];
             /** Total */
             total: number;
             /** Valid */
@@ -5017,9 +5101,17 @@ export interface components {
             problems?: {
                 [key: string]: unknown;
             }[];
+            /** Tool Warnings */
+            tool_warnings?: components["schemas"]["Problem"][];
         };
         /** BenchmarkRun */
         BenchmarkRun: {
+            /** Agent Models */
+            agent_models?: {
+                [key: string]: string;
+            };
+            /** Basis */
+            basis?: string | null;
             /** Batch Id */
             batch_id?: string | null;
             /**
@@ -5051,6 +5143,8 @@ export interface components {
             status: "running" | "evaluating" | "finished" | "stopped" | "cancelled" | "interrupted";
             /** Stop Code */
             stop_code?: string | null;
+            /** Suite Basis */
+            suite_basis?: string | null;
             /** Suite Id */
             suite_id: string;
             /** Suite Name */
@@ -6932,6 +7026,24 @@ export interface components {
             /** Authorization Url */
             authorization_url: string;
         };
+        /**
+         * McpServerHealth
+         * @description What this process knows about one server since it started (no secrets, no arguments).
+         */
+        McpServerHealth: {
+            /** Calls */
+            calls: number;
+            /** Consecutive Failures */
+            consecutive_failures: number;
+            /** Cooling Down Seconds */
+            cooling_down_seconds: number;
+            /** Failures */
+            failures: number;
+            /** Last Duration Ms */
+            last_duration_ms?: number | null;
+            /** Last Error Code */
+            last_error_code?: string | null;
+        };
         /** McpServerIn */
         McpServerIn: {
             /**
@@ -7073,6 +7185,22 @@ export interface components {
             /** Url */
             url: string;
         };
+        /**
+         * McpStats
+         * @description Operational state for administrators (WP-7): calls in flight, the operator's limits, per-server health.
+         */
+        McpStats: {
+            /** Active Calls */
+            active_calls: number;
+            /** Limits */
+            limits: {
+                [key: string]: number;
+            };
+            /** Servers */
+            servers: {
+                [key: string]: components["schemas"]["McpServerHealth"];
+            };
+        };
         /** McpStatus */
         McpStatus: {
             /** Available */
@@ -7081,6 +7209,11 @@ export interface components {
             endpoint_list: string[] | null;
             /** Loopback Possible */
             loopback_possible: boolean;
+            /**
+             * Stdio Possible
+             * @default false
+             */
+            stdio_possible: boolean;
             /** Token Vault */
             token_vault: boolean;
             /** Unattended Enabled */
@@ -7162,6 +7295,41 @@ export interface components {
             tool_name: string;
             /** Usable */
             usable: boolean;
+        };
+        /**
+         * Measurement
+         * @description One model's newest matching test run.
+         */
+        Measurement: {
+            /**
+             * Available
+             * @default true
+             */
+            available: boolean;
+            /** Avg Duration S */
+            avg_duration_s?: number | null;
+            /** Benchmark Run Id */
+            benchmark_run_id: string;
+            /** Cases */
+            cases: number;
+            /** Cost Per Case Usd */
+            cost_per_case_usd?: number | null;
+            /** Created At */
+            created_at: unknown;
+            /** Current */
+            current: boolean;
+            /** Excluded */
+            excluded?: string[];
+            /** Judge Score */
+            judge_score?: number | null;
+            /** Model */
+            model: string;
+            /** New Failures */
+            new_failures?: string[];
+            /** Pass Rate */
+            pass_rate: number;
+            /** Passed */
+            passed: number;
         };
         /**
          * MemoryConfig
@@ -7287,6 +7455,35 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** ModelChoice */
+        ModelChoice: {
+            /** Current Model */
+            current_model: string;
+            /** Measurements */
+            measurements?: components["schemas"]["Measurement"][];
+            /** Node Id */
+            node_id: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "switch" | "keep" | "no_baseline" | "no_measurement";
+            policy: components["schemas"]["ModelPolicy"];
+            /** Recommended */
+            recommended?: string | null;
+            /** Required Pass Rate */
+            required_pass_rate?: number | null;
+            /** Skipped */
+            skipped?: {
+                [key: string]: number;
+            };
+            /** Suite Id */
+            suite_id: string;
+            /** Warnings */
+            warnings?: string[];
+            /** Workflow Id */
+            workflow_id: string;
+        };
         /** ModelInfo */
         ModelInfo: {
             /** Cache Read Usd Per Mtok */
@@ -7327,6 +7524,25 @@ export interface components {
             recommended: boolean;
             /** Tier */
             tier: string;
+        };
+        /**
+         * ModelPolicy
+         * @description How a model is chosen from measurements; nothing in it is a quality value of its own.
+         */
+        ModelPolicy: {
+            /** Min Pass Rate */
+            min_pass_rate?: number | null;
+            /**
+             * No New Failures
+             * @default true
+             */
+            no_new_failures: boolean;
+            /**
+             * Objective
+             * @default cost
+             * @enum {string}
+             */
+            objective: "cost" | "duration" | "quality";
         };
         /**
          * NeededRequirement
@@ -8315,6 +8531,11 @@ export interface components {
             /** Id */
             id?: string;
             limits?: components["schemas"]["ApiLimits"];
+            /**
+             * Mcp Tool
+             * @default false
+             */
+            mcp_tool: boolean;
             /** Name */
             name: string;
             /**
@@ -8347,7 +8568,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "published" | "activated" | "enabled" | "disabled" | "network_on" | "network_off" | "settings" | "renamed" | "exported" | "gate_on" | "gate_changed" | "gate_off" | "gate_override" | "legacy_stamped";
+            kind: "published" | "activated" | "enabled" | "disabled" | "network_on" | "network_off" | "settings" | "renamed" | "exported" | "gate_on" | "gate_changed" | "gate_off" | "gate_override" | "legacy_stamped" | "mcp_tool_on" | "mcp_tool_off";
         };
         /** PublicationListItem */
         PublicationListItem: {
@@ -8371,6 +8592,8 @@ export interface components {
             /** Description */
             description?: string | null;
             limits?: components["schemas"]["ApiLimits"] | null;
+            /** Mcp Tool */
+            mcp_tool?: boolean | null;
             /** Network */
             network?: boolean | null;
             /** Slug */
@@ -13131,6 +13354,42 @@ export interface operations {
             };
         };
     };
+    benchmark_model_choice_api_benchmarks__suite_id__model_choice_get: {
+        parameters: {
+            query: {
+                node_id: string;
+                objective?: "cost" | "duration" | "quality";
+                min_pass_rate?: number | null;
+                no_new_failures?: boolean;
+            };
+            header?: never;
+            path: {
+                suite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelChoice"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     plan_benchmark_api_benchmarks__suite_id__plan_post: {
         parameters: {
             query?: never;
@@ -14218,6 +14477,68 @@ export interface operations {
             };
         };
     };
+    server_environment_api_mcp_servers__server_id__environment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DependencyStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_server_environment_api_mcp_servers__server_id__environment_plan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sign_out_oauth_api_mcp_servers__server_id__oauth_sign_out_post: {
         parameters: {
             query?: never;
@@ -14343,6 +14664,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mcp_stats_api_mcp_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpStats"];
                 };
             };
         };
@@ -16993,7 +17334,9 @@ export interface operations {
     };
     preview_schedule_api_schedules_preview_post: {
         parameters: {
-            query?: never;
+            query?: {
+                schedule_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;

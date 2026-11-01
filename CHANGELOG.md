@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Warnings before unattended starts, pin: nodestro-api a233d57 (2026-11-01)
+
+- Pin of `nodestro-api` at `a233d57` (before: `c58d5de`; runtime `2d55242`, before `a13f894`). The regenerated types
+  add `BatchPlan.tool_warnings`, `BenchmarkPlan.tool_warnings` and the optional `schedule_id` query of the schedule
+  preview (S-2, R1), the model choice by measurements of test series (Adaptive Orchestration M6a: the model-choice
+  route and the new `BenchmarkRun` fields) and Nodestro as an MCP server plus the MCP statistics (MCP WP-7/8/9/11).
+  No client code changes; existing calls are unchanged.
+
 ### Tool approvals one-time activation, pin: nodestro-api c58d5de (2026-10-31)
 
 - Pin of `nodestro-api` at `c58d5de` (before: `e8eacd4`; runtime `a13f894`, before `40e04b4`). The regenerated types
