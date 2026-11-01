@@ -277,6 +277,23 @@ class CaseProposalIn(TypedDict):
     personal_data: NotRequired[bool]
 
 
+class ChatLimits(TypedDict):
+    budget_usd: NotRequired[float]
+    max_instructions: NotRequired[int]
+    max_messages: NotRequired[int]
+    max_pending_questions: NotRequired[int]
+    max_questions: NotRequired[int]
+    questions_per_minute: NotRequired[int]
+
+
+class ChatMessageIn(TypedDict):
+    client_id: NotRequired[str | None]
+    content: str
+    kind: Literal['question', 'instruction']
+    node_id: str
+    target_run_id: str
+
+
 class CheckIn(TypedDict):
     version: NotRequired[int | None]
 
@@ -373,6 +390,13 @@ class CostEstimate(TypedDict):
 
 class Decision(TypedDict):
     approved: bool
+
+
+class DecisionNote(TypedDict):
+    accepted: NotRequired[bool]
+    action: NotRequired[str | None]
+    members: NotRequired[list[str]]
+    reason: NotRequired[str]
 
 
 class DecisionRecord(TypedDict):
@@ -561,6 +585,12 @@ class GateItem(TypedDict):
 
 class GateOverride(TypedDict):
     reason: str
+
+
+class GuidanceRef(TypedDict):
+    message_id: str
+    seq: NotRequired[int]
+    step: int
 
 
 class Guide(TypedDict):
@@ -1659,6 +1689,17 @@ class SyncReport(TypedDict):
     started_at: str
 
 
+class TeamActivity(TypedDict):
+    child_run_id: str
+    member: str
+    name: str
+    slot: NotRequired[int | None]
+    status: str
+    step: NotRequired[int | None]
+    task: NotRequired[str]
+    working: NotRequired[list[str]]
+
+
 class TemplateAgent(TypedDict):
     description: str
     integrations: NotRequired[list[str]]
@@ -2017,6 +2058,7 @@ class UsageEntry(TypedDict):
         'assistant',
         'benchmark_judge',
         'api_docs',
+        'run_chat',
     ]
     usage: Usage
 
@@ -2389,6 +2431,21 @@ class ChatMessage(TypedDict):
     usage: NotRequired[Usage | None]
 
 
+class ChatTarget(TypedDict):
+    decisions: NotRequired[int]
+    depth: NotRequired[int]
+    label: str
+    max_decisions: NotRequired[int]
+    node_id: str
+    path: NotRequired[list[str]]
+    run_id: str
+    status: str
+    steering: NotRequired[bool]
+    steering_code: NotRequired[str | None]
+    teams: NotRequired[list[TeamActivity]]
+    workflow_name: str
+
+
 class ConditionConfig(TypedDict):
     default_label: NotRequired[str]
     mode: NotRequired[Literal['first', 'all']]
@@ -2560,6 +2617,7 @@ class NodeRun(TypedDict):
     child_run_id: NotRequired[str | None]
     child_run_ids: NotRequired[list[str]]
     child_version: NotRequired[int | None]
+    current_decision: NotRequired[dict[str, Any] | None]
     decision: NotRequired[DecisionRecord | None]
     decision_usage: NotRequired[Usage | None]
     earlier: NotRequired[list[NodeRun]]
@@ -2570,6 +2628,7 @@ class NodeRun(TypedDict):
     files: NotRequired[list[ProvidedFile]]
     fingerprint: NotRequired[str | None]
     finished_at: NotRequired[str | None]
+    guidance: NotRequired[list[GuidanceRef]]
     iteration: NotRequired[list[int]]
     memory: NotRequired[dict[str, str] | None]
     orchestration: NotRequired[dict[str, Any] | None]
@@ -2600,6 +2659,7 @@ class NodeRun(TypedDict):
 class OrchestratorConfig(TypedDict):
     allow_values: NotRequired[bool]
     instructions: NotRequired[str]
+    live_steering: NotRequired[Literal['attended', 'always', 'off']]
     max_decisions: NotRequired[int]
     max_parallel: NotRequired[int]
     max_per_member: NotRequired[int | None]
@@ -2729,6 +2789,40 @@ class ReconciliationReport(TypedDict):
 class Reference(TypedDict):
     ref: str
     users: NotRequired[list[ReferenceUser]]
+
+
+class RunMessage(TypedDict):
+    answer_id: NotRequired[str | None]
+    author: NotRequired[str]
+    author_name: NotRequired[str]
+    client_id: NotRequired[str | None]
+    code: NotRequired[str | None]
+    content: str
+    created_at: NotRequired[str]
+    decision: NotRequired[DecisionNote | None]
+    id: NotRequired[str]
+    kind: Literal['question', 'instruction', 'answer']
+    model: NotRequired[str | None]
+    node_id: str
+    reply_to: NotRequired[str | None]
+    run_id: str
+    seq: NotRequired[int]
+    snapshot_at: NotRequired[str | None]
+    snapshot_digest: NotRequired[str | None]
+    status: Literal[
+        'queued',
+        'delivered',
+        'considered',
+        'rejected',
+        'expired',
+        'pending',
+        'answered',
+        'failed',
+    ]
+    status_at: NotRequired[str]
+    step: NotRequired[int | None]
+    target_run_id: str
+    usage: NotRequired[Usage | None]
 
 
 class RunResultOut(TypedDict):
@@ -3134,6 +3228,19 @@ class Node(TypedDict):
             'orchestrator',
         ]
     ]
+
+
+class RunChatView(TypedDict):
+    active: bool
+    answer_model: str
+    limits: ChatLimits
+    max_chars: NotRequired[int]
+    messages: list[RunMessage]
+    questions_left: int
+    remaining_budget_usd: float
+    run_id: str
+    run_status: str
+    targets: list[ChatTarget]
 
 
 class Workflow(TypedDict):

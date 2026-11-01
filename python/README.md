@@ -53,8 +53,8 @@ Never write a key into the code; read it from the environment or a secret store.
   it are refused with `ValueError`.
 - `timeout`: seconds for each phase of a request (connecting, sending, each read), not for the whole request.
 - `retry`: `RetryPolicy(attempts=3, backoff=0.5, max_backoff=8.0)`. `attempts` counts the first try (`1` = never
-  retry; values below 1 raise `ValueError`). Only reads, and starts of published workflows (idempotency key), are
-  retried, after connection errors and 502/503/504.
+  retry; values below 1 raise `ValueError`). Only reads, starts of published workflows (idempotency key) and run chat
+  messages (`client_id`) are retried, after connection errors and 502/503/504.
 - `headers`: sent with every request (for example for a proxy).
 - `http_client`: an `httpx.Client` of your own (proxies, certificates, limits). It is used as is, never changed
   (the key is added per request) and not closed by `close()`; you close it.
@@ -77,6 +77,24 @@ Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refuse
 - `start(values, wait=seconds)` waits for the result on the server when the publication allows it; the request
   timeout is extended by `wait`.
 - Downloads (`download_file()`, `download()`) return the whole file as `bytes`.
+
+## Live run chat
+
+While a run with an orchestrator is active, people can ask about it and steer it:
+
+- `run_chat(run_id)`: the messages, the orchestrators one can talk to (`targets`, with what their teams do now) and
+  the limits. Any run of the tree may be given; the chat belongs to the top-level run.
+- `send_run_chat_message(run_id, kind="question" | "instruction", target_run_id=..., node_id=..., content=...)`:
+  a question is answered by a separate model call from the stored run state (it changes nothing; the answer
+  arrives as a message of kind `answer`), an instruction goes to the orchestrator at its next decision. Each
+  message carries a `client_id` (a random one unless given), so it is retried safely; the same `client_id` again
+  returns the stored message, for another message it is refused (409 `run_chat.client_id_reused`).
+- `run_chat_message(run_id, message_id)`: one message (for example to see whether a question was answered).
+- `run_chat_events(run_id)`: `snapshot` (the whole view, on every connect), `message`, `targets` and `end`; it
+  closes like `events()`. A reconnect gets a new snapshot.
+
+Refusals are `NodestroAPIError`s with `run_chat.*` codes, for example 409 `run_chat.run_not_active` for a run that
+ended, 429 `run_chat.too_many_questions`.
 
 ## Errors
 

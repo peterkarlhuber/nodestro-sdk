@@ -7,7 +7,9 @@
 
 import { enc, type Schemas } from "./client.js";
 import { type NodestroAPIError, NodestroRunFailed } from "./errors.js";
-import { type ClientOptions, type ServerEvent, Transport, pollUntil } from "./http.js";
+import { type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pollUntil } from "./http.js";
+
+export { newIdempotencyKey };
 
 export type InfoOut = Schemas["InfoOut"];
 export type RunStatusOut = Schemas["RunStatusOut"];
@@ -20,16 +22,6 @@ const PREFIX = "/api/published";
 /** API states that end a run; `awaiting_approval` waits for a person. */
 export const PUBLISHED_FINISHED = new Set(["succeeded", "failed", "cancelled"]);
 export const PUBLISHED_WAITING = "awaiting_approval";
-
-/**
- * A new idempotency key: 128 random bits as 32 hex digits. `crypto.getRandomValues` exists in
- * Node.js 20+ and in every browser page; `crypto.randomUUID` only in secure contexts (HTTPS,
- * localhost), so a page served over plain HTTP in a local network could not start runs with it.
- */
-export function newIdempotencyKey(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 /**
  * One published workflow: start runs, follow them, decide approvals, read results and files.

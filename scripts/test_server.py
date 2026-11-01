@@ -3,10 +3,12 @@
 Usage: python scripts/test_server.py --data-dir DIR --port 8060
 
 The agents of the test workflows answer by a keyword in their system prompt: ``WRITER`` writes a
-text, ``SLOW`` takes two seconds (to cancel it), ``BROKEN`` fails every other time (to
-continue a run). The scripted answers are German on purpose: they are test data, and the tests
-look for them in results and files. Needs ``nodestro-api`` (the SDK's ``test`` extra); the SDK
-itself never imports it.
+text, ``SLOW`` takes two seconds (to cancel it), ``BROKEN`` fails every other time (to continue a
+run), ``DRAFTER`` writes a team's draft. An orchestrator (``You coordinate teams``) delegates to the
+first team of its pool and finishes once that team's result is back; a question in the live run chat
+(``You answer a person's question about a workflow run``) gets a fixed answer. The scripted answers
+are German on purpose: they are test data, and the tests look for them in results and files. Needs
+``nodestro-api`` (the SDK's ``test`` extra); the SDK itself never imports it.
 
 ``GET /sdk-test-server`` identifies this server: the tests refuse to run against a server given in
 ``NODESTRO_SDK_SERVER`` that does not answer it, because they create workflows, publications and
@@ -17,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import threading
 import time
 from typing import Any
@@ -24,7 +27,7 @@ from typing import Any
 from fastapi.routing import APIRoute
 from nodestro_api.app import create_app
 from nodestro_api.context import AppConfig
-from nodestro_runtime.testing import ScriptedClient, text
+from nodestro_runtime.testing import ScriptedClient, parsed, text
 import uvicorn
 
 REPEAT = 200
@@ -52,9 +55,29 @@ class Flaky:
         return text("abgebrochen", stop_reason="max_tokens") if failing else text("Repariert")
 
 
+#: The draft of a team (``DRAFTER``); an orchestrator that sees it finishes.
+DRAFT = "Entwurf fertig"
+#: The answer to a question in the live run chat.
+CHAT_ANSWER = "Ein Team arbeitet; es wartet auf eine Freigabe."
+
+
+def orchestrate(request: dict[str, Any]) -> Any:
+    """One decision of an orchestrator: delegate to the first team of the pool, finish once its draft is back."""
+    prompt = str(request.get("messages", ""))
+    if DRAFT in prompt:
+        return parsed(lambda model: model(action="finish", answer=DRAFT, reason="done"))(request)
+    found = re.search(r"- id: (\S+) \|", prompt)
+    member = found.group(1) if found else ""
+    return parsed(lambda model: model(action="delegate", member=member, task="Entwurf", reason="start"))(request)
+
+
 def script() -> dict[str, list[Any]]:
     flaky = Flaky()
     return {
+        # First: the chat's prompt describes the run, which may quote the other keys.
+        "You answer a person's question about a workflow run": [text(CHAT_ANSWER) for _ in range(REPEAT)],
+        "You coordinate teams": [orchestrate for _ in range(REPEAT)],
+        "DRAFTER": [text(DRAFT) for _ in range(REPEAT)],
         "WRITER": [text("## Angebot\n\nWir liefern 10 Stück bis Freitag.") for _ in range(REPEAT)],
         "SLOW": [slow for _ in range(REPEAT)],
         "BROKEN": [flaky for _ in range(REPEAT)],

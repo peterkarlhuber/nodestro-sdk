@@ -2700,6 +2700,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{run_id}/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Chat View
+         * @description The live chat of a run: messages, the orchestrators one can talk to and the limits.
+         */
+        get: operations["run_chat_view_api_runs__run_id__chat_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/chat/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Chat Events
+         * @description Server-Sent Events of the live chat (see the module docs); every process sees every change (the stream
+         *     reads the stored conversation, written by API processes and by the worker that executes the run).
+         */
+        get: operations["run_chat_events_api_runs__run_id__chat_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/chat/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Run Chat Message
+         * @description Ask a question about the run, or give its orchestrator an instruction for the next decision.
+         */
+        post: operations["send_run_chat_message_api_runs__run_id__chat_messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/chat/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Run Chat Message */
+        get: operations["run_chat_message_api_runs__run_id__chat_messages__message_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs/{run_id}/events": {
         parameters: {
             query?: never;
@@ -5477,6 +5555,42 @@ export interface components {
              */
             tokens: number;
         };
+        /**
+         * ChatLimits
+         * @description Limits of the live chat of one run (all its orchestrators together).
+         */
+        ChatLimits: {
+            /**
+             * Budget Usd
+             * @default 0.5
+             */
+            budget_usd: number;
+            /**
+             * Max Instructions
+             * @default 20
+             */
+            max_instructions: number;
+            /**
+             * Max Messages
+             * @default 200
+             */
+            max_messages: number;
+            /**
+             * Max Pending Questions
+             * @default 2
+             */
+            max_pending_questions: number;
+            /**
+             * Max Questions
+             * @default 30
+             */
+            max_questions: number;
+            /**
+             * Questions Per Minute
+             * @default 6
+             */
+            questions_per_minute: number;
+        };
         /** ChatMessage */
         ChatMessage: {
             /**
@@ -5534,6 +5648,64 @@ export interface components {
             /** Steps */
             steps?: components["schemas"]["Step"][];
             usage?: components["schemas"]["Usage"] | null;
+        };
+        /** ChatMessageIn */
+        ChatMessageIn: {
+            /** Client Id */
+            client_id?: string | null;
+            /** Content */
+            content: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "instruction";
+            /** Node Id */
+            node_id: string;
+            /** Target Run Id */
+            target_run_id: string;
+        };
+        /**
+         * ChatTarget
+         * @description An orchestrator node a person can talk to.
+         */
+        ChatTarget: {
+            /**
+             * Decisions
+             * @default 0
+             */
+            decisions: number;
+            /**
+             * Depth
+             * @default 0
+             */
+            depth: number;
+            /** Label */
+            label: string;
+            /**
+             * Max Decisions
+             * @default 0
+             */
+            max_decisions: number;
+            /** Node Id */
+            node_id: string;
+            /** Path */
+            path?: string[];
+            /** Run Id */
+            run_id: string;
+            /** Status */
+            status: string;
+            /**
+             * Steering
+             * @default false
+             */
+            steering: boolean;
+            /** Steering Code */
+            steering_code?: string | null;
+            /** Teams */
+            teams?: components["schemas"]["TeamActivity"][];
+            /** Workflow Name */
+            workflow_name: string;
         };
         /** CheckIn */
         CheckIn: {
@@ -5877,6 +6049,26 @@ export interface components {
         Decision: {
             /** Approved */
             approved: boolean;
+        };
+        /**
+         * DecisionNote
+         * @description What the orchestrator decided in the step an instruction was part of (data of the record, no reasoning).
+         */
+        DecisionNote: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+            /** Action */
+            action?: string | null;
+            /** Members */
+            members?: string[];
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
         };
         /**
          * DecisionRecord
@@ -6462,6 +6654,21 @@ export interface components {
             status: "off" | "passed" | "overridable" | "blocked";
             /** Workflow Version */
             workflow_version?: number | null;
+        };
+        /**
+         * GuidanceRef
+         * @description One instruction of a person that was part of an orchestrator decision's prompt.
+         */
+        GuidanceRef: {
+            /** Message Id */
+            message_id: string;
+            /**
+             * Seq
+             * @default 0
+             */
+            seq: number;
+            /** Step */
+            step: number;
         };
         /**
          * Guide
@@ -7727,6 +7934,10 @@ export interface components {
             child_run_ids?: string[];
             /** Child Version */
             child_version?: number | null;
+            /** Current Decision */
+            current_decision?: {
+                [key: string]: unknown;
+            } | null;
             decision?: components["schemas"]["DecisionRecord"] | null;
             decision_usage?: components["schemas"]["Usage"] | null;
             /** Earlier */
@@ -7746,6 +7957,8 @@ export interface components {
             fingerprint?: string | null;
             /** Finished At */
             finished_at?: string | null;
+            /** Guidance */
+            guidance?: components["schemas"]["GuidanceRef"][];
             /** Iteration */
             iteration?: number[];
             /** Memory */
@@ -7805,6 +8018,12 @@ export interface components {
              * @default
              */
             instructions: string;
+            /**
+             * Live Steering
+             * @default attended
+             * @enum {string}
+             */
+            live_steering: "attended" | "always" | "off";
             /**
              * Max Decisions
              * @default 8
@@ -9446,6 +9665,31 @@ export interface components {
             /** Workflow Version */
             workflow_version?: number | null;
         };
+        /** RunChatView */
+        RunChatView: {
+            /** Active */
+            active: boolean;
+            /** Answer Model */
+            answer_model: string;
+            limits: components["schemas"]["ChatLimits"];
+            /**
+             * Max Chars
+             * @default 2000
+             */
+            max_chars: number;
+            /** Messages */
+            messages: components["schemas"]["RunMessage"][];
+            /** Questions Left */
+            questions_left: number;
+            /** Remaining Budget Usd */
+            remaining_budget_usd: number;
+            /** Run Id */
+            run_id: string;
+            /** Run Status */
+            run_status: string;
+            /** Targets */
+            targets: components["schemas"]["ChatTarget"][];
+        };
         /** RunIn */
         RunIn: {
             /** File Ids */
@@ -9473,6 +9717,75 @@ export interface components {
             name?: string | null;
             /** Source */
             source: string;
+        };
+        /**
+         * RunMessage
+         * @description One message of a run's live chat.
+         */
+        RunMessage: {
+            /** Answer Id */
+            answer_id?: string | null;
+            /**
+             * Author
+             * @default local
+             */
+            author: string;
+            /**
+             * Author Name
+             * @default
+             */
+            author_name: string;
+            /** Client Id */
+            client_id?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            decision?: components["schemas"]["DecisionNote"] | null;
+            /** Id */
+            id?: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "instruction" | "answer";
+            /** Model */
+            model?: string | null;
+            /** Node Id */
+            node_id: string;
+            /** Reply To */
+            reply_to?: string | null;
+            /** Run Id */
+            run_id: string;
+            /**
+             * Seq
+             * @default 0
+             */
+            seq: number;
+            /** Snapshot At */
+            snapshot_at?: string | null;
+            /** Snapshot Digest */
+            snapshot_digest?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "delivered" | "considered" | "rejected" | "expired" | "pending" | "answered" | "failed";
+            /**
+             * Status At
+             * Format: date-time
+             */
+            status_at?: string;
+            /** Step */
+            step?: number | null;
+            /** Target Run Id */
+            target_run_id: string;
+            usage?: components["schemas"]["Usage"] | null;
         };
         /** RunResultOut */
         RunResultOut: {
@@ -10322,6 +10635,31 @@ export interface components {
              * Format: date-time
              */
             started_at: string;
+        };
+        /**
+         * TeamActivity
+         * @description One team an orchestrator gave work to, as stored now.
+         */
+        TeamActivity: {
+            /** Child Run Id */
+            child_run_id: string;
+            /** Member */
+            member: string;
+            /** Name */
+            name: string;
+            /** Slot */
+            slot?: number | null;
+            /** Status */
+            status: string;
+            /** Step */
+            step?: number | null;
+            /**
+             * Task
+             * @default
+             */
+            task: string;
+            /** Working */
+            working?: string[];
         };
         /** TemplateAgent */
         TemplateAgent: {
@@ -11289,7 +11627,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "agent_test" | "agent_design" | "memory_proposal" | "tool_generation" | "workflow_design" | "assistant" | "benchmark_judge" | "api_docs";
+            source: "agent_test" | "agent_design" | "memory_proposal" | "tool_generation" | "workflow_design" | "assistant" | "benchmark_judge" | "api_docs" | "run_chat";
             usage: components["schemas"]["Usage"];
         };
         /** UsageOut */
@@ -17065,6 +17403,135 @@ export interface operations {
                     "application/json": {
                         [key: string]: boolean;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_chat_view_api_runs__run_id__chat_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunChatView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_chat_events_api_runs__run_id__chat_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_run_chat_message_api_runs__run_id__chat_messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatMessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_chat_message_api_runs__run_id__chat_messages__message_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunMessage"];
                 };
             };
             /** @description Validation Error */
