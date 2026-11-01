@@ -2863,7 +2863,8 @@ export interface paths {
         put?: never;
         /**
          * Decide Tool Approval
-         * @description Approve or reject one tool call; the waiting run continues at its next look (within about a second).
+         * @description Approve or reject one tool call; the waiting run continues at its next look (within about a second). A run
+         *     paused at the call (agent checkpoints, M6b) continues right away once none of its calls waits any more.
          */
         post: operations["decide_tool_approval_api_runs__run_id__tool_approvals__request_id__post"];
         delete?: never;
@@ -7814,8 +7815,8 @@ export interface components {
          *
          *     The selection is made when a run (or a published release) pins its workflows, so it is fixed and
          *     visible in the run's snapshot: every selected member names the tags it matched. Teams are ordered
-         *     by the number of matching tags, then by name; no score is invented. Workflows with errors, with
-         *     and the workflow itself are left out. Teams with approval steps are offered: the orchestrator waits while
+         *     by the number of matching tags, then by name; no score is invented. Workflows with errors and the
+         *     workflow itself are left out. Teams with approval steps are offered: the orchestrator waits while
          *     one of them waits for a person (AO M6b).
          */
         OrchestratorSelect: {
@@ -10458,7 +10459,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped";
+            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off";
             /** Outcome */
             outcome?: string | null;
             /** Pre Grant Id */
@@ -10477,6 +10478,11 @@ export interface components {
             /** Call Id */
             call_id: string;
             capability: components["schemas"]["ToolCapability"];
+            /**
+             * Checkpointed
+             * @default false
+             */
+            checkpointed: boolean;
             /** Closed Because */
             closed_because?: string | null;
             /** Comment */
@@ -10492,6 +10498,8 @@ export interface components {
             decided_by?: string | null;
             /** Definition Hash */
             definition_hash?: string | null;
+            /** Executed At */
+            executed_at?: string | null;
             /** Id */
             id?: string;
             /** Input */
@@ -10517,6 +10525,12 @@ export interface components {
             status: "pending" | "approved" | "rejected" | "expired" | "cancelled";
             /** Tool */
             tool: string;
+            /**
+             * Use
+             * @default open
+             * @enum {string}
+             */
+            use: "open" | "executed" | "stale" | "closed";
             /** Version */
             version?: number | null;
         };
