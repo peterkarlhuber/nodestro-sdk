@@ -405,6 +405,24 @@ describe("published starts and waiting", () => {
     await expect(api.start({}, { waitSeconds: -1 })).rejects.toThrow(RangeError);
   });
 
+  it("retries a run chat message with the same client id", async () => {
+    const { calls, fetcher } = recording((_url, init, call) => {
+      if (call === 1) throw new TypeError("fetch failed");
+      if (call === 2) return json(503, {});
+      return json(201, { ...JSON.parse(String(init.body)), id: "msg_1", run_id: "run_1", status: "queued" });
+    });
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher, retry: { backoffMs: 1 } });
+    const message = { kind: "instruction" as const, target_run_id: "run_1", node_id: "lead", content: "Kürzer" };
+    expect((await client.sendRunChatMessage("run_1", message)).id).toBe("msg_1");
+    const keys = new Set(calls.map((call) => JSON.parse(String(call.init.body)).client_id));
+    expect(calls).toHaveLength(3);
+    expect(keys.size).toBe(1);
+    expect([...keys][0]).toMatch(/^[0-9a-f]{32}$/);
+    expect(new URL(calls[0]!.url).pathname).toBe("/api/runs/run_1/chat/messages");
+    await client.sendRunChatMessage("run_1", { ...message, client_id: "tab-1" });
+    expect(JSON.parse(String(calls.at(-1)!.init.body)).client_id).toBe("tab-1");
+  });
+
   it("makes idempotency keys from getRandomValues, without randomUUID", () => {
     const original = crypto.randomUUID;
     Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true });

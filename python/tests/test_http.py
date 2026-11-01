@@ -395,6 +395,29 @@ def test_a_start_is_retried_with_the_same_idempotency_key_and_waits_longer() -> 
         api.start({"input": "x"}, wait=-1)
 
 
+def test_a_run_chat_message_is_retried_with_the_same_client_id() -> None:
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            raise httpx.ReadError("connection reset", request=request)
+        if len(bodies) == 2:
+            return httpx.Response(503, text="busy")
+        return httpx.Response(201, json={**bodies[-1], "id": "msg_1", "run_id": "run_1", "status": "queued"})
+
+    client = client_with(handler)
+    message = {"kind": "instruction", "target_run_id": "run_1", "node_id": "lead", "content": "Kürzer"}
+    assert client.send_run_chat_message("run_1", **message)["id"] == "msg_1"  # type: ignore[arg-type]
+    keys = {body["client_id"] for body in bodies}
+    assert len(bodies) == 3 and len(keys) == 1 and len(next(iter(keys))) == 32
+    assert all(body["content"] == "Kürzer" and body["kind"] == "instruction" for body in bodies)
+    bodies.clear()
+    client.send_run_chat_message("run_1", **message, client_id="tab-1")  # type: ignore[arg-type]
+    client.send_run_chat_message("run_1", **message)  # type: ignore[arg-type]
+    assert bodies[2]["client_id"] == "tab-1" and bodies[-1]["client_id"] not in ("tab-1", *keys)
+
+
 def test_waiting_ends_at_the_timeout_even_with_a_long_poll_interval() -> None:
     client = client_with(lambda _request: httpx.Response(200, json={"id": "run_1", "status": "running"}))
     began = time.monotonic()

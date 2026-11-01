@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
 from typing import Any, Literal, cast
+import uuid
 
 import httpx
 
@@ -31,8 +32,9 @@ class NodestroClient:
     ``base_url`` is the address of the installation (``http`` or ``https``, host, optional port and
     path prefix; no query). ``timeout`` limits each phase of a request (connect, write, each read)
     in seconds; ``retry`` repeats reads after connection errors and 502/503/504, never a request
-    that changes something. ``headers`` are sent with every request. An ``http_client`` passed in
-    is used as is (its proxies, certificates and limits) and is not closed by :meth:`close`.
+    that changes something (except run chat messages: they carry a ``client_id``). ``headers`` are
+    sent with every request. An ``http_client`` passed in is used as is (its proxies, certificates
+    and limits) and is not closed by :meth:`close`.
 
     Raises ``ValueError`` for an invalid base URL, timeout or id (``""``, ``.``, ``..``);
     every other error is a :class:`~nodestro_client.NodestroClientError`.
@@ -262,6 +264,64 @@ class NodestroClient:
     ) -> models.Run:
         body: models.ResumeRequest = {"mode": mode, "confirm_side_effects": confirm}
         return cast(models.Run, self._http.json("POST", f"/api/runs/{path_segment(run_id)}/resume", json_body=body))
+
+    # ---- live run chat ---------------------------------------------------------------------
+
+    def run_chat(self, run_id: str) -> models.RunChatView:
+        """The live chat of a run: messages, the orchestrators one can talk to (with what their teams do now)
+        and the limits. ``run_id`` may be the top-level run or any run below it; the chat belongs to the top."""
+        return cast(models.RunChatView, self._http.json("GET", f"/api/runs/{path_segment(run_id)}/chat"))
+
+    def send_run_chat_message(
+        self,
+        run_id: str,
+        *,
+        kind: Literal["question", "instruction"],
+        target_run_id: str,
+        node_id: str,
+        content: str,
+        client_id: str | None = None,
+    ) -> models.RunMessage:
+        """Ask a question about the run (answered from the stored run state; it changes nothing) or give the
+        orchestrator ``node_id`` of ``target_run_id`` an instruction for its next decision.
+
+        Every message carries a ``client_id`` (a new random one unless given), so the automatic retry after a
+        lost answer or a 502/503/504 returns the stored message instead of sending a second one. Pass your own
+        key (at most 100 of ``A-Z a-z 0-9 . _ : -``) to make your own retries safe too; the same key for another
+        message is refused (409 ``run_chat.client_id_reused``). The answer to a question arrives later as a
+        message of kind ``answer`` (see :meth:`run_chat_events`).
+        """
+        body: models.ChatMessageIn = {
+            "kind": kind,
+            "target_run_id": target_run_id,
+            "node_id": node_id,
+            "content": content,
+            "client_id": client_id or uuid.uuid4().hex,
+        }
+        return cast(
+            models.RunMessage,
+            self._http.json(
+                "POST", f"/api/runs/{path_segment(run_id)}/chat/messages", json_body=body, retry_unsafe=True
+            ),
+        )
+
+    def run_chat_message(self, run_id: str, message_id: str) -> models.RunMessage:
+        """One message of the run's chat (e.g. to see whether a question was answered)."""
+        return cast(
+            models.RunMessage,
+            self._http.json("GET", f"/api/runs/{path_segment(run_id)}/chat/messages/{path_segment(message_id)}"),
+        )
+
+    def run_chat_events(self, run_id: str, *, timeout: float | None = None) -> Generator[Event, None, None]:
+        """The live events of a run's chat: ``snapshot`` (the whole view, on every connect), ``message`` (a new
+        or changed message), ``targets`` (what the orchestrators do now), ``end`` (the run ended and no answer is
+        pending, or access ended).
+
+        A reconnect gets a new snapshot. Leaving the loop early closes the connection when the generator is
+        collected; ``with contextlib.closing(...)`` closes it at once. ``timeout`` limits the wait for the next
+        line in seconds.
+        """
+        return self._http.events(f"/api/runs/{path_segment(run_id)}/chat/events", timeout=timeout)
 
     # ---- agents, tools, examples ---------------------------------------------------------
 
