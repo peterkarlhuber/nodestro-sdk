@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### MCP sign-in, local servers, operation and MCP tool offer (2026-11-01)
+
+- Python: `start_mcp_sign_in`, `sign_out_mcp_server`, `mcp_server_environment`, `plan_mcp_server_environment`,
+  `mcp_stats` and `update_publication` (slug, description, network, limits and `mcp_tool`). TypeScript: the same as
+  `startMcpSignIn`, `signOutMcpServer`, `mcpServerEnvironment`, `planMcpServerEnvironment`, `mcpStats` and
+  `updatePublication`, plus the types `McpOAuthStart`, `McpStats`, `McpServerHealth`, `DependencyStatus`,
+  `DependencyPlan` and `PublicationPatch`. They call the existing routes of the pinned API (no pin change).
+
 ### Warnings before unattended starts, pin: nodestro-api a233d57 (2026-11-01)
 
 - Pin of `nodestro-api` at `a233d57` (before: `c58d5de`; runtime `2d55242`, before `a13f894`). The regenerated types
