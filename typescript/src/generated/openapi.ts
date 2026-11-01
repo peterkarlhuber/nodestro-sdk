@@ -985,6 +985,9 @@ export interface paths {
         /**
          * Diagnostics Connection
          * @description Reach a provider's API (default: the default model's) by listing its models; no tokens, no cost.
+         *
+         *     Amazon Bedrock: runs the settings verification instead (free AWS calls) and, as a side effect, stores its result
+         *     in the provider's ``verification`` (rate limit shared with ``POST /api/settings/providers/bedrock/verify``).
          */
         post: operations["diagnostics_connection_api_diagnostics_connection_post"];
         delete?: never;
@@ -1679,6 +1682,26 @@ export interface paths {
         };
         /** Meta */
         get: operations["meta_api_meta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Capabilities
+         * @description Orkexa's capabilities of one qualified model id (``bedrock:eu.anthropic...-v1:0``, an ARN; colons kept).
+         */
+        get: operations["get_model_capabilities_api_models_capabilities_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3044,6 +3067,9 @@ export interface paths {
          * Verify Bedrock
          * @description Check the Amazon Bedrock settings with free AWS calls only (STS ``GetCallerIdentity`` and one read of the
          *     Bedrock control plane; no model is invoked) and store the result in the provider's ``verification``.
+         *
+         *     The connection diagnosis (``POST /api/diagnostics/connection?provider=bedrock``) runs the same check, so it also
+         *     stores the verification as a side effect and shares its rate limit.
          *
          *     A failed check answers 200 with ``verification.state == "failed"`` and a stable code; nothing about the AWS
          *     identity (account, ARN, keys) is ever returned. At most one check every few seconds per workspace (429).
@@ -7527,6 +7553,18 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * ModelCapabilities
+         * @description What a model supports according to Orkexa, for a model id typed in the editor (not only catalog entries).
+         */
+        ModelCapabilities: {
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: "supported" | "unsupported" | "unknown";
+            } | null;
+            /** Model */
+            model: string;
+        };
         /** ModelChoice */
         ModelChoice: {
             /** Current Model */
@@ -7564,6 +7602,10 @@ export interface components {
             cache_write_1h_usd_per_mtok?: number | null;
             /** Cache Write 5M Usd Per Mtok */
             cache_write_5m_usd_per_mtok?: number | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: "supported" | "unsupported" | "unknown";
+            } | null;
             /** Description */
             description: string;
             /** Id */
@@ -8328,6 +8370,8 @@ export interface components {
             /** Quality */
             quality: string;
             reference?: components["schemas"]["PriceEntry"] | null;
+            /** Regions */
+            regions?: string[] | null;
             /** Source */
             source: string;
             /** Source Url */
@@ -15239,6 +15283,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Meta"];
+                };
+            };
+        };
+    };
+    get_model_capabilities_api_models_capabilities_get: {
+        parameters: {
+            query: {
+                model: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCapabilities"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

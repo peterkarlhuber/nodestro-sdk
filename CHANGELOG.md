@@ -2,13 +2,15 @@
 
 ## Unreleased
 
-### Amazon Bedrock: nodestro-api 355e0a2 (2026-11-01, branch)
+### Amazon Bedrock: nodestro-api 4e2c8cd (2026-11-01, branch)
 
-- Test pin of `nodestro-api` at `355e0a2` (before: `db6a696`; runtime `464468d`). Types regenerated
+- Test pin of `nodestro-api` at `4e2c8cd` (before: `db6a696`; runtime `ac96c6f`). Types regenerated
   (`make contract`); additions only:
   - new operation `POST /api/settings/providers/bedrock/verify` (body `ProviderVerifyIn {model?}`, answer
     `ProviderStatus`, 429 when rate limited) and the types `ProviderVerifyIn`, `ProviderVerification`,
     `UnreconciledProvider`;
+  - new operation `GET /api/models/capabilities?model=` (`ModelCapabilities {model, capabilities}`);
+    `ModelInfo.capabilities`, `PriceEntry.regions`;
   - `ProviderInfo.auth`/`region_env_vars`; `ProviderSettingsIn` and `ProviderStatus` Bedrock fields (`region`, `auth`,
     `profile_name`, `data_residency`, ...; `ProviderStatus.verification`); `ModelInfo.price_region(s)`;
     `OverrideIn.aws_regions` (`set_price_override` accepts it); `ReconciliationReport.not_reconciled`.

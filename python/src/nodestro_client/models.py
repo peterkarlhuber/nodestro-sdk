@@ -890,10 +890,20 @@ class MemoryText(TypedDict):
     path: str
 
 
+class ModelCapabilities(TypedDict):
+    capabilities: NotRequired[
+        dict[str, Literal['supported', 'unsupported', 'unknown']] | None
+    ]
+    model: str
+
+
 class ModelInfo(TypedDict):
     cache_read_usd_per_mtok: NotRequired[float | None]
     cache_write_1h_usd_per_mtok: NotRequired[float | None]
     cache_write_5m_usd_per_mtok: NotRequired[float | None]
+    capabilities: NotRequired[
+        dict[str, Literal['supported', 'unsupported', 'unknown']] | None
+    ]
     description: str
     id: str
     input_usd_per_mtok: NotRequired[float | None]
@@ -1085,6 +1095,7 @@ class PriceEntry(TypedDict):
     provider: str
     quality: str
     reference: NotRequired[PriceEntry | None]
+    regions: NotRequired[list[str] | None]
     source: str
     source_url: NotRequired[str | None]
     staleness: Literal['ok', 'warning', 'critical']
