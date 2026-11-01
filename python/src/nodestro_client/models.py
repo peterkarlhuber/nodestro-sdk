@@ -901,6 +901,8 @@ class ModelInfo(TypedDict):
     model: str
     output_usd_per_mtok: NotRequired[float | None]
     price_quality: NotRequired[str | None]
+    price_region: NotRequired[str | None]
+    price_regions: NotRequired[list[str] | None]
     price_source: NotRequired[str | None]
     price_status: NotRequired[str]
     price_version: NotRequired[str | None]
@@ -988,6 +990,7 @@ class OutputField(TypedDict):
 
 
 class OverrideIn(TypedDict):
+    aws_regions: NotRequired[list[str] | None]
     cache_read_usd_per_mtok: NotRequired[float | str | None]
     cache_write_1h_usd_per_mtok: NotRequired[float | str | None]
     cache_write_5m_usd_per_mtok: NotRequired[float | str | None]
@@ -1164,14 +1167,18 @@ class ProvidedFile(TypedDict):
 
 
 class ProviderInfo(TypedDict):
+    auth: NotRequired[Literal['api_key', 'endpoint', 'aws']]
     base_url: NotRequired[bool]
     declare_capabilities: NotRequired[bool]
     default_base_url: NotRequired[str | None]
     env_vars: NotRequired[list[str]]
     example_model: NotRequired[str]
-    id: Literal['anthropic', 'openai', 'gemini', 'compatible', 'ollama', 'vllm']
+    id: Literal[
+        'anthropic', 'openai', 'gemini', 'compatible', 'ollama', 'vllm', 'bedrock'
+    ]
     label: str
     needs_key: bool
+    region_env_vars: NotRequired[list[str]]
 
 
 class ProviderResult(TypedDict):
@@ -1183,22 +1190,24 @@ class ProviderResult(TypedDict):
 
 class ProviderSettingsIn(TypedDict):
     api_key: NotRequired[str | None]
+    auth: NotRequired[str | None]
     base_url: NotRequired[str | None]
     capabilities: NotRequired[
         dict[str, Literal['supported', 'unsupported', 'unknown']] | None
     ]
+    data_residency: NotRequired[str | None]
+    profile_name: NotRequired[str | None]
+    region: NotRequired[str | None]
 
 
-class ProviderStatus(TypedDict):
-    base_url: NotRequired[str | None]
-    base_url_default: NotRequired[str | None]
-    capabilities: NotRequired[dict[str, str]]
-    configured: bool
-    env_var: NotRequired[str | None]
-    id: str
-    key_source: Literal['environment', 'settings', 'none', 'not_needed']
-    key_stored: NotRequired[bool]
-    label: str
+class ProviderVerification(TypedDict):
+    checked_at: NotRequired[str | None]
+    code: NotRequired[str | None]
+    state: NotRequired[Literal['not_configured', 'configured', 'verified', 'failed']]
+
+
+class ProviderVerifyIn(TypedDict):
+    model: NotRequired[str | None]
 
 
 class PublicationEvent(TypedDict):
@@ -1537,23 +1546,6 @@ class SearchResult(TypedDict):
 class SendRequest(TypedDict):
     content: str
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
-
-
-class Settings(TypedDict):
-    architect_budget_usd: NotRequired[float | None]
-    architect_max_repairs: NotRequired[int]
-    assistant_model: NotRequired[str]
-    builtin_sandbox: NotRequired[BuiltinSandboxStatus]
-    default_budget_usd: NotRequired[float | None]
-    default_model: NotRequired[str]
-    default_provider: NotRequired[str]
-    docker_available: NotRequired[bool]
-    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
-    ocr_available: NotRequired[bool]
-    ocr_enabled: NotRequired[bool]
-    price_mode: NotRequired[Literal['standard', 'strict']]
-    providers: NotRequired[list[ProviderStatus]]
-    sandbox: NotRequired[Literal['subprocess', 'docker']]
 
 
 class SettingsIn(TypedDict):
@@ -1950,6 +1942,17 @@ class ToolSource(TypedDict):
     code: str
     function_name: str
     tests: str
+
+
+class UnreconciledProvider(TypedDict):
+    code: Literal[
+        'pricing.reconciliation_not_supported', 'pricing.reconciliation_not_configured'
+    ]
+    estimated_usd: str
+    note: str
+    provider: str
+    requests: int
+    unpriced_requests: int
 
 
 class UploadResult(TypedDict):
@@ -2661,6 +2664,27 @@ class Plan(TypedDict):
     scope: str
 
 
+class ProviderStatus(TypedDict):
+    allowed_regions: NotRequired[list[str] | None]
+    auth: NotRequired[str | None]
+    auth_methods: NotRequired[list[str] | None]
+    base_url: NotRequired[str | None]
+    base_url_default: NotRequired[str | None]
+    capabilities: NotRequired[dict[str, str]]
+    configured: bool
+    data_residency: NotRequired[str | None]
+    data_residency_forced: NotRequired[bool | None]
+    env_var: NotRequired[str | None]
+    id: str
+    key_source: Literal['environment', 'settings', 'none', 'not_needed']
+    key_stored: NotRequired[bool]
+    label: str
+    operator_role: NotRequired[bool | None]
+    profile_name: NotRequired[str | None]
+    region: NotRequired[str | None]
+    verification: NotRequired[ProviderVerification | None]
+
+
 class Publication(TypedDict):
     active_release: NotRequired[int | None]
     created_at: NotRequired[str]
@@ -2719,6 +2743,7 @@ class ReconciliationReport(TypedDict):
     absolute_threshold_usd: str
     created_at: str
     end: str
+    not_reconciled: NotRequired[list[UnreconciledProvider]]
     providers: list[ProviderResult]
     relative_threshold: str
     rows: list[ReconciliationRow]
@@ -2811,6 +2836,23 @@ class ServerToolInfo(TypedDict):
     description: str
     key: str
     label: str
+
+
+class Settings(TypedDict):
+    architect_budget_usd: NotRequired[float | None]
+    architect_max_repairs: NotRequired[int]
+    assistant_model: NotRequired[str]
+    builtin_sandbox: NotRequired[BuiltinSandboxStatus]
+    default_budget_usd: NotRequired[float | None]
+    default_model: NotRequired[str]
+    default_provider: NotRequired[str]
+    docker_available: NotRequired[bool]
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    ocr_available: NotRequired[bool]
+    ocr_enabled: NotRequired[bool]
+    price_mode: NotRequired[Literal['standard', 'strict']]
+    providers: NotRequired[list[ProviderStatus]]
+    sandbox: NotRequired[Literal['subprocess', 'docker']]
 
 
 class Suite(TypedDict):

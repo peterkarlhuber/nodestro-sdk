@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Amazon Bedrock: nodestro-api 355e0a2 (2026-11-01, branch)
+
+- Test pin of `nodestro-api` at `355e0a2` (before: `db6a696`; runtime `464468d`). Types regenerated
+  (`make contract`); additions only:
+  - new operation `POST /api/settings/providers/bedrock/verify` (body `ProviderVerifyIn {model?}`, answer
+    `ProviderStatus`, 429 when rate limited) and the types `ProviderVerifyIn`, `ProviderVerification`,
+    `UnreconciledProvider`;
+  - `ProviderInfo.auth`/`region_env_vars`; `ProviderSettingsIn` and `ProviderStatus` Bedrock fields (`region`, `auth`,
+    `profile_name`, `data_residency`, ...; `ProviderStatus.verification`); `ModelInfo.price_region(s)`;
+    `OverrideIn.aws_regions` (`set_price_override` accepts it); `ReconciliationReport.not_reconciled`.
+- No new client method: the SDK has no per-endpoint settings methods; the verification is reachable through the
+  generated types.
+
 ### Pin: nodestro-api db6a696 (2026-11-01)
 
 - Pin of `nodestro-api` at `db6a696` (before: `7997bb4`): the runtime pin moves to `d141b8f` (PostgreSQL read
