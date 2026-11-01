@@ -4,8 +4,8 @@
 
 ### Live run chat (LRC-1, 2026-11-01)
 
-- Pin of `nodestro-api` at `3276855` (before: `db6a696`; runtime `fe6f85d`, before `d141b8f`; examples `5129d75`,
-  before `660e9a9`): the live run chat and steering of orchestrators. Regenerated Python and TypeScript types:
+- Pin of `nodestro-api` at `6890a2b` (before: `4e2c8cd`; runtime `b5b765f`, before `ac96c6f`; examples `14a4d5b`,
+  before `dcad0d1`): the live run chat and steering of orchestrators. Regenerated Python and TypeScript types:
   `RunChatView`, `RunMessage`, `ChatMessageIn`, `ChatTarget`, `ChatLimits`, `TeamActivity`, `DecisionNote`,
   `GuidanceRef`; `OrchestratorConfig.live_steering`, `NodeRun.guidance` and `current_decision`, the usage kind
   `run_chat`.
@@ -16,6 +16,21 @@
 - TypeScript: `newIdempotencyKey` moved to the HTTP layer (still exported under the same name).
 - The test server (`scripts/test_server.py`) scripts an orchestrator, a team draft (`DRAFTER`) and the chat's
   answer model.
+
+### Amazon Bedrock: nodestro-api 4e2c8cd (2026-11-01, branch)
+
+- Test pin of `nodestro-api` at `4e2c8cd` (before: `db6a696`; runtime `ac96c6f`). Types regenerated
+  (`make contract`); additions only:
+  - new operation `POST /api/settings/providers/bedrock/verify` (body `ProviderVerifyIn {model?}`, answer
+    `ProviderStatus`, 429 when rate limited) and the types `ProviderVerifyIn`, `ProviderVerification`,
+    `UnreconciledProvider`;
+  - new operation `GET /api/models/capabilities?model=` (`ModelCapabilities {model, capabilities}`);
+    `ModelInfo.capabilities`, `PriceEntry.regions`;
+  - `ProviderInfo.auth`/`region_env_vars`; `ProviderSettingsIn` and `ProviderStatus` Bedrock fields (`region`, `auth`,
+    `profile_name`, `data_residency`, ...; `ProviderStatus.verification`); `ModelInfo.price_region(s)`;
+    `OverrideIn.aws_regions` (`set_price_override` accepts it); `ReconciliationReport.not_reconciled`.
+- No new client method: the SDK has no per-endpoint settings methods; the verification is reachable through the
+  generated types.
 
 ### Pin: nodestro-api db6a696 (2026-11-01)
 

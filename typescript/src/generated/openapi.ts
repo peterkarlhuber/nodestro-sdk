@@ -985,6 +985,9 @@ export interface paths {
         /**
          * Diagnostics Connection
          * @description Reach a provider's API (default: the default model's) by listing its models; no tokens, no cost.
+         *
+         *     Amazon Bedrock: runs the settings verification instead (free AWS calls) and, as a side effect, stores its result
+         *     in the provider's ``verification`` (rate limit shared with ``POST /api/settings/providers/bedrock/verify``).
          */
         post: operations["diagnostics_connection_api_diagnostics_connection_post"];
         delete?: never;
@@ -1679,6 +1682,26 @@ export interface paths {
         };
         /** Meta */
         get: operations["meta_api_meta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Capabilities
+         * @description Orkexa's capabilities of one qualified model id (``bedrock:eu.anthropic...-v1:0``, an ARN; colons kept).
+         */
+        get: operations["get_model_capabilities_api_models_capabilities_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3103,6 +3126,33 @@ export interface paths {
         /** Put Settings */
         put: operations["put_settings_api_settings_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/providers/bedrock/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Bedrock
+         * @description Check the Amazon Bedrock settings with free AWS calls only (STS ``GetCallerIdentity`` and one read of the
+         *     Bedrock control plane; no model is invoked) and store the result in the provider's ``verification``.
+         *
+         *     The connection diagnosis (``POST /api/diagnostics/connection?provider=bedrock``) runs the same check, so it also
+         *     stores the verification as a side effect and shares its rate limit.
+         *
+         *     A failed check answers 200 with ``verification.state == "failed"`` and a stable code; nothing about the AWS
+         *     identity (account, ARN, keys) is ever returned. At most one check every few seconds per workspace (429).
+         */
+        post: operations["verify_bedrock_api_settings_providers_bedrock_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7715,6 +7765,18 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * ModelCapabilities
+         * @description What a model supports according to Orkexa, for a model id typed in the editor (not only catalog entries).
+         */
+        ModelCapabilities: {
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: "supported" | "unsupported" | "unknown";
+            } | null;
+            /** Model */
+            model: string;
+        };
         /** ModelChoice */
         ModelChoice: {
             /** Current Model */
@@ -7752,6 +7814,10 @@ export interface components {
             cache_write_1h_usd_per_mtok?: number | null;
             /** Cache Write 5M Usd Per Mtok */
             cache_write_5m_usd_per_mtok?: number | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: "supported" | "unsupported" | "unknown";
+            } | null;
             /** Description */
             description: string;
             /** Id */
@@ -7766,6 +7832,10 @@ export interface components {
             output_usd_per_mtok?: number | null;
             /** Price Quality */
             price_quality?: string | null;
+            /** Price Region */
+            price_region?: string | null;
+            /** Price Regions */
+            price_regions?: string[] | null;
             /** Price Source */
             price_source?: string | null;
             /**
@@ -8175,6 +8245,8 @@ export interface components {
          * @description An individual price (USD per million tokens, as decimal strings): a contract price or a correction.
          */
         OverrideIn: {
+            /** Aws Regions */
+            aws_regions?: string[] | null;
             /** Cache Read Usd Per Mtok */
             cache_read_usd_per_mtok?: number | string | null;
             /** Cache Write 1H Usd Per Mtok */
@@ -8522,6 +8594,8 @@ export interface components {
             /** Quality */
             quality: string;
             reference?: components["schemas"]["PriceEntry"] | null;
+            /** Regions */
+            regions?: string[] | null;
             /** Source */
             source: string;
             /** Source Url */
@@ -8714,6 +8788,12 @@ export interface components {
          */
         ProviderInfo: {
             /**
+             * Auth
+             * @default api_key
+             * @enum {string}
+             */
+            auth: "api_key" | "endpoint" | "aws";
+            /**
              * Base Url
              * @default false
              */
@@ -8736,11 +8816,13 @@ export interface components {
              * Id
              * @enum {string}
              */
-            id: "anthropic" | "openai" | "gemini" | "compatible" | "ollama" | "vllm";
+            id: "anthropic" | "openai" | "gemini" | "compatible" | "ollama" | "vllm" | "bedrock";
             /** Label */
             label: string;
             /** Needs Key */
             needs_key: boolean;
+            /** Region Env Vars */
+            region_env_vars?: string[];
         };
         /** ProviderResult */
         ProviderResult: {
@@ -8756,22 +8838,40 @@ export interface components {
         /**
          * ProviderSettingsIn
          * @description A change of one provider's settings: ``None`` keeps a value, an empty text removes it.
+         *
+         *     ``region``, ``auth``, ``profile_name`` and ``data_residency`` belong to Amazon Bedrock only (other providers
+         *     refuse them with ``provider.field_not_supported``); Bedrock refuses ``api_key``, ``base_url`` and
+         *     ``capabilities``.
          */
         ProviderSettingsIn: {
             /** Api Key */
             api_key?: string | null;
+            /** Auth */
+            auth?: string | null;
             /** Base Url */
             base_url?: string | null;
             /** Capabilities */
             capabilities?: {
                 [key: string]: "supported" | "unsupported" | "unknown";
             } | null;
+            /** Data Residency */
+            data_residency?: string | null;
+            /** Profile Name */
+            profile_name?: string | null;
+            /** Region */
+            region?: string | null;
         };
         /**
          * ProviderStatus
          * @description A provider as the settings page shows it; never contains the key itself.
          */
         ProviderStatus: {
+            /** Allowed Regions */
+            allowed_regions?: string[] | null;
+            /** Auth */
+            auth?: string | null;
+            /** Auth Methods */
+            auth_methods?: string[] | null;
             /** Base Url */
             base_url?: string | null;
             /** Base Url Default */
@@ -8782,6 +8882,10 @@ export interface components {
             };
             /** Configured */
             configured: boolean;
+            /** Data Residency */
+            data_residency?: string | null;
+            /** Data Residency Forced */
+            data_residency_forced?: boolean | null;
             /** Env Var */
             env_var?: string | null;
             /** Id */
@@ -8798,6 +8902,38 @@ export interface components {
             key_stored: boolean;
             /** Label */
             label: string;
+            /** Operator Role */
+            operator_role?: boolean | null;
+            /** Profile Name */
+            profile_name?: string | null;
+            /** Region */
+            region?: string | null;
+            verification?: components["schemas"]["ProviderVerification"] | null;
+        };
+        /**
+         * ProviderVerification
+         * @description The result of the last explicit check of a provider (Bedrock); never an account, ARN or key.
+         */
+        ProviderVerification: {
+            /** Checked At */
+            checked_at?: string | null;
+            /** Code */
+            code?: string | null;
+            /**
+             * State
+             * @default not_configured
+             * @enum {string}
+             */
+            state: "not_configured" | "configured" | "verified" | "failed";
+        };
+        /**
+         * ProviderVerifyIn
+         * @description What to check: without ``model`` the region's model list is read; with one, that model or inference profile
+         *     (``eu.anthropic...``, an ARN; ``bedrock:`` in front is accepted).
+         */
+        ProviderVerifyIn: {
+            /** Model */
+            model?: string | null;
         };
         /** Publication */
         Publication: {
@@ -9084,6 +9220,8 @@ export interface components {
              * Format: date
              */
             end: string;
+            /** Not Reconciled */
+            not_reconciled?: components["schemas"]["UnreconciledProvider"][];
             /** Providers */
             providers: components["schemas"]["ProviderResult"][];
             /** Relative Threshold */
@@ -11444,6 +11582,27 @@ export interface components {
             /** Duplicate */
             duplicate: boolean;
             run: components["schemas"]["RunSummary"];
+        };
+        /**
+         * UnreconciledProvider
+         * @description A provider Nodestro estimated costs for in the period but did not compare with a bill.
+         */
+        UnreconciledProvider: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "pricing.reconciliation_not_supported" | "pricing.reconciliation_not_configured";
+            /** Estimated Usd */
+            estimated_usd: string;
+            /** Note */
+            note: string;
+            /** Provider */
+            provider: string;
+            /** Requests */
+            requests: number;
+            /** Unpriced Requests */
+            unpriced_requests: number;
         };
         /**
          * UploadResult
@@ -15471,6 +15630,37 @@ export interface operations {
             };
         };
     };
+    get_model_capabilities_api_models_capabilities_get: {
+        parameters: {
+            query: {
+                model: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCapabilities"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     organize_state_api_organize_get: {
         parameters: {
             query?: never;
@@ -18292,6 +18482,46 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    verify_bedrock_api_settings_providers_bedrock_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ProviderVerifyIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Checked a moment ago (provider.verify_rate_limited, Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
