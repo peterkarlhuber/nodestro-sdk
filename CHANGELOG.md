@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Pin nodestro-api 961afef (Axentra completion: identity, platform services, files, database roles; 2026-11-02;
+  before `c470b2b`): server-side switches and operator commands only, all off by default; routes and the OpenAPI
+  document are unchanged, so no types were regenerated.
+
 - Docker sandbox status (Docker-first plan S1, 2026-11-02; contract of nodestro-api `docker-a1`, the api pin is not
   moved yet): new `NodestroClient.sandbox_status(refresh=False, wait=0.0)` / `sandboxStatus({ refresh, wait })`
   (`GET /api/sandbox/status`, permission `read`) and `sandbox_self_test(timeout=30.0)` / `sandboxSelfTest({ timeout })`
