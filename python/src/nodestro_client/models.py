@@ -1562,9 +1562,9 @@ class RunBudgetOut(TypedDict):
     raises: NotRequired[list[BudgetRaise]]
     remaining_usd: NotRequired[str | None]
     run_id: str
-    source: str
+    source: Literal['workflow', 'default', 'release', 'subworkflow', 'team', 'none']
     spent_usd: str
-    status: str
+    status: Literal['queued', 'running', 'paused', 'succeeded', 'failed', 'cancelled']
     unknown_cost: NotRequired[bool]
 
 

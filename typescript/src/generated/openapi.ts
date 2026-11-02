@@ -10134,12 +10134,18 @@ export interface components {
             remaining_usd?: string | null;
             /** Run Id */
             run_id: string;
-            /** Source */
-            source: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "workflow" | "default" | "release" | "subworkflow" | "team" | "none";
             /** Spent Usd */
             spent_usd: string;
-            /** Status */
-            status: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "succeeded" | "failed" | "cancelled";
             /**
              * Unknown Cost
              * @default false

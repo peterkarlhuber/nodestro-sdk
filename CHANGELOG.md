@@ -23,7 +23,7 @@
 
 ### Run budget decisions (BUDGET-1, 2026-11-02)
 
-- Pin of `nodestro-api` at `9c3ce25` (before: `c470b2b`): an attended run whose next model request does not fit its
+- Pin of `nodestro-api` at `5519708` (nodestro-api #64; before: `16a6118`): an attended run whose next model request does not fit its
   budget pauses and waits for a decision instead of failing. Regenerated Python and TypeScript types:
   `RunBudgetOut`, `BudgetRequest`, `BudgetDecisionIn`, `BudgetPolicy`, `BudgetRaise`, `BudgetBlock`,
   `BlockedRequest`, `RunBudget`; `Run.budget` and `started_by`, `RunSummary.budget`, the node status
