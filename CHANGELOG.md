@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Pin nodestro-api 79059d9 (automatic sandbox mode, 2026-11-02): settings accept `sandbox: "auto"` and return `sandbox_selection` and `sandbox_backends`; Python and TypeScript types regenerated.
+- Pin nodestro-api cb4b7fb (automatic sandbox mode, 2026-11-02): settings accept `sandbox: "auto"` and return `sandbox_selection` and `sandbox_backends`; Python and TypeScript types regenerated.
 
 ### Live run chat (LRC-1, 2026-11-01)
 
