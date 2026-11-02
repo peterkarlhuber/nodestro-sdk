@@ -13,6 +13,8 @@ import { type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pat
 export type Schemas = components["schemas"];
 export type Meta = Schemas["Meta"];
 export type Settings = Schemas["Settings"];
+export type SandboxBackendStatus = Schemas["SandboxBackendStatus"];
+export type SandboxCheck = Schemas["SandboxCheck"];
 /** Stored objects always carry their id in answers (the schema marks it optional because it has a default). */
 export type Stored<T> = T & { id: string; created_at: string };
 export type Workflow = Stored<Schemas["Workflow"]>;
@@ -130,6 +132,29 @@ export class NodestroClient {
   /** The settings as the interface shows them (API keys are never returned). */
   async settings(): Promise<Settings> {
     return this.http.json("GET", "/api/settings");
+  }
+
+  /**
+   * The Docker sandbox of the computer the API runs on, as its background check last found it (`state` `checking`,
+   * `approved` or `unavailable`, with `reason` and `checks`). Never waits for Docker; `refresh` starts a new check
+   * (answering at once), `wait` (seconds, at most 5) waits for a running one.
+   */
+  async sandboxStatus(options: { refresh?: boolean; wait?: number } = {}): Promise<SandboxBackendStatus> {
+    return this.http.json("GET", "/api/sandbox/status", {
+      query: { refresh: options.refresh ?? false, wait: options.wait ?? 0 },
+    });
+  }
+
+  /**
+   * Run the Docker sandbox's checks again now, the in-container self-test included (permission `admin`), and wait at
+   * most `timeout` seconds (at most 60) for the result; `state` is `checking` while it goes on.
+   */
+  async sandboxSelfTest(options: { timeout?: number } = {}): Promise<SandboxBackendStatus> {
+    const timeout = options.timeout ?? 30;
+    return this.http.json("POST", "/api/sandbox/self-test", {
+      query: { timeout },
+      timeoutMs: Math.max(30, timeout + 15) * 1000,
+    });
   }
 
   // ---- workflows

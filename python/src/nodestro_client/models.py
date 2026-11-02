@@ -1599,20 +1599,10 @@ class SampleInfo(TypedDict):
     id: str
 
 
-class SandboxBackendStatus(TypedDict):
-    available: NotRequired[bool]
+class SandboxCheck(TypedDict):
     detail: NotRequired[str]
-    isolation: NotRequired[str]
-    maturity: NotRequired[str]
-    memory: NotRequired[str]
     name: str
-    notes: NotRequired[list[str]]
-    reason: NotRequired[str]
-    state: NotRequired[
-        Literal[
-            'approved', 'experimental', 'unavailable', 'not-isolating', 'not-applicable'
-        ]
-    ]
+    ok: NotRequired[bool]
 
 
 class SandboxSelection(TypedDict):
@@ -3043,6 +3033,32 @@ class RunSummary(TypedDict):
     workflow_id: str
     workflow_name: str
     workflow_version: NotRequired[int | None]
+
+
+class SandboxBackendStatus(TypedDict):
+    available: NotRequired[bool]
+    cgroup_version: NotRequired[str | None]
+    checks: NotRequired[list[SandboxCheck]]
+    detail: NotRequired[str]
+    engine: NotRequired[str]
+    isolation: NotRequired[str]
+    maturity: NotRequired[str]
+    memory: NotRequired[str]
+    name: str
+    notes: NotRequired[list[str]]
+    reason: NotRequired[str]
+    rootless: NotRequired[bool | None]
+    state: NotRequired[
+        Literal[
+            'approved',
+            'experimental',
+            'unavailable',
+            'not-isolating',
+            'not-applicable',
+            'checking',
+        ]
+    ]
+    tested_at: NotRequired[str | None]
 
 
 class SaveResult(TypedDict):

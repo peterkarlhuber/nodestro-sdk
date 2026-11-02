@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Pin nodestro-api 961afef (Axentra completion: identity, platform services, files, database roles; 2026-11-02;
+  before `c470b2b`): server-side switches and operator commands only, all off by default; routes and the OpenAPI
+  document are unchanged, so no types were regenerated.
+
+- Docker sandbox status (Docker-first plan S1, 2026-11-02; pin nodestro-api 16a6118, nodestro-api #63, before
+  `961afef`): new `NodestroClient.sandbox_status(refresh=False, wait=0.0)` / `sandboxStatus({ refresh, wait })`
+  (`GET /api/sandbox/status`, permission `read`) and `sandbox_self_test(timeout=30.0)` / `sandboxSelfTest({ timeout })`
+  (`POST /api/sandbox/self-test`, permission `admin`), both answering `SandboxBackendStatus`. Regenerated types, all
+  additions: `SandboxCheck` (`name`, `ok`, `detail`), the optional `SandboxBackendStatus` fields `engine`, `rootless`,
+  `cgroup_version`, `checks`, `tested_at` and its state `checking`; TypeScript exports `SandboxBackendStatus` and
+  `SandboxCheck`.
+
 - Pin nodestro-api c470b2b (desktop secrets on `--secrets-fd`, review MS-1, 2026-11-02; before `bda8148`): a CLI
   option only; routes and the OpenAPI document are unchanged, so no types were regenerated.
 - Pin nodestro-api bda8148 (Axentra platform services in nodestro-server, 2026-11-02; before `cb4b7fb`): operator
