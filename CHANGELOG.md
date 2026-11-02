@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Pin nodestro-api 961afef (Axentra completion: identity, platform services, files, database roles; 2026-11-02;
+  before `c470b2b`): server-side switches and operator commands only, all off by default; routes and the OpenAPI
+  document are unchanged, so no types were regenerated.
 - Pin nodestro-api c470b2b (desktop secrets on `--secrets-fd`, review MS-1, 2026-11-02; before `bda8148`): a CLI
   option only; routes and the OpenAPI document are unchanged, so no types were regenerated.
 - Pin nodestro-api bda8148 (Axentra platform services in nodestro-server, 2026-11-02; before `cb4b7fb`): operator
