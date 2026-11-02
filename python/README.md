@@ -53,8 +53,9 @@ Never write a key into the code; read it from the environment or a secret store.
   it are refused with `ValueError`.
 - `timeout`: seconds for each phase of a request (connecting, sending, each read), not for the whole request.
 - `retry`: `RetryPolicy(attempts=3, backoff=0.5, max_backoff=8.0)`. `attempts` counts the first try (`1` = never
-  retry; values below 1 raise `ValueError`). Only reads, starts of published workflows (idempotency key) and run chat
-  messages (`client_id`) are retried, after connection errors and 502/503/504.
+  retry; values below 1 raise `ValueError`). Only reads, starts of published workflows (idempotency key), run chat
+  messages (`client_id`) and budget decisions (`idempotency_key`) are retried, after connection errors and
+  502/503/504.
 - `headers`: sent with every request (for example for a proxy).
 - `http_client`: an `httpx.Client` of your own (proxies, certificates, limits). It is used as is, never changed
   (the key is added per request) and not closed by `close()`; you close it.
@@ -77,6 +78,8 @@ Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refuse
 - `start(values, wait=seconds)` waits for the result on the server when the publication allows it; the request
   timeout is extended by `wait`.
 - Downloads (`download_file()`, `download()`) return the whole file as `bytes`.
+- A run that waits for a person is `paused`, and `wait_for_run()` returns it (unless `stop_at_approval=False`). A
+  budget wait has `run["budget"]["pending_request_id"]` set; answer it as described under "Run budgets".
 
 ## Live run chat
 
@@ -95,6 +98,40 @@ While a run with an orchestrator is active, people can ask about it and steer it
 
 Refusals are `NodestroAPIError`s with `run_chat.*` codes, for example 409 `run_chat.run_not_active` for a run that
 ended, 429 `run_chat.too_many_questions`.
+
+## Run budgets
+
+An attended run whose next model request does not fit its budget pauses before the request is sent and waits for
+a decision. Amounts are decimal strings (`"2.50"`) in both directions; the client never turns them into floats.
+
+- `get_run_budget(run_id)`: the limits (`initial_limit_usd`, `limit_usd`), `spent_usd`, `remaining_usd`, the
+  approved `raises`, the open request (`pending`), earlier requests (`history`) and what you may decide (`policy`:
+  `can_decide`, `reason`, `max_limit_usd`). Any run of the tree may be given; the budget belongs to the top-level run.
+- `list_budget_requests()`: every open budget request (all runs), oldest first.
+- `raise_run_budget(run_id, request_id, limit_usd, *, idempotency_key=None)`: set the limit that stopped the run to
+  `limit_usd` (a `str` or `Decimal` with at most two decimal places; a float raises `TypeError`) and continue the run,
+  in one operation.
+- `end_run_for_budget(run_id, request_id, *, idempotency_key=None)`: end the run instead (`cancelled`, error code
+  `run.budget_ended`).
+- `decide_run_budget(run_id, request_id, "raise" | "end", *, limit_usd=None, idempotency_key=None)`: both in one
+  method.
+
+All three return the run's budget after the decision. Each decision carries an `idempotency_key` (a random one unless
+given), so it is retried safely: the same decision with the same key by the same person returns the stored result.
+
+```python
+run = nodestro.wait_for_run(run_id)
+if run["status"] == "paused" and (run.get("budget") or {}).get("pending_request_id"):
+    view = nodestro.get_run_budget(run_id)
+    print(view["spent_usd"], view["limit_usd"], view["pending"]["suggested_limit_usd"])
+    nodestro.raise_run_budget(run_id, run["budget"]["pending_request_id"], "2.50")
+```
+
+Refusals are `NodestroAPIError`s: 404 (run or request unknown), 409 `budget.not_pending` (already decided, expired
+or cancelled; `params` has `request_status` and `decided_by`), 422 `budget.limit_not_higher`
+(`params["current_limit_usd"]`) and `budget.limit_invalid`, 403 `budget.over_policy` (above
+`params["max_limit_usd"]`) and `access.forbidden` (only the person who started the run or an administrator decides;
+`params["reason"]`).
 
 ## Errors
 

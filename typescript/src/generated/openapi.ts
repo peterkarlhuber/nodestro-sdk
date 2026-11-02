@@ -953,6 +953,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/budget-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Budget Requests
+         * @description The tenant's open budget requests, oldest first (also after a restart).
+         */
+        get: operations["budget_requests_api_budget_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diagnostics": {
         parameters: {
             query?: never;
@@ -2700,6 +2720,46 @@ export interface paths {
          * @description Approve or reject at an approval node; the run (its top-level run) continues right away.
          */
         post: operations["decide_approval_api_runs__run_id__approvals__node_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Budget
+         * @description The budget of a run's top-level run, its open decision and what the caller may decide.
+         */
+        get: operations["run_budget_api_runs__run_id__budget_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/budget/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Run Budget
+         * @description Raise exactly the blocking limit of this run and continue it, or end the run.
+         */
+        post: operations["decide_run_budget_api_runs__run_id__budget_decisions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5493,6 +5553,34 @@ export interface components {
             /** Storable */
             storable: boolean;
         };
+        /**
+         * BlockedRequest
+         * @description A model request that waits: the one that was refused, and the ones held while the decision is pending.
+         */
+        BlockedRequest: {
+            /** Agent */
+            agent: string;
+            /**
+             * Bounded
+             * @default false
+             */
+            bounded: boolean;
+            /** Max Cost Usd */
+            max_cost_usd?: string | null;
+            /** Model */
+            model: string;
+            /** Node Id */
+            node_id: string;
+            /** Price Status */
+            price_status?: string | null;
+            /**
+             * Refused
+             * @default false
+             */
+            refused: boolean;
+            /** Run Id */
+            run_id: string;
+        };
         /** Body_inspect_api_backup_inspect_post */
         Body_inspect_api_backup_inspect_post: {
             /** File */
@@ -5536,6 +5624,145 @@ export interface components {
             description: string;
             /** Files */
             files: string[];
+        };
+        /**
+         * BudgetBlock
+         * @description The limit that refused the request.
+         */
+        BudgetBlock: {
+            /** Label */
+            label?: string | null;
+            /** Node Id */
+            node_id?: string | null;
+            /** Run Id */
+            run_id: string;
+            /**
+             * Scope
+             * @default run
+             * @enum {string}
+             */
+            scope: "run" | "subworkflow" | "team";
+        };
+        /** BudgetDecisionIn */
+        BudgetDecisionIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "raise" | "end";
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            /** Limit Usd */
+            limit_usd?: string | null;
+            /** Request Id */
+            request_id: string;
+        };
+        /** BudgetPolicy */
+        BudgetPolicy: {
+            /**
+             * Can Decide
+             * @default false
+             */
+            can_decide: boolean;
+            /**
+             * Decision Hours
+             * @default 24
+             */
+            decision_hours: number;
+            /** Max Limit Usd */
+            max_limit_usd?: string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * BudgetRaise
+         * @description One approved raise of a run's budget (BUDGET-1); the request in ``budget_requests`` holds the full record.
+         */
+        BudgetRaise: {
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at?: string;
+            /** Decided By */
+            decided_by: string;
+            /** New Limit Usd */
+            new_limit_usd: string;
+            /** Previous Limit Usd */
+            previous_limit_usd: string;
+            /** Request Id */
+            request_id: string;
+        };
+        /**
+         * BudgetRequest
+         * @description A budget decision of one top-level run: what blocked, the numbers when it was asked, and the decision.
+         */
+        BudgetRequest: {
+            /**
+             * Attended
+             * @default true
+             */
+            attended: boolean;
+            block: components["schemas"]["BudgetBlock"];
+            /** Closed Because */
+            closed_because?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Deadline */
+            deadline?: string | null;
+            /** Decided At */
+            decided_at?: string | null;
+            /** Decided By */
+            decided_by?: string | null;
+            /** Id */
+            id?: string;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            /** Limit Usd */
+            limit_usd: string;
+            /** New Limit Usd */
+            new_limit_usd?: string | null;
+            /** Outcome */
+            outcome?: ("continued" | "ended") | null;
+            /**
+             * Reason
+             * @default used_up
+             * @enum {string}
+             */
+            reason: "used_up" | "request_too_large";
+            /** Requests */
+            requests?: components["schemas"]["BlockedRequest"][];
+            /**
+             * Reserved Usd
+             * @default 0
+             */
+            reserved_usd: string;
+            /** Run Id */
+            run_id: string;
+            /** Spent Usd */
+            spent_usd: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "raised" | "ended" | "expired" | "cancelled";
+            /** Suggested Limit Usd */
+            suggested_limit_usd?: string | null;
+            /** Tenant Id */
+            tenant_id?: string | null;
+            /**
+             * Unknown Cost
+             * @default false
+             */
+            unknown_cost: boolean;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Workflow Name */
+            workflow_name: string;
         };
         /**
          * BuiltinSandboxStatus
@@ -8114,7 +8341,7 @@ export interface components {
              * @default waiting
              * @enum {string}
              */
-            status: "idle" | "waiting" | "running" | "succeeded" | "failed" | "skipped" | "blocked" | "awaiting_approval" | "cancelled";
+            status: "idle" | "waiting" | "running" | "succeeded" | "failed" | "skipped" | "blocked" | "awaiting_approval" | "awaiting_budget" | "cancelled";
             /**
              * Text
              * @default
@@ -9777,6 +10004,7 @@ export interface components {
             active_seconds: number;
             /** Api Key Id */
             api_key_id?: string | null;
+            budget?: components["schemas"]["RunBudget"] | null;
             /** Budget Hard Maximum */
             budget_hard_maximum?: boolean | null;
             /** Budget Usd */
@@ -9832,6 +10060,8 @@ export interface components {
             source_run_id?: string | null;
             /** Started At */
             started_at?: string | null;
+            /** Started By */
+            started_by?: string | null;
             /**
              * Status
              * @default queued
@@ -9862,6 +10092,65 @@ export interface components {
             workflow_name: string;
             /** Workflow Version */
             workflow_version?: number | null;
+        };
+        /**
+         * RunBudget
+         * @description The budget of one run, apart from every configuration it came from (BUDGET-1).
+         *
+         *     ``initial_limit_usd`` is the effective limit the run started with (the workflow's budget, else the workspace's
+         *     default budget, or a published release's run limit); ``limit_usd`` is the limit that applies now: the initial one
+         *     or the last approved raise. A raise changes only this run: never the workflow, its saved versions or the
+         *     settings, and never another run. ``None`` limits mean: no limit.
+         */
+        RunBudget: {
+            /** Initial Limit Usd */
+            initial_limit_usd?: string | null;
+            /** Limit Usd */
+            limit_usd?: string | null;
+            /** Pending Request Id */
+            pending_request_id?: string | null;
+            /** Raises */
+            raises?: components["schemas"]["BudgetRaise"][];
+            /**
+             * Source
+             * @default none
+             * @enum {string}
+             */
+            source: "workflow" | "default" | "release" | "subworkflow" | "team" | "none";
+        };
+        /** RunBudgetOut */
+        RunBudgetOut: {
+            /** History */
+            history?: components["schemas"]["BudgetRequest"][];
+            /** Initial Limit Usd */
+            initial_limit_usd?: string | null;
+            /** Limit Usd */
+            limit_usd?: string | null;
+            pending?: components["schemas"]["BudgetRequest"] | null;
+            policy: components["schemas"]["BudgetPolicy"];
+            /** Raises */
+            raises?: components["schemas"]["BudgetRaise"][];
+            /** Remaining Usd */
+            remaining_usd?: string | null;
+            /** Run Id */
+            run_id: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "workflow" | "default" | "release" | "subworkflow" | "team" | "none";
+            /** Spent Usd */
+            spent_usd: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "succeeded" | "failed" | "cancelled";
+            /**
+             * Unknown Cost
+             * @default false
+             */
+            unknown_cost: boolean;
         };
         /** RunChatView */
         RunChatView: {
@@ -10042,6 +10331,7 @@ export interface components {
         };
         /** RunSummary */
         RunSummary: {
+            budget?: components["schemas"]["RunBudget"] | null;
             /**
              * Created At
              * Format: date-time
@@ -10584,6 +10874,11 @@ export interface components {
              * @default anthropic:claude-opus-5-5
              */
             assistant_model: string;
+            /**
+             * Budget Decision Hours
+             * @default 24
+             */
+            budget_decision_hours: number;
             builtin_sandbox?: components["schemas"]["BuiltinSandboxStatus"];
             /**
              * Default Budget Usd
@@ -10607,6 +10902,8 @@ export interface components {
             docker_available: boolean;
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /** Max Run Budget Usd */
+            max_run_budget_usd?: string | null;
             /**
              * Ocr Available
              * @default false
@@ -10617,6 +10914,8 @@ export interface components {
              * @default false
              */
             ocr_enabled: boolean;
+            /** Operator Max Run Budget Usd */
+            operator_max_run_budget_usd?: string | null;
             /**
              * Price Mode
              * @default standard
@@ -10645,12 +10944,18 @@ export interface components {
             architect_max_repairs?: number | null;
             /** Assistant Model */
             assistant_model?: string | null;
+            /** Budget Decision Hours */
+            budget_decision_hours?: number | null;
+            /** Clear Max Run Budget */
+            clear_max_run_budget?: boolean | null;
             /** Default Budget Usd */
             default_budget_usd?: number | null;
             /** Default Model */
             default_model?: string | null;
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /** Max Run Budget Usd */
+            max_run_budget_usd?: number | string | null;
             /** Ocr Enabled */
             ocr_enabled?: boolean | null;
             /** Price Mode */
@@ -14368,6 +14673,37 @@ export interface operations {
             };
         };
     };
+    budget_requests_api_budget_requests_get: {
+        parameters: {
+            query?: {
+                status?: "pending";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetRequest"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     diagnostics_api_diagnostics_get: {
         parameters: {
             query?: never;
@@ -17752,6 +18088,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_budget_api_runs__run_id__budget_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunBudgetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_run_budget_api_runs__run_id__budget_decisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunBudgetOut"];
                 };
             };
             /** @description Validation Error */

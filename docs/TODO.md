@@ -65,8 +65,9 @@ None known.
 ### SDK-003 · Further studio API areas only through the generated types
 
 - **Priority:** P4 Optional · **Status:** Open · **Refs:** `python/src/nodestro_client/client.py`, `typescript/src/client.ts`
-- **What:** The clients have no methods for batches, schedules, test series, knowledge, input files or per-call
-  tool approvals. Callers have to build these requests themselves.
+- **What:** The clients have no methods for batches, schedules, test series, knowledge, input files, per-call
+  tool approvals or settings changes (for example the run budget maximum `max_run_budget_usd` and
+  `budget_decision_hours`). Callers have to build these requests themselves.
 - **Next step:** Add methods for the areas that SDK users ask for, starting with batches and schedules.
 
 ### SDK-004 · Ergonomics of waits, event streams and downloads

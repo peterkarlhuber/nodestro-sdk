@@ -6,6 +6,7 @@ Nodestro is multilingual, and the assertions look for them.
 
 from __future__ import annotations
 
+from decimal import Decimal
 import time
 from typing import Any
 
@@ -503,3 +504,67 @@ def test_the_live_run_chat(nodestro: NodestroClient) -> None:
     with pytest.raises(NodestroAPIError) as missing:
         nodestro.run_chat_message(run_id, "msg_does_not_exist")
     assert missing.value.status == 404
+
+
+# ---- run budgets -----------------------------------------------------------------------------
+
+
+def budget_run(nodestro: NodestroClient) -> tuple[str, str]:
+    """A run whose budget is too small for its first model request: it pauses for a budget decision."""
+    writer = agent("writer", "WRITER")
+    writer["agent"]["max_tokens"] = 1000
+    workflow = nodestro.create_workflow(
+        {
+            **simple(),
+            "name": "SDK budget",
+            "budget_usd": 0.0001,
+            "nodes": [{"id": "start", "type": "start"}, writer, {"id": "out", "type": "output"}],
+        }
+    )
+    run = nodestro.start_run(workflow["id"], input="Angebot")
+    paused = nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)
+    assert paused["status"] == "paused"
+    request_id = (paused.get("budget") or {}).get("pending_request_id")
+    assert request_id
+    return run["id"], request_id
+
+
+def test_a_budget_decision_raises_the_limit_and_continues_the_run(nodestro: NodestroClient) -> None:
+    run_id, request_id = budget_run(nodestro)
+    view = nodestro.get_run_budget(run_id)
+    pending = view.get("pending") or {}
+    assert pending.get("id") == request_id and pending.get("status") == "pending"
+    assert view.get("limit_usd") == "0.0001" and view["source"] == "workflow" and view["policy"].get("can_decide")
+    assert request_id in [item.get("id") for item in nodestro.list_budget_requests()]
+
+    with pytest.raises(NodestroAPIError) as not_higher:
+        nodestro.raise_run_budget(run_id, request_id, "0.00")
+    assert (not_higher.value.status, not_higher.value.code) == (422, "budget.limit_not_higher")
+    with pytest.raises(NodestroAPIError) as invalid:
+        nodestro.raise_run_budget(run_id, request_id, "abc")
+    assert (invalid.value.status, invalid.value.code) == (422, "budget.limit_invalid")
+
+    raised = nodestro.raise_run_budget(run_id, request_id, Decimal("2.50"), idempotency_key="sdk-budget-1")
+    assert raised.get("limit_usd") == "2.50"
+    again = nodestro.raise_run_budget(run_id, request_id, "2.50", idempotency_key="sdk-budget-1")
+    assert again["run_id"] == run_id
+    done = nodestro.wait_for_run(run_id, timeout=30, poll=0.1)
+    assert done["status"] == "succeeded" and (done.get("budget") or {}).get("limit_usd") == "2.50"
+    after = nodestro.get_run_budget(run_id)
+    assert after.get("pending") is None and [item.get("status") for item in after.get("history", [])] == ["raised"]
+    assert request_id not in [item.get("id") for item in nodestro.list_budget_requests()]
+
+    with pytest.raises(NodestroAPIError) as late:
+        nodestro.end_run_for_budget(run_id, request_id)
+    assert (late.value.status, late.value.code) == (409, "budget.not_pending")
+    assert late.value.params.get("request_status") == "raised"
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.end_run_for_budget(run_id, "bud_does_not_exist")
+    assert missing.value.status == 404
+
+
+def test_a_budget_decision_ends_the_run(nodestro: NodestroClient) -> None:
+    run_id, request_id = budget_run(nodestro)
+    nodestro.end_run_for_budget(run_id, request_id)
+    done = nodestro.wait_for_run(run_id, timeout=30, poll=0.1)
+    assert done["status"] == "cancelled" and done.get("error_code") == "run.budget_ended"

@@ -224,6 +224,8 @@ describe("ids, base URLs and options", () => {
     for (const bad of ["", ".", ".."]) {
       await expect(client.getRun(bad)).rejects.toThrow(/not a valid id/);
       await expect(client.downloadFile("run_1", bad)).rejects.toThrow(/not a valid id/);
+      await expect(client.getRunBudget(bad)).rejects.toThrow(/not a valid id/);
+      await expect(client.endRunForBudget(bad, "bud_1")).rejects.toThrow(/not a valid id/);
       await expect(api.status(bad)).rejects.toThrow(/not a valid id/);
       expect(() => new PublishedWorkflow("http://nodestro.test", bad, { apiKey: "ndk_test" })).toThrow(/not a valid id/);
     }
@@ -472,5 +474,97 @@ describe("event parser line endings", () => {
     const controller = new AbortController();
     controller.abort();
     await expect(api.events("run_1", { signal: controller.signal }).next()).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
+describe("run budgets", () => {
+  const budget = { run_id: "run_1", status: "running", source: "workflow", spent_usd: "0.0001", policy: {} };
+  const body = (init: RequestInit) => JSON.parse(String(init.body)) as Record<string, unknown>;
+
+  it("reads the budget view and the open requests from their routes, amounts as strings", async () => {
+    const { calls, fetcher } = recording((url) =>
+      new URL(url).pathname === "/api/budget-requests"
+        ? json(200, [{ id: "bud_1", limit_usd: "0.10", spent_usd: "0.0999" }])
+        : json(200, { ...budget, limit_usd: "0.10", remaining_usd: "0.0001" }),
+    );
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    const view = await client.getRunBudget("run_1");
+    expect([view.limit_usd, view.remaining_usd, view.spent_usd]).toEqual(["0.10", "0.0001", "0.0001"]);
+    expect((await client.listBudgetRequests()).map((item) => item.limit_usd)).toEqual(["0.10"]);
+    expect(calls.map((call) => `${call.init.method} ${new URL(call.url).pathname}${new URL(call.url).search}`)).toEqual([
+      "GET /api/runs/run_1/budget",
+      "GET /api/budget-requests?status=pending",
+    ]);
+  });
+
+  it("sends decisions with decimal strings and refuses numbers before sending", async () => {
+    const { calls, fetcher } = recording((url, init) => {
+      expect(new URL(url).pathname).toBe("/api/runs/run_1/budget/decisions");
+      return json(200, { ...budget, limit_usd: body(init).limit_usd ?? null });
+    });
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    expect((await client.raiseRunBudget("run_1", "bud_1", "2.50")).limit_usd).toBe("2.50");
+    await client.decideRunBudget("run_1", "bud_1", "raise", { limitUsd: "0.30" });
+    await client.endRunForBudget("run_1", "bud_1");
+    const sent = calls.map((call) => body(call.init));
+    expect(sent.map((item) => [item.request_id, item.action, item.limit_usd])).toEqual([
+      ["bud_1", "raise", "2.50"],
+      ["bud_1", "raise", "0.30"],
+      ["bud_1", "end", undefined],
+    ]);
+    expect("limit_usd" in sent[2]!).toBe(false);
+    for (const wrong of [2.5, undefined] as unknown[]) {
+      await expect(client.raiseRunBudget("run_1", "bud_1", wrong as string)).rejects.toThrow(TypeError);
+      await expect(client.decideRunBudget("run_1", "bud_1", "raise", { limitUsd: 2.5 as unknown as string })).rejects.toThrow(/decimal string/);
+    }
+    expect(calls).toHaveLength(3);
+  });
+
+  it("retries a decision with the same idempotency key and passes a given one", async () => {
+    const { calls, fetcher } = recording((_url, _init, call) => {
+      if (call === 1) throw new TypeError("fetch failed");
+      if (call === 2) return json(503, {});
+      return json(200, budget);
+    });
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher, retry: { backoffMs: 1 } });
+    expect((await client.raiseRunBudget("run_1", "bud_1", "2.50")).run_id).toBe("run_1");
+    const keys = new Set(calls.map((call) => body(call.init).idempotency_key));
+    expect(calls).toHaveLength(3);
+    expect(keys.size).toBe(1);
+    expect([...keys][0]).toMatch(/^[0-9a-f]{32}$/);
+    await client.raiseRunBudget("run_1", "bud_1", "2.50", { idempotencyKey: "decision-1" });
+    await client.endRunForBudget("run_1", "bud_1", { idempotencyKey: "decision-2" });
+    await client.endRunForBudget("run_1", "bud_1");
+    expect(calls.slice(3, 5).map((call) => body(call.init).idempotency_key)).toEqual(["decision-1", "decision-2"]);
+    expect([...keys, "decision-1", "decision-2"]).not.toContain(body(calls.at(-1)!.init).idempotency_key);
+  });
+
+  it("keeps status, code and params of refusals and never retries them", async () => {
+    const refusals: Array<[number, string, Record<string, unknown>]> = [
+      [409, "budget.not_pending", { request_status: "raised", decided_by: "local" }],
+      [422, "budget.limit_not_higher", { current_limit_usd: "0.10" }],
+      [422, "budget.limit_invalid", { value: "abc" }],
+      [403, "budget.over_policy", { max_limit_usd: "1.00" }],
+      [403, "access.forbidden", { reason: "budget.not_starter" }],
+    ];
+    for (const [status, code, params] of refusals) {
+      const { calls, fetcher } = recording(() => json(status, { detail: "refused", code, params }));
+      const client = new NodestroClient("http://nodestro.test", { fetch: fetcher, retry: { backoffMs: 1 } });
+      const refused = await client.raiseRunBudget("run_1", "bud_1", "5").then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(refused).toBeInstanceOf(NodestroAPIError);
+      const error = refused as NodestroAPIError;
+      expect([error.status, error.code, error.params]).toEqual([status, code, params]);
+      expect(calls).toHaveLength(1);
+    }
+  });
+
+  it("returns from a wait at a budget decision", async () => {
+    const run = { id: "run_1", status: "paused", budget: { limit_usd: "0.10", pending_request_id: "bud_1" } };
+    const { fetcher } = recording(() => json(200, run));
+    const paused = await new NodestroClient("http://nodestro.test", { fetch: fetcher }).waitForRun("run_1", { timeoutMs: 1_000 });
+    expect([paused.status, paused.budget?.pending_request_id]).toEqual(["paused", "bud_1"]);
   });
 });

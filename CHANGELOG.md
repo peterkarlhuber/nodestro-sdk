@@ -21,6 +21,27 @@
   regenerated.
 - Pin nodestro-api cb4b7fb (automatic sandbox mode, 2026-11-02): settings accept `sandbox: "auto"` and return `sandbox_selection` and `sandbox_backends`; Python and TypeScript types regenerated.
 
+### Run budget decisions (BUDGET-1, 2026-11-02)
+
+- Pin of `nodestro-api` at `5519708` (nodestro-api #64; before: `16a6118`): an attended run whose next model request does not fit its
+  budget pauses and waits for a decision instead of failing. Regenerated Python and TypeScript types:
+  `RunBudgetOut`, `BudgetRequest`, `BudgetDecisionIn`, `BudgetPolicy`, `BudgetRaise`, `BudgetBlock`,
+  `BlockedRequest`, `RunBudget`; `Run.budget` and `started_by`, `RunSummary.budget`, the node status
+  `awaiting_budget`, and the settings `max_run_budget_usd`, `operator_max_run_budget_usd`, `budget_decision_hours`
+  and `clear_max_run_budget`.
+- New client methods: `get_run_budget` / `getRunBudget`, `list_budget_requests` / `listBudgetRequests`,
+  `decide_run_budget` / `decideRunBudget` and the shortcuts `raise_run_budget` / `raiseRunBudget` and
+  `end_run_for_budget` / `endRunForBudget`. Amounts are decimal strings in both directions: Python accepts `str` or
+  `Decimal` for the new limit and refuses floats, TypeScript accepts strings only. A decision without
+  `idempotency_key` gets a random one, so the automatic retry after a lost answer or a 502/503/504 returns the stored
+  result instead of a 409 `budget.not_pending`.
+- Refusals keep the API's codes and params in `NodestroAPIError` (409 `budget.not_pending`, 422
+  `budget.limit_not_higher` / `budget.limit_invalid`, 403 `budget.over_policy` / `access.forbidden`).
+- `wait_for_run` / `waitForRun` return a run that waits for a budget decision like any other paused run; it is
+  recognizable by `budget.pending_request_id` (documented in both READMEs).
+- Tests: unit tests of both clients against mocked HTTP and tests against the test server (raise, refusals,
+  idempotent repeat, late decision, ending the run).
+
 ### Live run chat (LRC-1, 2026-11-01)
 
 - Pin of `nodestro-api` at `fb7f438` (before: `4e2c8cd`; runtime `a42b672`, before `ac96c6f`; examples `ebe899a`,

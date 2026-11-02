@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 import contextlib
+from decimal import Decimal
 import json
 from pathlib import Path
 import socket
@@ -149,6 +150,8 @@ def test_ids_that_url_normalization_would_change_are_refused(bad: str) -> None:
         lambda: client.get_workflow(bad),
         lambda: client.download_file("run_1", bad),
         lambda: client.decide_approval("run_1", bad, "approved"),
+        lambda: client.get_run_budget(bad),
+        lambda: client.end_run_for_budget(bad, "bud_1"),
         lambda: client.copy_example(bad),
         lambda: published.status(bad),
         lambda: published.download("run_1", bad),
@@ -489,3 +492,101 @@ def test_leaving_an_event_loop_early_closes_the_stream() -> None:
     with contextlib.closing(client.events("run_1")) as events:
         assert next(events).event == "snapshot"
     assert closed == [True]
+
+
+# ---- run budgets ------------------------------------------------------------------------------
+
+BUDGET = {"run_id": "run_1", "status": "running", "source": "workflow", "spent_usd": "0.0001", "policy": {}}
+
+
+def test_budget_views_and_requests_are_read_from_their_routes() -> None:
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(f"{request.method} {request.url.raw_path.decode()}")
+        if request.url.path == "/api/budget-requests":
+            return httpx.Response(200, json=[{"id": "bud_1", "limit_usd": "0.10", "spent_usd": "0.0999"}])
+        return httpx.Response(200, json={**BUDGET, "limit_usd": "0.10", "remaining_usd": "0.0001"})
+
+    client = client_with(handler)
+    view = client.get_run_budget("run_1")
+    # Amounts stay the decimal strings the API sent.
+    assert (view["limit_usd"], view["remaining_usd"], view["spent_usd"]) == ("0.10", "0.0001", "0.0001")
+    assert [item["limit_usd"] for item in client.list_budget_requests()] == ["0.10"]
+    assert seen == ["GET /api/runs/run_1/budget", "GET /api/budget-requests?status=pending"]
+
+
+def test_budget_decisions_send_amounts_as_decimal_strings() -> None:
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/runs/run_1/budget/decisions"
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={**BUDGET, "limit_usd": bodies[-1].get("limit_usd")})
+
+    client = client_with(handler)
+    assert client.raise_run_budget("run_1", "bud_1", "2.50")["limit_usd"] == "2.50"
+    client.raise_run_budget("run_1", "bud_1", Decimal("2.50"))
+    client.raise_run_budget("run_1", "bud_1", Decimal("1E+1"))
+    client.decide_run_budget("run_1", "bud_1", "raise", limit_usd="0.30")
+    client.end_run_for_budget("run_1", "bud_1")
+    assert [body.get("limit_usd") for body in bodies] == ["2.50", "2.50", "10", "0.30", None]
+    assert [body["action"] for body in bodies] == ["raise", "raise", "raise", "raise", "end"]
+    assert all(body["request_id"] == "bud_1" for body in bodies) and "limit_usd" not in bodies[-1]
+    for wrong in (2.5, 3, None):
+        with pytest.raises(TypeError, match="decimal string"):
+            client.raise_run_budget("run_1", "bud_1", wrong)  # type: ignore[arg-type]
+    assert len(bodies) == 5
+
+
+def test_a_budget_decision_is_retried_with_the_same_idempotency_key() -> None:
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            raise httpx.ReadError("connection reset", request=request)
+        if len(bodies) == 2:
+            return httpx.Response(503, text="busy")
+        return httpx.Response(200, json=BUDGET)
+
+    client = client_with(handler)
+    assert client.raise_run_budget("run_1", "bud_1", "2.50")["run_id"] == "run_1"
+    keys = {body["idempotency_key"] for body in bodies}
+    assert len(bodies) == 3 and len(keys) == 1 and len(next(iter(keys))) == 32
+    bodies.clear()
+    client.raise_run_budget("run_1", "bud_1", "2.50", idempotency_key="decision-1")
+    client.end_run_for_budget("run_1", "bud_1", idempotency_key="decision-2")
+    client.end_run_for_budget("run_1", "bud_1")
+    assert [body["idempotency_key"] for body in bodies[2:4]] == ["decision-1", "decision-2"]
+    assert bodies[-1]["idempotency_key"] not in ("decision-1", "decision-2", *keys)
+
+
+@pytest.mark.parametrize(
+    ("status", "code", "params"),
+    [
+        (409, "budget.not_pending", {"request_status": "raised", "decided_by": "local"}),
+        (422, "budget.limit_not_higher", {"current_limit_usd": "0.10"}),
+        (422, "budget.limit_invalid", {"value": "abc"}),
+        (403, "budget.over_policy", {"max_limit_usd": "1.00"}),
+        (403, "access.forbidden", {"reason": "budget.not_starter"}),
+    ],
+)
+def test_budget_refusals_keep_status_code_and_params(status: int, code: str, params: dict[str, Any]) -> None:
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.method)
+        return httpx.Response(status, json={"detail": "refused", "code": code, "params": params})
+
+    with pytest.raises(NodestroAPIError) as refused:
+        client_with(handler).raise_run_budget("run_1", "bud_1", "5")
+    assert (refused.value.status, refused.value.code, refused.value.params) == (status, code, params)
+    assert calls == ["POST"]  # a refusal is an answer, never retried
+
+
+def test_waiting_returns_at_a_budget_decision() -> None:
+    run = {"id": "run_1", "status": "paused", "budget": {"limit_usd": "0.10", "pending_request_id": "bud_1"}}
+    client = client_with(lambda _request: httpx.Response(200, json=run))
+    paused = client.wait_for_run("run_1", timeout=1)
+    assert paused["status"] == "paused" and (paused.get("budget") or {}).get("pending_request_id") == "bud_1"

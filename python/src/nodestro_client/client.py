@@ -8,6 +8,7 @@ API: :class:`~nodestro_client.published.PublishedWorkflow`.
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
+from decimal import Decimal
 from typing import Any, Literal, cast
 import uuid
 
@@ -32,7 +33,7 @@ class NodestroClient:
     ``base_url`` is the address of the installation (``http`` or ``https``, host, optional port and
     path prefix; no query). ``timeout`` limits each phase of a request (connect, write, each read)
     in seconds; ``retry`` repeats reads after connection errors and 502/503/504, never a request
-    that changes something (except run chat messages: they carry a ``client_id``). ``headers`` are
+    that changes something (except run chat messages and budget decisions: they carry a key). ``headers`` are
     sent with every request. An ``http_client`` passed in is used as is (its proxies, certificates
     and limits) and is not closed by :meth:`close`.
 
@@ -223,6 +224,10 @@ class NodestroClient:
     ) -> models.Run:
         """Wait until the run finished (or waits for a person, unless ``stop_at_approval`` is off).
 
+        A run that waits for a person is ``paused``, for example at an approval step or for a budget decision. A
+        budget wait has ``run["budget"]["pending_request_id"]`` set; answer it with
+        :meth:`raise_run_budget` or :meth:`end_run_for_budget` (see :meth:`get_run_budget`).
+
         Polls the run every ``poll`` seconds. ``timeout`` is the total wait in seconds; the last
         status request may still take up to the client's request timeout. Raises
         :class:`NodestroTimeoutError` when the run has not ended by then (the run keeps running),
@@ -282,6 +287,72 @@ class NodestroClient:
     ) -> models.Run:
         body: models.ResumeRequest = {"mode": mode, "confirm_side_effects": confirm}
         return cast(models.Run, self._http.json("POST", f"/api/runs/{path_segment(run_id)}/resume", json_body=body))
+
+    # ---- run budgets ---------------------------------------------------------------------------
+
+    def get_run_budget(self, run_id: str) -> models.RunBudgetOut:
+        """The budget of a run: limits, spending, raises, the open request (``pending``), earlier requests and what
+        the caller may decide (``policy``). ``run_id`` may be a run below the top-level run; the answer is the top-level
+        run's budget. Amounts are decimal strings (``"2.50"``)."""
+        return cast(models.RunBudgetOut, self._http.json("GET", f"/api/runs/{path_segment(run_id)}/budget"))
+
+    def list_budget_requests(self) -> list[models.BudgetRequest]:
+        """Every budget request that waits for a decision (all runs), oldest first."""
+        return cast(
+            list[models.BudgetRequest], self._http.json("GET", "/api/budget-requests", params={"status": "pending"})
+        )
+
+    def decide_run_budget(
+        self,
+        run_id: str,
+        request_id: str,
+        action: Literal["raise", "end"],
+        *,
+        limit_usd: str | Decimal | None = None,
+        idempotency_key: str | None = None,
+    ) -> models.RunBudgetOut:
+        """Answer a run's budget request: ``raise`` sets the blocking limit to ``limit_usd`` and continues the run
+        (one operation), ``end`` ends the run. Returns the run's budget after the decision.
+
+        ``limit_usd`` is a decimal string or :class:`~decimal.Decimal` with at most two decimal places (``"2.50"``);
+        a float is refused with ``TypeError``, so no amount is rounded on the way. Every decision carries an
+        ``idempotency_key`` (a new random one unless given), so the automatic retry after a lost answer or a
+        502/503/504 returns the stored result instead of being refused as already decided. Pass your own key (at
+        most 100 of ``A-Z a-z 0-9 . _ : -``) to make your own retries safe too.
+
+        Refusals are :class:`~nodestro_client.NodestroAPIError`: 404 (run or request unknown), 409
+        ``budget.not_pending`` (decided, expired or cancelled; ``params`` has ``request_status`` and ``decided_by``),
+        422 ``budget.limit_not_higher`` (``params["current_limit_usd"]``) and ``budget.limit_invalid``, 403
+        ``budget.over_policy`` (above ``params["max_limit_usd"]``) and ``access.forbidden`` (only the person who
+        started the run or an administrator decides; ``params["reason"]``).
+        """
+        body: models.BudgetDecisionIn = {
+            "request_id": request_id,
+            "action": action,
+            "idempotency_key": idempotency_key or uuid.uuid4().hex,
+        }
+        if limit_usd is not None:
+            body["limit_usd"] = _amount(limit_usd)
+        return cast(
+            models.RunBudgetOut,
+            self._http.json(
+                "POST", f"/api/runs/{path_segment(run_id)}/budget/decisions", json_body=body, retry_unsafe=True
+            ),
+        )
+
+    def raise_run_budget(
+        self, run_id: str, request_id: str, limit_usd: str | Decimal, *, idempotency_key: str | None = None
+    ) -> models.RunBudgetOut:
+        """Raise the limit that stopped the run to ``limit_usd`` and continue it (see :meth:`decide_run_budget`)."""
+        amount = _amount(limit_usd)  # also refuses a missing limit before anything is sent
+        return self.decide_run_budget(run_id, request_id, "raise", limit_usd=amount, idempotency_key=idempotency_key)
+
+    def end_run_for_budget(
+        self, run_id: str, request_id: str, *, idempotency_key: str | None = None
+    ) -> models.RunBudgetOut:
+        """End the run instead of raising its budget; it ends as ``cancelled`` with ``error_code``
+        ``run.budget_ended`` (see :meth:`decide_run_budget`)."""
+        return self.decide_run_budget(run_id, request_id, "end", idempotency_key=idempotency_key)
 
     # ---- live run chat ---------------------------------------------------------------------
 
@@ -515,6 +586,15 @@ class NodestroClient:
         """
         body: models.KeyIn = {"name": name, "scopes": cast(Any, list(scopes)), "publications": list(publications)}
         return cast(models.NewApiKey, self._http.json("POST", "/api/api-keys", json_body=body))
+
+
+def _amount(value: str | Decimal) -> str:
+    """A USD amount as the decimal string the API expects; floats are refused so that no amount is rounded."""
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    if isinstance(value, str):
+        return value
+    raise TypeError(f"limit_usd must be a decimal string or Decimal, not {type(value).__name__}")
 
 
 def _model_path(model: str) -> str:
