@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api 3e0a874 (nodestro-api #67: security re-review Lows; runtime 0369132, Axentra 024da57; 2026-11-02).
+  The OpenAPI document is unchanged; nothing changes in the SDK.
 - Pin nodestro-api 149f996 (nodestro-api #66: Axentra migration completion, security review fixes; runtime 50edcf7,
   Axentra a8ea5d5; 2026-11-02). The OpenAPI document is unchanged; nothing changes in the SDK.
 - Docker sandbox hardening (Docker-first review DS-1..DS-13, 2026-11-02; pin nodestro-api dde77f5, nodestro-api #65,
