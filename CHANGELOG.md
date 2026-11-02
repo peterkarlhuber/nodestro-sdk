@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api f21fd6a (nodestro-api #73: runtime bcfea7f, security review round 4; #71: warm Docker monitor at
+  worker start; 2026-11-02). The API contract is unchanged, so the generated types are unchanged.
 - Pin nodestro-api 6071911 (nodestro-api #72: a suspended tenant's tool generation jobs are stopped, NF-1; runtime
   96f14ef; 2026-11-02). The API contract is unchanged, so the generated types are unchanged.
 - Pin nodestro-api b8139b0 (nodestro-api #70: `POST /api/tools/{name}/adopt` for adopting AI-generated tools on the
