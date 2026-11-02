@@ -2,7 +2,7 @@
 
 The Python client of the [Nodestro API](https://github.com/peterkarlhuber/nodestro-api): `NodestroClient` for the
 studio REST API of an installation and `PublishedWorkflow` for published, key-protected workflow APIs (served by
-Nodestro or by a standalone export). Python 3.10+, synchronous, built on httpx; it needs neither the Nodestro
+Nodestro or by a standalone export). Python 3.11+, synchronous, built on httpx; it needs neither the Nodestro
 runtime nor the API installed.
 
 ## Installation

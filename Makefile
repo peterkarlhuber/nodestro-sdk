@@ -10,7 +10,7 @@ install:
 generate:
 	cd python && datamodel-codegen --input ../openapi/nodestro-api.json --input-file-type openapi \
 		--output-model-type typing.TypedDict --output src/nodestro_client/models.py \
-		--target-python-version 3.10 --use-standard-collections --use-union-operator --disable-timestamp
+		--target-python-version 3.11 --use-standard-collections --use-union-operator --disable-timestamp
 	cd typescript && npm run generate
 
 # Copies the OpenAPI document of the installed (pinned) nodestro-api and regenerates the types.
