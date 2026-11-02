@@ -3600,6 +3600,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tools/{name}/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adopt Tool
+         * @description Adopt an AI-generated tool as your own code (ADR-0006, decision R-4): after this it is ``user-authored`` and
+         *     may run on this computer without isolation.
+         *
+         *     Desktop only (``403 tool.adoption_desktop_only`` on a server and in Nodestro Local Docker, whose trust policy
+         *     never changes), only for the local owner or an administrator (``403 tool.adoption_forbidden``), and only for the
+         *     content that was shown: ``content_hash`` from ``GET /api/tools/{name}`` (``409 tool.adoption_stale`` when the
+         *     tool changed since). ``409 tool.adoption_not_needed`` for a tool that is not ``untrusted``. Every adoption and
+         *     every refused one is written to the audit trail (``GET /api/tool-approvals/audit``). A later AI-written version
+         *     of the tool ends the adoption.
+         */
+        post: operations["adopt_tool_api_tools__name__adopt_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tools/{name}/run": {
         parameters: {
             query?: never;
@@ -11635,6 +11663,32 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** ToolAdoptRequest */
+        ToolAdoptRequest: {
+            /** Content Hash */
+            content_hash: string;
+        };
+        /**
+         * ToolAdoption
+         * @description A person's confirmed adoption of one version of an AI-generated tool as their own code (ADR-0006, R-4).
+         */
+        ToolAdoption: {
+            /** Actor */
+            actor: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Content Hash */
+            content_hash: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Version */
+            version: number;
+        };
         /** ToolApprovalDecision */
         ToolApprovalDecision: {
             /** Arguments Hash */
@@ -11675,7 +11729,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off";
+            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off" | "tool_adopted" | "tool_adoption_refused" | "tool_adoption_revoked";
             /** Outcome */
             outcome?: string | null;
             /** Pre Grant Id */
@@ -11979,6 +12033,7 @@ export interface components {
         };
         /** ToolInfo */
         ToolInfo: {
+            adoption?: components["schemas"]["ToolAdoption"] | null;
             /** @default {
              *       "access": "write",
              *       "reach": "external",
@@ -11987,6 +12042,8 @@ export interface components {
             capability: components["schemas"]["ToolCapability"];
             /** Code */
             code?: string | null;
+            /** Content Hash */
+            content_hash?: string | null;
             /** Created At */
             created_at?: string | null;
             /** Definition Hash */
@@ -19894,6 +19951,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    adopt_tool_api_tools__name__adopt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToolAdoptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolInfo"];
+                };
             };
             /** @description Validation Error */
             422: {
