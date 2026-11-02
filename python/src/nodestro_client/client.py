@@ -71,6 +71,24 @@ class NodestroClient:
         """The settings as the interface shows them (API keys are never returned)."""
         return cast(models.Settings, self._http.json("GET", "/api/settings"))
 
+    def sandbox_status(self, *, refresh: bool = False, wait: float = 0.0) -> models.SandboxBackendStatus:
+        """The Docker sandbox of the computer the API runs on, as its background check last found it (``state``
+        ``checking``, ``approved`` or ``unavailable``, with ``reason`` and ``checks``). Never waits for Docker;
+        ``refresh`` starts a new check (answering at once), ``wait`` (seconds, at most 5) waits for a running one."""
+        params: dict[str, Any] = {"refresh": "true" if refresh else "false", "wait": wait}
+        return cast(models.SandboxBackendStatus, self._http.json("GET", "/api/sandbox/status", params=params))
+
+    def sandbox_self_test(self, *, timeout: float = 30.0) -> models.SandboxBackendStatus:
+        """Run the Docker sandbox's checks again now, the in-container self-test included (permission ``admin``),
+        and wait at most ``timeout`` seconds (at most 60) for the result; ``state`` is ``checking`` while it goes
+        on (see :meth:`sandbox_status`)."""
+        return cast(
+            models.SandboxBackendStatus,
+            self._http.json(
+                "POST", "/api/sandbox/self-test", params={"timeout": timeout}, timeout=max(30.0, timeout + 15.0)
+            ),
+        )
+
     # ---- usage and model prices --------------------------------------------------
 
     def usage(self, *, days: int = 30) -> models.UsageReport:

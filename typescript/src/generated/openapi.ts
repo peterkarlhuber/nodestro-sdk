@@ -2985,6 +2985,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sandbox/self-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Sandbox Self Test
+         * @description Run the Docker sandbox's checks again now, the in-container self-test included, and wait at most
+         *     ``timeout`` seconds (default 30, at most 60) for the result. A check that takes longer (the first start builds
+         *     the runtime image) goes on in the background: the answer then says ``checking`` and ``GET
+         *     /api/sandbox/status`` shows the result later. Within 10 s of the last forced check no new one starts; the
+         *     answer is the status of the running or last check.
+         */
+        post: operations["post_sandbox_self_test_api_sandbox_self_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sandbox/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sandbox Status
+         * @description The Docker sandbox of the computer the API runs on, as the background check last found it (the ``docker``
+         *     row of the settings' ``sandbox_backends``). It never waits for the daemon: ``state`` is ``checking`` until the
+         *     first check after the start finished, and ``approved`` only after the preflight and the in-container self-test
+         *     passed (``checks`` lists each step).
+         *
+         *     ``refresh=1`` starts a new check in the background, the self-test included (at most every 10 s; otherwise the
+         *     current status is returned), and answers at once with the current status; ``wait`` (seconds, at most 5) waits
+         *     that long at most for a running check.
+         */
+        get: operations["get_sandbox_status_api_sandbox_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schedules": {
         parameters: {
             query?: never;
@@ -3121,7 +3172,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Settings */
+        /**
+         * Get Settings
+         * @description The settings; the Docker rows come from the background check (``Workspace.docker_status``) and never wait
+         *     for the daemon (``checking`` until the first check after the start finished).
+         */
         get: operations["get_settings_api_settings_get"];
         /** Put Settings */
         put: operations["put_settings_api_settings_put"];
@@ -10094,11 +10149,20 @@ export interface components {
              * @default false
              */
             available: boolean;
+            /** Cgroup Version */
+            cgroup_version?: string | null;
+            /** Checks */
+            checks?: components["schemas"]["SandboxCheck"][];
             /**
              * Detail
              * @default
              */
             detail: string;
+            /**
+             * Engine
+             * @default
+             */
+            engine: string;
             /**
              * Isolation
              * @default none
@@ -10123,12 +10187,34 @@ export interface components {
              * @default
              */
             reason: string;
+            /** Rootless */
+            rootless?: boolean | null;
             /**
              * State
              * @default unavailable
              * @enum {string}
              */
-            state: "approved" | "experimental" | "unavailable" | "not-isolating" | "not-applicable";
+            state: "approved" | "experimental" | "unavailable" | "not-isolating" | "not-applicable" | "checking";
+            /** Tested At */
+            tested_at?: string | null;
+        };
+        /**
+         * SandboxCheck
+         * @description One check behind a backend's state, e.g. ``preflight`` or ``self-test`` of the Docker sandbox.
+         */
+        SandboxCheck: {
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /** Name */
+            name: string;
+            /**
+             * Ok
+             * @default false
+             */
+            ok: boolean;
         };
         /**
          * SandboxSelection
@@ -18223,6 +18309,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ToolApprovalRequest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_sandbox_self_test_api_sandbox_self_test_post: {
+        parameters: {
+            query?: {
+                timeout?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SandboxBackendStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sandbox_status_api_sandbox_status_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+                wait?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SandboxBackendStatus"];
                 };
             };
             /** @description Validation Error */

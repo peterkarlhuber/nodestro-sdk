@@ -49,6 +49,18 @@ def test_meta_and_settings(nodestro: NodestroClient) -> None:
     assert "api_key" not in str(settings).lower() or all(not item.get("api_key") for item in settings["providers"])
 
 
+def test_the_sandbox_status_and_self_test(nodestro: NodestroClient) -> None:
+    states = {"approved", "unavailable", "checking"}
+    status = nodestro.sandbox_status()
+    assert status["name"] == "docker" and status.get("state") in states
+    docker = next(row for row in nodestro.settings()["sandbox_backends"] if row["name"] == "docker")
+    assert docker.get("state") in states
+    assert nodestro.sandbox_status(refresh=True, wait=1)["name"] == "docker"
+    tested = nodestro.sandbox_self_test(timeout=5)
+    assert tested["name"] == "docker" and tested.get("state") in states
+    assert all({"name", "ok"} <= set(check) for check in tested.get("checks", []))
+
+
 def test_a_workflow_runs_and_returns_its_result(nodestro: NodestroClient) -> None:
     workflow = nodestro.create_workflow(simple())
     assert workflow["id"] in {item["id"] for item in nodestro.list_workflows()}
