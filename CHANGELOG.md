@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Pin nodestro-api bda8148 (Axentra platform services in nodestro-server, 2026-11-02; before `cb4b7fb`): operator
+  commands and off-by-default server switches only; routes and the OpenAPI document are unchanged, so no types were
+  regenerated.
 - Pin nodestro-api cb4b7fb (automatic sandbox mode, 2026-11-02): settings accept `sandbox: "auto"` and return `sandbox_selection` and `sandbox_backends`; Python and TypeScript types regenerated.
 
 ### Live run chat (LRC-1, 2026-11-01)
