@@ -6,8 +6,8 @@
   before `c470b2b`): server-side switches and operator commands only, all off by default; routes and the OpenAPI
   document are unchanged, so no types were regenerated.
 
-- Docker sandbox status (Docker-first plan S1, 2026-11-02; contract of nodestro-api `docker-a1`, the api pin is not
-  moved yet): new `NodestroClient.sandbox_status(refresh=False, wait=0.0)` / `sandboxStatus({ refresh, wait })`
+- Docker sandbox status (Docker-first plan S1, 2026-11-02; pin nodestro-api 16a6118, nodestro-api #63, before
+  `961afef`): new `NodestroClient.sandbox_status(refresh=False, wait=0.0)` / `sandboxStatus({ refresh, wait })`
   (`GET /api/sandbox/status`, permission `read`) and `sandbox_self_test(timeout=30.0)` / `sandboxSelfTest({ timeout })`
   (`POST /api/sandbox/self-test`, permission `admin`), both answering `SandboxBackendStatus`. Regenerated types, all
   additions: `SandboxCheck` (`name`, `ok`, `detail`), the optional `SandboxBackendStatus` fields `engine`, `rootless`,
