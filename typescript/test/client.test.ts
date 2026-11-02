@@ -43,6 +43,17 @@ describe("studio API", () => {
     expect(JSON.stringify(await nodestro.settings())).not.toMatch(/sk-[a-z0-9]/i);
   });
 
+  it("reports the Docker sandbox and runs its self-test", async () => {
+    const states = ["approved", "unavailable", "checking"];
+    const status = await nodestro.sandboxStatus();
+    expect(status.name).toBe("docker");
+    expect(states).toContain(status.state);
+    expect((await nodestro.sandboxStatus({ refresh: true, wait: 1 })).name).toBe("docker");
+    const tested = await nodestro.sandboxSelfTest({ timeout: 5 });
+    expect(states).toContain(tested.state);
+    for (const check of tested.checks ?? []) expect(typeof check.name).toBe("string");
+  });
+
   it("runs a workflow and returns its result", async () => {
     const workflow = await nodestro.createWorkflow(simple());
     expect((await nodestro.listWorkflows()).map((item) => item.id)).toContain(workflow.id);

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Docker sandbox status (Docker-first plan S1, 2026-11-02; contract of nodestro-api `docker-a1`, the api pin is not
+  moved yet): new `NodestroClient.sandbox_status(refresh=False, wait=0.0)` / `sandboxStatus({ refresh, wait })`
+  (`GET /api/sandbox/status`, permission `read`) and `sandbox_self_test(timeout=30.0)` / `sandboxSelfTest({ timeout })`
+  (`POST /api/sandbox/self-test`, permission `admin`), both answering `SandboxBackendStatus`. Regenerated types, all
+  additions: `SandboxCheck` (`name`, `ok`, `detail`), the optional `SandboxBackendStatus` fields `engine`, `rootless`,
+  `cgroup_version`, `checks`, `tested_at` and its state `checking`; TypeScript exports `SandboxBackendStatus` and
+  `SandboxCheck`.
+
 - Pin nodestro-api c470b2b (desktop secrets on `--secrets-fd`, review MS-1, 2026-11-02; before `bda8148`): a CLI
   option only; routes and the OpenAPI document are unchanged, so no types were regenerated.
 - Pin nodestro-api bda8148 (Axentra platform services in nodestro-server, 2026-11-02; before `cb4b7fb`): operator
