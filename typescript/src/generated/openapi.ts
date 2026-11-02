@@ -10085,6 +10085,104 @@ export interface components {
             id: string;
         };
         /**
+         * SandboxBackendStatus
+         * @description One sandbox backend of the computer the runtime runs on, as the policy sees it.
+         */
+        SandboxBackendStatus: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Isolation
+             * @default none
+             */
+            isolation: string;
+            /**
+             * Maturity
+             * @default stable
+             */
+            maturity: string;
+            /**
+             * Memory
+             * @default none
+             */
+            memory: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * State
+             * @default unavailable
+             * @enum {string}
+             */
+            state: "approved" | "experimental" | "unavailable" | "not-isolating" | "not-applicable";
+        };
+        /**
+         * SandboxSelection
+         * @description Where tool code runs now on the computer the runtime runs on (not the browser's).
+         */
+        SandboxSelection: {
+            /**
+             * Arch
+             * @default
+             */
+            arch: string;
+            /**
+             * Blocked
+             * @default false
+             */
+            blocked: boolean;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Mode
+             * @default auto
+             * @enum {string}
+             */
+            mode: "auto" | "subprocess" | "docker";
+            /**
+             * Os
+             * @default
+             */
+            os: string;
+            /**
+             * Profile
+             * @default desktop
+             */
+            profile: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * Untrusted
+             * @default
+             */
+            untrusted: string;
+            /**
+             * User Authored
+             * @default
+             */
+            user_authored: string;
+        };
+        /**
          * SanitizeReport
          * @description What a sanitized trace export removed; travels in the exported file as ``sanitized``.
          */
@@ -10443,10 +10541,13 @@ export interface components {
             providers?: components["schemas"]["ProviderStatus"][];
             /**
              * Sandbox
-             * @default subprocess
+             * @default auto
              * @enum {string}
              */
-            sandbox: "subprocess" | "docker";
+            sandbox: "auto" | "subprocess" | "docker";
+            /** Sandbox Backends */
+            sandbox_backends?: components["schemas"]["SandboxBackendStatus"][];
+            sandbox_selection?: components["schemas"]["SandboxSelection"];
         };
         /** SettingsIn */
         SettingsIn: {
@@ -10473,7 +10574,7 @@ export interface components {
                 [key: string]: components["schemas"]["ProviderSettingsIn"];
             } | null;
             /** Sandbox */
-            sandbox?: ("subprocess" | "docker") | null;
+            sandbox?: ("auto" | "subprocess" | "docker") | null;
         };
         /**
          * Snapshot
