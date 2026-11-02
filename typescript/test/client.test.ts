@@ -445,3 +445,56 @@ describe("live run chat", () => {
     expect((await failure(nodestro.runChatMessage(runId, "msg_does_not_exist")))!.status).toBe(404);
   });
 });
+
+/** A run whose budget is too small for its first model request: it pauses for a budget decision. */
+async function budgetRun(): Promise<[string, string]> {
+  const writer = agent("writer", "WRITER");
+  const workflow = await nodestro.createWorkflow({
+    name: "SDK budget",
+    budget_usd: 0.0001,
+    nodes: [{ id: "start", type: "start" }, { ...writer, agent: { ...writer.agent, max_tokens: 1000 } }, { id: "out", type: "output" }],
+    edges: [edge("start", "writer"), edge("writer", "out")],
+  });
+  const run = await nodestro.startRun(workflow.id, { input: "Angebot" });
+  const paused = await nodestro.waitForRun(run.id, fast);
+  expect(paused.status).toBe("paused");
+  const requestId = paused.budget?.pending_request_id;
+  expect(requestId).toBeTruthy();
+  return [run.id, requestId!];
+}
+
+describe("run budgets", () => {
+  it("raises the limit of a paused run, refuses wrong limits and late decisions", async () => {
+    const [runId, requestId] = await budgetRun();
+    const view = await nodestro.getRunBudget(runId);
+    expect([view.pending?.id, view.pending?.status, view.limit_usd, view.source]).toEqual([requestId, "pending", "0.0001", "workflow"]);
+    expect(view.policy.can_decide).toBe(true);
+    expect((await nodestro.listBudgetRequests()).map((item) => item.id)).toContain(requestId);
+
+    const notHigher = await failure(nodestro.raiseRunBudget(runId, requestId, "0.00"));
+    expect([notHigher?.status, notHigher?.code]).toEqual([422, "budget.limit_not_higher"]);
+    const invalid = await failure(nodestro.raiseRunBudget(runId, requestId, "abc"));
+    expect([invalid?.status, invalid?.code]).toEqual([422, "budget.limit_invalid"]);
+
+    const raised = await nodestro.raiseRunBudget(runId, requestId, "2.50", { idempotencyKey: "sdk-ts-budget-1" });
+    expect(raised.limit_usd).toBe("2.50");
+    expect((await nodestro.raiseRunBudget(runId, requestId, "2.50", { idempotencyKey: "sdk-ts-budget-1" })).run_id).toBe(runId);
+    const done = await nodestro.waitForRun(runId, fast);
+    expect([done.status, done.budget?.limit_usd]).toEqual(["succeeded", "2.50"]);
+    const after = await nodestro.getRunBudget(runId);
+    expect(after.pending ?? null).toBeNull();
+    expect((after.history ?? []).map((item) => item.status)).toEqual(["raised"]);
+    expect((await nodestro.listBudgetRequests()).map((item) => item.id)).not.toContain(requestId);
+
+    const late = await failure(nodestro.endRunForBudget(runId, requestId));
+    expect([late?.status, late?.code, late?.params.request_status]).toEqual([409, "budget.not_pending", "raised"]);
+    expect((await failure(nodestro.endRunForBudget(runId, "bud_does_not_exist")))?.status).toBe(404);
+  });
+
+  it("ends a paused run", async () => {
+    const [runId, requestId] = await budgetRun();
+    await nodestro.endRunForBudget(runId, requestId);
+    const done = await nodestro.waitForRun(runId, fast);
+    expect([done.status, done.error_code]).toEqual(["cancelled", "run.budget_ended"]);
+  });
+});

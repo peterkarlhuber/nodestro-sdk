@@ -75,6 +75,20 @@ export type ChatTarget = Schemas["ChatTarget"];
 export type ChatLimits = Schemas["ChatLimits"];
 export type TeamActivity = Schemas["TeamActivity"];
 export type DecisionNote = Schemas["DecisionNote"];
+/** A budget request of a run; amounts are decimal strings (`"2.50"`). */
+export type BudgetRequest = Stored<Schemas["BudgetRequest"]>;
+/** The budget of a run's top-level run, its open request and what the caller may decide; amounts are decimal strings. */
+export type RunBudgetOut = Omit<Schemas["RunBudgetOut"], "pending" | "history"> & {
+  pending?: BudgetRequest | null;
+  history?: BudgetRequest[];
+};
+export type RunBudget = Schemas["RunBudget"];
+export type BudgetPolicy = Schemas["BudgetPolicy"];
+export type BudgetRaise = Schemas["BudgetRaise"];
+export type BudgetBlock = Schemas["BudgetBlock"];
+export type BlockedRequest = Schemas["BlockedRequest"];
+export type BudgetDecisionIn = Schemas["BudgetDecisionIn"];
+export type BudgetAction = BudgetDecisionIn["action"];
 
 /** Run states that end a run, and the state of a run waiting for a person. */
 export const FINISHED = new Set(["succeeded", "failed", "cancelled"]);
@@ -96,7 +110,7 @@ export interface WaitOptions {
  *
  * `baseUrl` is the address of the installation (`http` or `https`, host, optional port and path
  * prefix; no query). Reads are retried after connection errors and 502/503/504, a request that
- * changes something never (except run chat messages, which carry a `client_id`). Throws a `TypeError` or `RangeError` for invalid options or ids (`""`,
+ * changes something never (except run chat messages and budget decisions, which carry a key). Throws a `TypeError` or `RangeError` for invalid options or ids (`""`,
  * `.`, `..`); every other error is a {@link NodestroClientError}.
  */
 export class NodestroClient {
@@ -178,6 +192,10 @@ export class NodestroClient {
   /**
    * Wait until the run finished (or waits for a person, unless `stopAtApproval` is off). Throws
    * {@link NodestroTimeoutError} when it has not by `timeoutMs` (the run keeps running).
+   *
+   * A run that waits for a person is `paused`, for example at an approval step or for a budget decision. A budget
+   * wait has `run.budget?.pending_request_id` set; answer it with {@link raiseRunBudget} or {@link endRunForBudget}
+   * (see {@link getRunBudget}).
    */
   async waitForRun(runId: string, options: WaitOptions = {}): Promise<Run> {
     const stopAtApproval = options.stopAtApproval ?? true;
@@ -234,6 +252,61 @@ export class NodestroClient {
       confirm_side_effects: options.confirmSideEffects ?? false,
     };
     return this.http.json("POST", `/api/runs/${enc(runId)}/resume`, { body });
+  }
+
+  // ---- run budgets
+
+  /**
+   * The budget of a run: limits, spending, raises, the open request (`pending`), earlier requests and what the caller
+   * may decide (`policy`). `runId` may be a run below the top-level run; the answer is the top-level run's budget.
+   * Amounts are decimal strings (`"2.50"`).
+   */
+  async getRunBudget(runId: string): Promise<RunBudgetOut> {
+    return this.http.json("GET", `/api/runs/${enc(runId)}/budget`);
+  }
+
+  /** Every budget request that waits for a decision (all runs), oldest first. */
+  async listBudgetRequests(): Promise<BudgetRequest[]> {
+    return this.http.json("GET", "/api/budget-requests", { query: { status: "pending" } });
+  }
+
+  /**
+   * Answer a run's budget request: `raise` sets the blocking limit to `limitUsd` and continues the run (one
+   * operation), `end` ends the run. Resolves to the run's budget after the decision.
+   *
+   * `limitUsd` is a decimal string with at most two decimal places (`"2.50"`); a number is refused with a
+   * `TypeError`, so no amount is rounded on the way. Every decision carries an `idempotencyKey` (a new random one
+   * unless given), so the automatic retry after a lost answer or a 502/503/504 returns the stored result instead of
+   * being refused as already decided. Pass your own key (at most 100 of `A-Z a-z 0-9 . _ : -`) to make your own
+   * retries safe too.
+   *
+   * Refusals are {@link NodestroAPIError}s: 404 (run or request unknown), 409 `budget.not_pending` (decided, expired
+   * or cancelled; `params.request_status`, `params.decided_by`), 422 `budget.limit_not_higher`
+   * (`params.current_limit_usd`) and `budget.limit_invalid`, 403 `budget.over_policy` (above `params.max_limit_usd`)
+   * and `access.forbidden` (only the person who started the run or an administrator decides; `params.reason`).
+   */
+  async decideRunBudget(
+    runId: string,
+    requestId: string,
+    action: BudgetAction,
+    options: { limitUsd?: string; idempotencyKey?: string } = {},
+  ): Promise<RunBudgetOut> {
+    const body: BudgetDecisionIn = { request_id: requestId, action, idempotency_key: options.idempotencyKey ?? newIdempotencyKey() };
+    if (options.limitUsd !== undefined) body.limit_usd = amount(options.limitUsd);
+    return this.http.json("POST", `/api/runs/${enc(runId)}/budget/decisions`, { body, retryUnsafe: true });
+  }
+
+  /** Raise the limit that stopped the run to `limitUsd` and continue it (see {@link decideRunBudget}). */
+  async raiseRunBudget(runId: string, requestId: string, limitUsd: string, options: { idempotencyKey?: string } = {}): Promise<RunBudgetOut> {
+    return this.decideRunBudget(runId, requestId, "raise", { ...options, limitUsd: amount(limitUsd) });
+  }
+
+  /**
+   * End the run instead of raising its budget; it ends as `cancelled` with `error_code` `run.budget_ended` (see
+   * {@link decideRunBudget}).
+   */
+  async endRunForBudget(runId: string, requestId: string, options: { idempotencyKey?: string } = {}): Promise<RunBudgetOut> {
+    return this.decideRunBudget(runId, requestId, "end", options);
   }
 
   // ---- live run chat
@@ -493,4 +566,10 @@ export const enc = pathSegment;
 /** A model id as the path tail of a price route: its `/`-separated parts, each one a checked path segment. */
 function modelPath(model: string): string {
   return model.split("/").map(pathSegment).join("/");
+}
+
+/** A USD amount as the decimal string the API expects; numbers are refused so that no amount is rounded. */
+function amount(value: unknown): string {
+  if (typeof value !== "string") throw new TypeError(`limitUsd must be a decimal string, not ${typeof value}`);
+  return value;
 }

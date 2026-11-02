@@ -233,6 +233,17 @@ class BillingKeyOut(TypedDict):
     storable: bool
 
 
+class BlockedRequest(TypedDict):
+    agent: str
+    bounded: NotRequired[bool]
+    max_cost_usd: NotRequired[str | None]
+    model: str
+    node_id: str
+    price_status: NotRequired[str | None]
+    refused: NotRequired[bool]
+    run_id: str
+
+
 class BodyInspectApiBackupInspectPost(TypedDict):
     file: str
 
@@ -253,6 +264,61 @@ class BodyUploadKnowledgeApiKnowledgePost(TypedDict):
     collection: NotRequired[str]
     description: NotRequired[str]
     files: list[str]
+
+
+class BudgetBlock(TypedDict):
+    label: NotRequired[str | None]
+    node_id: NotRequired[str | None]
+    run_id: str
+    scope: NotRequired[Literal['run', 'subworkflow', 'team']]
+
+
+class BudgetDecisionIn(TypedDict):
+    action: Literal['raise', 'end']
+    idempotency_key: NotRequired[str | None]
+    limit_usd: NotRequired[str | None]
+    request_id: str
+
+
+class BudgetPolicy(TypedDict):
+    can_decide: NotRequired[bool]
+    decision_hours: NotRequired[int]
+    max_limit_usd: NotRequired[str | None]
+    reason: NotRequired[str | None]
+
+
+class BudgetRaise(TypedDict):
+    decided_at: NotRequired[str]
+    decided_by: str
+    new_limit_usd: str
+    previous_limit_usd: str
+    request_id: str
+
+
+class BudgetRequest(TypedDict):
+    attended: NotRequired[bool]
+    block: BudgetBlock
+    closed_because: NotRequired[str | None]
+    created_at: NotRequired[str]
+    deadline: NotRequired[str | None]
+    decided_at: NotRequired[str | None]
+    decided_by: NotRequired[str | None]
+    id: NotRequired[str]
+    idempotency_key: NotRequired[str | None]
+    limit_usd: str
+    new_limit_usd: NotRequired[str | None]
+    outcome: NotRequired[Literal['continued', 'ended'] | None]
+    reason: NotRequired[Literal['used_up', 'request_too_large']]
+    requests: NotRequired[list[BlockedRequest]]
+    reserved_usd: NotRequired[str]
+    run_id: str
+    spent_usd: str
+    status: NotRequired[Literal['pending', 'raised', 'ended', 'expired', 'cancelled']]
+    suggested_limit_usd: NotRequired[str | None]
+    tenant_id: NotRequired[str | None]
+    unknown_cost: NotRequired[bool]
+    workflow_id: str
+    workflow_name: str
 
 
 class BuiltinSandboxStatus(TypedDict):
@@ -1477,6 +1543,31 @@ class ReviewOut(TypedDict):
     version: str
 
 
+class RunBudget(TypedDict):
+    initial_limit_usd: NotRequired[str | None]
+    limit_usd: NotRequired[str | None]
+    pending_request_id: NotRequired[str | None]
+    raises: NotRequired[list[BudgetRaise]]
+    source: NotRequired[
+        Literal['workflow', 'default', 'release', 'subworkflow', 'team', 'none']
+    ]
+
+
+class RunBudgetOut(TypedDict):
+    history: NotRequired[list[BudgetRequest]]
+    initial_limit_usd: NotRequired[str | None]
+    limit_usd: NotRequired[str | None]
+    pending: NotRequired[BudgetRequest | None]
+    policy: BudgetPolicy
+    raises: NotRequired[list[BudgetRaise]]
+    remaining_usd: NotRequired[str | None]
+    run_id: str
+    source: str
+    spent_usd: str
+    status: str
+    unknown_cost: NotRequired[bool]
+
+
 class RunIn(TypedDict):
     file_ids: NotRequired[list[str]]
     input: NotRequired[str]
@@ -1622,9 +1713,12 @@ class SettingsIn(TypedDict):
     architect_budget_usd: NotRequired[float | None]
     architect_max_repairs: NotRequired[int | None]
     assistant_model: NotRequired[str | None]
+    budget_decision_hours: NotRequired[int | None]
+    clear_max_run_budget: NotRequired[bool | None]
     default_budget_usd: NotRequired[float | None]
     default_model: NotRequired[str | None]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    max_run_budget_usd: NotRequired[float | str | None]
     ocr_enabled: NotRequired[bool | None]
     price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
@@ -2690,6 +2784,7 @@ class NodeRun(TypedDict):
             'skipped',
             'blocked',
             'awaiting_approval',
+            'awaiting_budget',
             'cancelled',
         ]
     ]
@@ -2921,6 +3016,7 @@ class RunStatusOut(TypedDict):
 
 
 class RunSummary(TypedDict):
+    budget: NotRequired[RunBudget | None]
     created_at: str
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
@@ -2976,14 +3072,17 @@ class Settings(TypedDict):
     architect_budget_usd: NotRequired[float | None]
     architect_max_repairs: NotRequired[int]
     assistant_model: NotRequired[str]
+    budget_decision_hours: NotRequired[int]
     builtin_sandbox: NotRequired[BuiltinSandboxStatus]
     default_budget_usd: NotRequired[float | None]
     default_model: NotRequired[str]
     default_provider: NotRequired[str]
     docker_available: NotRequired[bool]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    max_run_budget_usd: NotRequired[str | None]
     ocr_available: NotRequired[bool]
     ocr_enabled: NotRequired[bool]
+    operator_max_run_budget_usd: NotRequired[str | None]
     price_mode: NotRequired[Literal['standard', 'strict']]
     providers: NotRequired[list[ProviderStatus]]
     sandbox: NotRequired[Literal['auto', 'subprocess', 'docker']]
@@ -3451,6 +3550,7 @@ class Refresh(TypedDict):
 class Run(TypedDict):
     active_seconds: NotRequired[float]
     api_key_id: NotRequired[str | None]
+    budget: NotRequired[RunBudget | None]
     budget_hard_maximum: NotRequired[bool | None]
     budget_usd: NotRequired[float | None]
     created_at: NotRequired[str]
@@ -3473,6 +3573,7 @@ class Run(TypedDict):
     sanitized: NotRequired[SanitizeReport | None]
     source_run_id: NotRequired[str | None]
     started_at: NotRequired[str | None]
+    started_by: NotRequired[str | None]
     status: NotRequired[
         Literal['queued', 'running', 'paused', 'succeeded', 'failed', 'cancelled']
     ]

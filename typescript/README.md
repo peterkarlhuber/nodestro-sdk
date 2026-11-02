@@ -50,8 +50,8 @@ try {
   prefix; a trailing slash is ignored. A query, fragment or credentials throw a `TypeError`.
 - `timeoutMs` (default 30 000): time limit of one request from sending it to the end of its body.
 - `retry`: `{ attempts: 3, backoffMs: 500, maxBackoffMs: 8000 }`; `attempts` counts the first try (`1` = never
-  retry; values below 1 throw a `RangeError`). Only reads, starts of published workflows (idempotency key) and run chat
-  messages (`client_id`) are retried, after connection errors and 502/503/504. The bodies of discarded answers are released.
+  retry; values below 1 throw a `RangeError`). Only reads, starts of published workflows (idempotency key), run chat
+  messages (`client_id`) and budget decisions (`idempotency_key`) are retried, after connection errors and 502/503/504. The bodies of discarded answers are released.
 - `headers`: sent with every request; `PublishedWorkflow` always sends its own `Authorization`.
 - `fetch`: a replacement for the global `fetch` (proxies, tests).
 
@@ -70,6 +70,8 @@ Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refuse
 - `start(values, { waitSeconds })` waits for the result on the server when the publication allows it; the request
   time limit is extended by `waitSeconds`.
 - Downloads (`downloadFile()`, `download()`) return the whole file as a `Uint8Array`.
+- A run that waits for a person is `paused`, and `waitForRun()` returns it (unless `stopAtApproval: false`). A
+  budget wait has `run.budget?.pending_request_id` set; answer it as described under "Run budgets".
 
 ## Live run chat
 
@@ -88,6 +90,41 @@ While a run with an orchestrator is active, people can ask about it and steer it
 
 Refusals are `NodestroAPIError`s with `run_chat.*` codes, for example 409 `run_chat.run_not_active` for a run that
 ended, 429 `run_chat.too_many_questions`.
+
+## Run budgets
+
+An attended run whose next model request does not fit its budget pauses before the request is sent and waits for
+a decision. Amounts are decimal strings (`"2.50"`) in both directions; the client never turns them into numbers.
+
+- `getRunBudget(runId)`: the limits (`initial_limit_usd`, `limit_usd`), `spent_usd`, `remaining_usd`, the approved
+  `raises`, the open request (`pending`), earlier requests (`history`) and what you may decide (`policy`:
+  `can_decide`, `reason`, `max_limit_usd`). Any run of the tree may be given; the budget belongs to the top-level run.
+- `listBudgetRequests()`: every open budget request (all runs), oldest first.
+- `raiseRunBudget(runId, requestId, limitUsd, { idempotencyKey? })`: set the limit that stopped the run to
+  `limitUsd` (a string with at most two decimal places; a number throws a `TypeError`) and continue the run, in one
+  operation.
+- `endRunForBudget(runId, requestId, { idempotencyKey? })`: end the run instead (`cancelled`, error code
+  `run.budget_ended`).
+- `decideRunBudget(runId, requestId, "raise" | "end", { limitUsd?, idempotencyKey? })`: both in one method.
+
+All three resolve to the run's budget after the decision. Each decision carries an `idempotency_key` (a random one
+unless given), so it is retried safely: the same decision with the same key by the same person returns the stored
+result.
+
+```ts
+const run = await nodestro.waitForRun(runId);
+const requestId = run.budget?.pending_request_id;
+if (run.status === "paused" && requestId) {
+  const view = await nodestro.getRunBudget(runId);
+  console.log(view.spent_usd, view.limit_usd, view.pending?.suggested_limit_usd);
+  await nodestro.raiseRunBudget(runId, requestId, "2.50");
+}
+```
+
+Refusals are `NodestroAPIError`s: 404 (run or request unknown), 409 `budget.not_pending` (already decided, expired
+or cancelled; `params.request_status`, `params.decided_by`), 422 `budget.limit_not_higher`
+(`params.current_limit_usd`) and `budget.limit_invalid`, 403 `budget.over_policy` (above `params.max_limit_usd`) and
+`access.forbidden` (only the person who started the run or an administrator decides; `params.reason`).
 
 ## Errors
 
