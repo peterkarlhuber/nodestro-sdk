@@ -1955,6 +1955,19 @@ class TestResult(TypedDict):
     ok: bool
 
 
+class ToolAdoptRequest(TypedDict):
+    content_hash: str
+
+
+class ToolAdoption(TypedDict):
+    actor: str
+    at: NotRequired[str]
+    content_hash: str
+    name: str
+    role: str
+    version: int
+
+
 class ToolApprovalDecision(TypedDict):
     arguments_hash: str
     comment: NotRequired[str]
@@ -1979,6 +1992,9 @@ class ToolApprovalEvent(TypedDict):
         'stale',
         'result_lost',
         'switch_off',
+        'tool_adopted',
+        'tool_adoption_refused',
+        'tool_adoption_revoked',
     ]
     outcome: NotRequired[str | None]
     pre_grant_id: NotRequired[str | None]
@@ -2059,8 +2075,10 @@ class ToolDependencyRequest(TypedDict):
 
 
 class ToolInfo(TypedDict):
+    adoption: NotRequired[ToolAdoption | None]
     capability: NotRequired[ToolCapability]
     code: NotRequired[str | None]
+    content_hash: NotRequired[str | None]
     created_at: NotRequired[str | None]
     definition_hash: NotRequired[str | None]
     description: str

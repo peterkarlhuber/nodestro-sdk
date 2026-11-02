@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Pin nodestro-api b8139b0 (nodestro-api #70: `POST /api/tools/{name}/adopt` for adopting AI-generated tools on the
+  desktop, R-4; runtime 958be1d; 2026-11-02). The regenerated types add `ToolAdoptRequest`/`ToolAdoption` and the
+  optional tool fields `content_hash` and `adoption`; no client method is added yet.
 - Python 3.11 is now the minimum (3.10 reached end of life in October 2026): `nodestro-client` `requires-python`,
   classifiers, ruff `py311`, mypy 3.11, CI matrix 3.11/3.13; the types are generated with `--target-python-version 3.11`
   (`NotRequired` from `typing`).
