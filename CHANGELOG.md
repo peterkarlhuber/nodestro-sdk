@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api c470b2b (desktop secrets on `--secrets-fd`, review MS-1, 2026-11-02; before `bda8148`): a CLI
+  option only; routes and the OpenAPI document are unchanged, so no types were regenerated.
 - Pin nodestro-api bda8148 (Axentra platform services in nodestro-server, 2026-11-02; before `cb4b7fb`): operator
   commands and off-by-default server switches only; routes and the OpenAPI document are unchanged, so no types were
   regenerated.
