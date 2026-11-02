@@ -1508,6 +1508,34 @@ class SampleInfo(TypedDict):
     id: str
 
 
+class SandboxBackendStatus(TypedDict):
+    available: NotRequired[bool]
+    detail: NotRequired[str]
+    isolation: NotRequired[str]
+    maturity: NotRequired[str]
+    memory: NotRequired[str]
+    name: str
+    notes: NotRequired[list[str]]
+    reason: NotRequired[str]
+    state: NotRequired[
+        Literal[
+            'approved', 'experimental', 'unavailable', 'not-isolating', 'not-applicable'
+        ]
+    ]
+
+
+class SandboxSelection(TypedDict):
+    arch: NotRequired[str]
+    blocked: NotRequired[bool]
+    detail: NotRequired[str]
+    mode: NotRequired[Literal['auto', 'subprocess', 'docker']]
+    os: NotRequired[str]
+    profile: NotRequired[str]
+    reason: NotRequired[str]
+    untrusted: NotRequired[str]
+    user_authored: NotRequired[str]
+
+
 class SanitizeReport(TypedDict):
     at: NotRequired[str]
     contents: bool
@@ -1600,7 +1628,7 @@ class SettingsIn(TypedDict):
     ocr_enabled: NotRequired[bool | None]
     price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
-    sandbox: NotRequired[Literal['subprocess', 'docker'] | None]
+    sandbox: NotRequired[Literal['auto', 'subprocess', 'docker'] | None]
 
 
 class Snapshot(TypedDict):
@@ -2958,7 +2986,9 @@ class Settings(TypedDict):
     ocr_enabled: NotRequired[bool]
     price_mode: NotRequired[Literal['standard', 'strict']]
     providers: NotRequired[list[ProviderStatus]]
-    sandbox: NotRequired[Literal['subprocess', 'docker']]
+    sandbox: NotRequired[Literal['auto', 'subprocess', 'docker']]
+    sandbox_backends: NotRequired[list[SandboxBackendStatus]]
+    sandbox_selection: NotRequired[SandboxSelection]
 
 
 class Suite(TypedDict):
