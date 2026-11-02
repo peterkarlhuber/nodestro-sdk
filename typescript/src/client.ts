@@ -14,6 +14,7 @@ export type Schemas = components["schemas"];
 export type Meta = Schemas["Meta"];
 export type Settings = Schemas["Settings"];
 export type SandboxBackendStatus = Schemas["SandboxBackendStatus"];
+export type SandboxStatus = Schemas["SandboxStatus"];
 export type SandboxCheck = Schemas["SandboxCheck"];
 /** Stored objects always carry their id in answers (the schema marks it optional because it has a default). */
 export type Stored<T> = T & { id: string; created_at: string };
@@ -139,7 +140,7 @@ export class NodestroClient {
    * `approved` or `unavailable`, with `reason` and `checks`). Never waits for Docker; `refresh` starts a new check
    * (answering at once), `wait` (seconds, at most 5) waits for a running one.
    */
-  async sandboxStatus(options: { refresh?: boolean; wait?: number } = {}): Promise<SandboxBackendStatus> {
+  async sandboxStatus(options: { refresh?: boolean; wait?: number } = {}): Promise<SandboxStatus> {
     return this.http.json("GET", "/api/sandbox/status", {
       query: { refresh: options.refresh ?? false, wait: options.wait ?? 0 },
     });
@@ -149,7 +150,7 @@ export class NodestroClient {
    * Run the Docker sandbox's checks again now, the in-container self-test included (permission `admin`), and wait at
    * most `timeout` seconds (at most 60) for the result; `state` is `checking` while it goes on.
    */
-  async sandboxSelfTest(options: { timeout?: number } = {}): Promise<SandboxBackendStatus> {
+  async sandboxSelfTest(options: { timeout?: number } = {}): Promise<SandboxStatus> {
     const timeout = options.timeout ?? 30;
     return this.http.json("POST", "/api/sandbox/self-test", {
       query: { timeout },

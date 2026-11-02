@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Docker sandbox hardening (Docker-first review DS-1..DS-13, 2026-11-02; pin nodestro-api dde77f5, nodestro-api #65,
+  before `5519708`): `sandbox_status()` / `sandboxStatus()` and `sandbox_self_test()` / `sandboxSelfTest()` now return
+  the new `SandboxStatus` type (TypeScript export `SandboxStatus`): `SandboxBackendStatus` plus the request flags
+  `check_started`, `throttled`, `retry_after`, `refresh_ignored`, `wait_skipped` and `redacted` (host detail hidden from
+  readers). The settings field `sandbox` and `SandboxSelection.mode` accept the new mode `linux` (built-in Linux
+  sandbox only; `auto` now runs AI-generated code only in Docker). Python and TypeScript types regenerated.
+
 - Pin nodestro-api 961afef (Axentra completion: identity, platform services, files, database roles; 2026-11-02;
   before `c470b2b`): server-side switches and operator commands only, all off by default; routes and the OpenAPI
   document are unchanged, so no types were regenerated.
