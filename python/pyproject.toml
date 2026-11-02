@@ -36,7 +36,7 @@ dev = [
 # Only for the tests: they start a real Nodestro API (scripts/test_server.py) at the version the
 # types were generated from. The SDK itself never imports it.
 test = [
-    "nodestro-api @ git+https://github.com/peterkarlhuber/nodestro-api.git@3e0a874096a48e7cb1f9e40d53ff3b6e5af00b7b",
+    "nodestro-api @ git+https://github.com/peterkarlhuber/nodestro-api.git@ef04cb42120cd7525fa7f190c4b7b666cade2ad6",
     "pytest>=8",
 ]
 
