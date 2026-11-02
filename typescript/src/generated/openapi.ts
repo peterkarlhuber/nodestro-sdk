@@ -3059,8 +3059,9 @@ export interface paths {
          * @description Run the Docker sandbox's checks again now, the in-container self-test included, and wait at most
          *     ``timeout`` seconds (default 30, at most 60) for the result. A check that takes longer (the first start builds
          *     the runtime image) goes on in the background: the answer then says ``checking`` and ``GET
-         *     /api/sandbox/status`` shows the result later. Within 10 s of the last forced check no new one starts; the
-         *     answer is the status of the running or last check.
+         *     /api/sandbox/status`` shows the result later. Within 10 s of the last self-test no new one starts: the answer is
+         *     the status of the running or last check with ``throttled`` and ``retry_after`` (``check_started`` false).
+         *     Readers cannot start checks, and ``refresh`` on the status has a window of its own, so neither delays this.
          */
         post: operations["post_sandbox_self_test_api_sandbox_self_test_post"];
         delete?: never;
@@ -3083,9 +3084,11 @@ export interface paths {
          *     first check after the start finished, and ``approved`` only after the preflight and the in-container self-test
          *     passed (``checks`` lists each step).
          *
-         *     ``refresh=1`` starts a new check in the background, the self-test included (at most every 10 s; otherwise the
-         *     current status is returned), and answers at once with the current status; ``wait`` (seconds, at most 5) waits
-         *     that long at most for a running check.
+         *     ``refresh=1`` starts a new check in the background, the self-test included, and answers at once with the
+         *     current status; only administrators start one (otherwise ``refresh_ignored``), at most every 10 s (otherwise
+         *     ``throttled`` with ``retry_after``); ``check_started`` says whether this request started one. ``wait`` (seconds,
+         *     at most 5) waits that long at most for a running check, unless too many requests wait already
+         *     (``wait_skipped``). Without ``admin`` host details are left out (``redacted``).
          */
         get: operations["get_sandbox_status_api_sandbox_status_get"];
         put?: never;
@@ -3235,7 +3238,8 @@ export interface paths {
         /**
          * Get Settings
          * @description The settings; the Docker rows come from the background check (``Workspace.docker_status``) and never wait
-         *     for the daemon (``checking`` until the first check after the start finished).
+         *     for the daemon (``checking`` until the first check after the start finished). Without the permission ``admin``
+         *     the Docker row carries no host details (see ``GET /api/sandbox/status``).
          */
         get: operations["get_settings_api_settings_get"];
         /** Put Settings */
@@ -10531,7 +10535,7 @@ export interface components {
              * @default auto
              * @enum {string}
              */
-            mode: "auto" | "subprocess" | "docker";
+            mode: "auto" | "subprocess" | "linux" | "docker";
             /**
              * Os
              * @default
@@ -10557,6 +10561,92 @@ export interface components {
              * @default
              */
             user_authored: string;
+        };
+        /**
+         * SandboxStatus
+         * @description The Docker row of the settings' ``sandbox_backends``, and what this request did about it.
+         */
+        SandboxStatus: {
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /** Cgroup Version */
+            cgroup_version?: string | null;
+            /**
+             * Check Started
+             * @default false
+             */
+            check_started: boolean;
+            /** Checks */
+            checks?: components["schemas"]["SandboxCheck"][];
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Engine
+             * @default
+             */
+            engine: string;
+            /**
+             * Isolation
+             * @default none
+             */
+            isolation: string;
+            /**
+             * Maturity
+             * @default stable
+             */
+            maturity: string;
+            /**
+             * Memory
+             * @default none
+             */
+            memory: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * Redacted
+             * @default false
+             */
+            redacted: boolean;
+            /**
+             * Refresh Ignored
+             * @default false
+             */
+            refresh_ignored: boolean;
+            /** Retry After */
+            retry_after?: number | null;
+            /** Rootless */
+            rootless?: boolean | null;
+            /**
+             * State
+             * @default unavailable
+             * @enum {string}
+             */
+            state: "approved" | "experimental" | "unavailable" | "not-isolating" | "not-applicable" | "checking";
+            /** Tested At */
+            tested_at?: string | null;
+            /**
+             * Throttled
+             * @default false
+             */
+            throttled: boolean;
+            /**
+             * Wait Skipped
+             * @default false
+             */
+            wait_skipped: boolean;
         };
         /**
          * SanitizeReport
@@ -10929,7 +11019,7 @@ export interface components {
              * @default auto
              * @enum {string}
              */
-            sandbox: "auto" | "subprocess" | "docker";
+            sandbox: "auto" | "subprocess" | "linux" | "docker";
             /** Sandbox Backends */
             sandbox_backends?: components["schemas"]["SandboxBackendStatus"][];
             sandbox_selection?: components["schemas"]["SandboxSelection"];
@@ -10965,7 +11055,7 @@ export interface components {
                 [key: string]: components["schemas"]["ProviderSettingsIn"];
             } | null;
             /** Sandbox */
-            sandbox?: ("auto" | "subprocess" | "docker") | null;
+            sandbox?: ("auto" | "subprocess" | "linux" | "docker") | null;
         };
         /**
          * Snapshot
@@ -18741,7 +18831,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SandboxBackendStatus"];
+                    "application/json": components["schemas"]["SandboxStatus"];
                 };
             };
             /** @description Validation Error */
@@ -18773,7 +18863,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SandboxBackendStatus"];
+                    "application/json": components["schemas"]["SandboxStatus"];
                 };
             };
             /** @description Validation Error */

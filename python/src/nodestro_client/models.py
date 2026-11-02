@@ -1609,12 +1609,44 @@ class SandboxSelection(TypedDict):
     arch: NotRequired[str]
     blocked: NotRequired[bool]
     detail: NotRequired[str]
-    mode: NotRequired[Literal['auto', 'subprocess', 'docker']]
+    mode: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
     os: NotRequired[str]
     profile: NotRequired[str]
     reason: NotRequired[str]
     untrusted: NotRequired[str]
     user_authored: NotRequired[str]
+
+
+class SandboxStatus(TypedDict):
+    available: NotRequired[bool]
+    cgroup_version: NotRequired[str | None]
+    check_started: NotRequired[bool]
+    checks: NotRequired[list[SandboxCheck]]
+    detail: NotRequired[str]
+    engine: NotRequired[str]
+    isolation: NotRequired[str]
+    maturity: NotRequired[str]
+    memory: NotRequired[str]
+    name: str
+    notes: NotRequired[list[str]]
+    reason: NotRequired[str]
+    redacted: NotRequired[bool]
+    refresh_ignored: NotRequired[bool]
+    retry_after: NotRequired[float | None]
+    rootless: NotRequired[bool | None]
+    state: NotRequired[
+        Literal[
+            'approved',
+            'experimental',
+            'unavailable',
+            'not-isolating',
+            'not-applicable',
+            'checking',
+        ]
+    ]
+    tested_at: NotRequired[str | None]
+    throttled: NotRequired[bool]
+    wait_skipped: NotRequired[bool]
 
 
 class SanitizeReport(TypedDict):
@@ -1712,7 +1744,7 @@ class SettingsIn(TypedDict):
     ocr_enabled: NotRequired[bool | None]
     price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
-    sandbox: NotRequired[Literal['auto', 'subprocess', 'docker'] | None]
+    sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker'] | None]
 
 
 class Snapshot(TypedDict):
@@ -3101,7 +3133,7 @@ class Settings(TypedDict):
     operator_max_run_budget_usd: NotRequired[str | None]
     price_mode: NotRequired[Literal['standard', 'strict']]
     providers: NotRequired[list[ProviderStatus]]
-    sandbox: NotRequired[Literal['auto', 'subprocess', 'docker']]
+    sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
     sandbox_backends: NotRequired[list[SandboxBackendStatus]]
     sandbox_selection: NotRequired[SandboxSelection]
 
