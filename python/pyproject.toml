@@ -9,11 +9,10 @@ description = "Nodestro Client – the Python SDK of the Nodestro API (studio AP
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Peter Karlhuber" }]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -56,7 +55,7 @@ addopts = "-ra --strict-markers"
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 extend-exclude = ["src/nodestro_client/models.py"]
 
 [tool.ruff.lint]
@@ -67,7 +66,7 @@ force-sort-within-sections = true
 known-first-party = ["nodestro_client"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 packages = ["nodestro_client"]
 mypy_path = "src"

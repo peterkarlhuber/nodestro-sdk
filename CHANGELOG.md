@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Python 3.11 is now the minimum (3.10 reached end of life in October 2026): `nodestro-client` `requires-python`,
+  classifiers, ruff `py311`, mypy 3.11, CI matrix 3.11/3.13; the types are generated with `--target-python-version 3.11`
+  (`NotRequired` from `typing`).
 - Pin nodestro-api 3e0a874 (nodestro-api #67: security re-review Lows; runtime 0369132, Axentra 024da57; 2026-11-02).
   The OpenAPI document is unchanged; nothing changes in the SDK.
 - Pin nodestro-api 149f996 (nodestro-api #66: Axentra migration completion, security review fixes; runtime 50edcf7,

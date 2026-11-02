@@ -162,14 +162,6 @@ None known.
 - **Next step:** Decide whether to publish. If yes, add a tag-triggered release workflow with trusted publishing
   and provenance.
 
-### SDK-013 · Supported Python versions
-
-- **Priority:** P3 Low · **Status:** Needs decision · **Refs:** `python/pyproject.toml` (`requires-python = ">=3.10"`), CI matrix 3.10/3.13
-- **What:** Python 3.10 reached end of life in October 2026, and 3.14 is not tested.
-- **Next step:** Follow the platform decision in nodestro-runtime RT-022, then update `requires-python`, the CI
-  matrix and the README.
-- **Depends on:** nodestro-runtime RT-022
-
 ## Later optimizations
 
 None known.
@@ -183,7 +175,6 @@ None known.
 | This repo item | Other repo | Other item | Relation |
 |---|---|---|---|
 | SDK-005 | nodestro-api | API-012 | needs the server contract |
-| SDK-013 | nodestro-runtime | RT-022 | one platform decision, held in runtime |
 | SDK-008 | all component repositories | `NODESTRO_READ` CI change (runtime RT-029) | same change everywhere |
 | (pointer) | nodestro-api | API-016, API-017, API-018 | new API fields reach the SDK by regenerating at the next pin |
 

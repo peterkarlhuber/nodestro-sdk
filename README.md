@@ -6,7 +6,7 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 
 | Directory | Package | Requirements |
 | --- | --- | --- |
-| [`python/`](python/) | `nodestro-client` (import `nodestro_client`) | Python 3.10+, httpx; synchronous; typed models (`TypedDict`) |
+| [`python/`](python/) | `nodestro-client` (import `nodestro_client`) | Python 3.11+, httpx; synchronous; typed models (`TypedDict`) |
 | [`typescript/`](typescript/) | `@nodestro/client` | Node.js 20+ or a browser with `fetch`; ES modules; promises; types generated from OpenAPI |
 | [`openapi/nodestro-api.json`](openapi/nodestro-api.json) | | the contract both packages' types are generated from |
 
