@@ -6271,6 +6271,12 @@ export interface components {
              * @enum {string}
              */
             region: "eu" | "us" | "cn" | "other";
+            /**
+             * Source
+             * @default registry
+             * @enum {string}
+             */
+            source: "registry" | "build";
             /** Tasks */
             tasks?: string[];
             /**
@@ -7514,7 +7520,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "package" | "gguf";
+            kind: "package" | "gguf" | "build";
             /** Models */
             models?: string[] | null;
             /** Name */
@@ -7523,6 +7529,8 @@ export interface components {
             path: string;
             /** Projector */
             projector?: string | null;
+            /** Template */
+            template?: string | null;
         };
         /** InfoOut */
         InfoOut: {
@@ -8093,7 +8101,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "pull" | "install_runtime" | "import_package" | "import_gguf" | "move_models";
+            kind: "pull" | "build" | "install_runtime" | "import_package" | "import_gguf" | "move_models";
             /**
              * Message
              * @default
