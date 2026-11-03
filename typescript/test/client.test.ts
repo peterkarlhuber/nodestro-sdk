@@ -76,6 +76,25 @@ describe("studio API", () => {
     await nodestro.waitForRun(first.id, fast);
   });
 
+  it("manages keys and publications (DX-25)", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const { publication } = await nodestro.publish(workflow.id, { slug: "ts-managed" });
+    expect((await nodestro.listPublications()).map((item) => item.id)).toContain(publication.id);
+    const key = await nodestro.createApiKey("TS managed", ["read"], [publication.id]);
+    expect((await nodestro.listApiKeys()).map((item) => item.id)).toContain(key.key.id);
+    const rotated = await nodestro.rotateApiKey(key.key.id);
+    expect(rotated.token).not.toBe(key.token);
+    const old = new PublishedWorkflow(server, "ts-managed", { apiKey: key.token });
+    const refused = await old.info().catch((error: unknown) => error);
+    expect((refused as NodestroAPIError).status).toBe(401);
+    expect((await new PublishedWorkflow(server, "ts-managed", { apiKey: rotated.token }).info()).publication).toBe("ts-managed");
+    expect((await nodestro.revokeApiKey(rotated.key.id)).id).toBe(rotated.key.id);
+    await nodestro.deleteApiKey(rotated.key.id);
+    expect((await nodestro.listApiKeys()).map((item) => item.id)).not.toContain(rotated.key.id);
+    await nodestro.deletePublication(publication.id);
+    expect((await nodestro.listPublications()).map((item) => item.id)).not.toContain(publication.id);
+  });
+
   it("streams the events of a run", async () => {
     const workflow = await nodestro.createWorkflow(simple());
     const run = await nodestro.startRun(workflow.id, { input: "x" });

@@ -600,6 +600,32 @@ class NodestroClient:
         body: models.KeyIn = {"name": name, "scopes": cast(Any, list(scopes)), "publications": list(publications)}
         return cast(models.NewApiKey, self._http.json("POST", "/api/api-keys", json_body=body))
 
+    def list_api_keys(self) -> list[models.ApiKeyOut]:
+        """Every key for published workflows (never its token: only a hash is stored)."""
+        return cast(list[models.ApiKeyOut], self._http.json("GET", "/api/api-keys"))
+
+    def revoke_api_key(self, key_id: str) -> models.ApiKeyOut:
+        """Revoke a key at once; it stays listed as revoked."""
+        return cast(models.ApiKeyOut, self._http.json("POST", f"/api/api-keys/{path_segment(key_id)}/revoke"))
+
+    def rotate_api_key(self, key_id: str) -> models.NewApiKey:
+        """A new key with the same name, permissions and publications; the old one is revoked in the same step. The
+        new ``token`` is returned only this once."""
+        return cast(models.NewApiKey, self._http.json("POST", f"/api/api-keys/{path_segment(key_id)}/rotate"))
+
+    def delete_api_key(self, key_id: str) -> None:
+        """Delete a key (revoked or not) from the list."""
+        self._http.request("DELETE", f"/api/api-keys/{path_segment(key_id)}")
+
+    def list_publications(self) -> list[models.Publication]:
+        """Every published workflow API of the installation."""
+        return cast(list[models.Publication], self._http.json("GET", "/api/publications"))
+
+    def delete_publication(self, publication_id: str) -> None:
+        """Take a workflow's API offline and delete its publication with its releases (keys lose it); refused with
+        ``api.runs_active`` while runs of the API have not finished."""
+        self._http.request("DELETE", f"/api/publications/{path_segment(publication_id)}")
+
 
 def _amount(value: str | Decimal) -> str:
     """A USD amount as the decimal string the API expects; floats are refused so that no amount is rounded."""

@@ -14,7 +14,8 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 
 - **`NodestroClient`** talks to the studio REST API of an installation (`/api`): workflows and their versions,
   pre-checks, runs, live events, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
-  tools, the example library, publishing, and API keys.
+  tools, the example library, publishing (publish, list, change, delete publications), and API keys (create, list,
+  rotate, revoke, delete).
 - **`PublishedWorkflow`** talks to one published workflow API (`/api/published/{slug}`) with a Nodestro API key:
   start (with an `Idempotency-Key`), status, result, waiting, events with `Last-Event-ID`, cancelling,
   approvals, continuing, result files and usage. The same API is served by Nodestro itself and by a standalone

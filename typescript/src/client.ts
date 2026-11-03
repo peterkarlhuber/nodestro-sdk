@@ -58,6 +58,7 @@ export type GateOverride = Schemas["GateOverride"];
 export type Publication = Stored<Schemas["Publication"]>;
 export type PublishOut = Omit<Schemas["PublishOut"], "publication"> & { publication: Publication };
 export type NewApiKey = Schemas["NewApiKey"];
+export type ApiKey = Schemas["ApiKeyOut"];
 export type KeyIn = Schemas["KeyIn"];
 export type UsageReport = Schemas["UsageReport"];
 export type PriceEntry = Schemas["PriceEntry"];
@@ -590,6 +591,39 @@ export class NodestroClient {
   async createApiKey(name: string, scopes: KeyIn["scopes"], publications: string[]): Promise<NewApiKey> {
     const body: KeyIn = { name, scopes, publications };
     return this.http.json("POST", "/api/api-keys", { body });
+  }
+
+  /** Every key for published workflows (never its token: only a hash is stored). */
+  async listApiKeys(): Promise<ApiKey[]> {
+    return this.http.json("GET", "/api/api-keys");
+  }
+
+  /** Revoke a key at once; it stays listed as revoked. */
+  async revokeApiKey(keyId: string): Promise<ApiKey> {
+    return this.http.json("POST", `/api/api-keys/${enc(keyId)}/revoke`);
+  }
+
+  /** A new key with the same name, permissions and publications; the old one is revoked in the same step. */
+  async rotateApiKey(keyId: string): Promise<NewApiKey> {
+    return this.http.json("POST", `/api/api-keys/${enc(keyId)}/rotate`);
+  }
+
+  /** Delete a key (revoked or not) from the list. */
+  async deleteApiKey(keyId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/api-keys/${enc(keyId)}`);
+  }
+
+  /** Every published workflow API of the installation. */
+  async listPublications(): Promise<Publication[]> {
+    return this.http.json("GET", "/api/publications");
+  }
+
+  /**
+   * Take a workflow's API offline and delete its publication with its releases (keys lose it); refused with
+   * `api.runs_active` while runs of the API have not finished.
+   */
+  async deletePublication(publicationId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/publications/${enc(publicationId)}`);
   }
 }
 

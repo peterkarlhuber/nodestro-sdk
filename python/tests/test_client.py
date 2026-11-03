@@ -187,6 +187,29 @@ def test_a_published_form_starts_with_its_values(nodestro: NodestroClient, serve
         assert api.wait_for_result(started["run_id"], timeout=30, poll=0.1)["status"] == "succeeded"
 
 
+def test_keys_and_publications_are_managed(nodestro: NodestroClient, server: str) -> None:
+    """DX-25: list, rotate, revoke and delete keys; list and delete publications."""
+    workflow = nodestro.create_workflow(simple())
+    publication = nodestro.publish(workflow["id"], slug="sdk-managed")["publication"]
+    assert publication["id"] in {item["id"] for item in nodestro.list_publications()}
+    key = nodestro.create_api_key("SDK managed", ["read"], [publication["id"]])
+    listed = {item["id"]: item for item in nodestro.list_api_keys()}
+    assert key["key"]["id"] in listed and "token" not in listed[key["key"]["id"]]
+    rotated = nodestro.rotate_api_key(key["key"]["id"])
+    assert rotated["token"] != key["token"] and rotated["key"]["name"] == "SDK managed"
+    with PublishedWorkflow(server, "sdk-managed", api_key=key["token"]) as old:
+        with pytest.raises(NodestroAPIError) as refused:
+            old.info()
+        assert refused.value.status == 401
+    with PublishedWorkflow(server, "sdk-managed", api_key=rotated["token"]) as new:
+        assert new.info()["publication"] == "sdk-managed"
+    assert nodestro.revoke_api_key(rotated["key"]["id"])["id"] == rotated["key"]["id"]
+    nodestro.delete_api_key(rotated["key"]["id"])
+    assert rotated["key"]["id"] not in {item["id"] for item in nodestro.list_api_keys()}
+    nodestro.delete_publication(publication["id"])
+    assert publication["id"] not in {item["id"] for item in nodestro.list_publications()}
+
+
 def test_a_published_workflow_through_its_own_api(nodestro: NodestroClient, server: str) -> None:
     workflow = nodestro.create_workflow(simple())
     published = nodestro.publish(workflow["id"], slug="sdk-angebot")
