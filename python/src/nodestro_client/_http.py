@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Generator, Iterator, Mapping
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
 import json
 import math
 import random
@@ -14,6 +15,14 @@ from urllib.parse import quote, urlsplit
 import httpx
 
 from .errors import NodestroAPIError, NodestroClientError, NodestroConnectionError, NodestroTimeoutError
+
+try:
+    SDK_VERSION = version("nodestro-client")
+except PackageNotFoundError:  # pragma: no cover - running from a source checkout
+    SDK_VERSION = "0.0.0"
+#: Sent with every request (API2-14), so the server's logs show which SDK and version called; a ``User-Agent`` of the
+#: caller's own (``headers`` or a shared ``httpx.Client``) wins.
+USER_AGENT = f"nodestro-sdk-python/{SDK_VERSION}"
 
 #: Answers worth retrying: the server is starting, overloaded or a proxy failed.
 RETRY_STATUS = frozenset({502, 503, 504})
@@ -131,6 +140,8 @@ class Transport:
         self.headers = httpx.Headers(dict(headers or {}))
         self._owned = client is None
         self.client = client or httpx.Client(timeout=timeout)
+        if "user-agent" not in self.headers and self.client.headers.get("user-agent", "").startswith("python-httpx/"):
+            self.headers["User-Agent"] = USER_AGENT
 
     def close(self) -> None:
         if self._owned:

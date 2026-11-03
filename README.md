@@ -23,6 +23,8 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 
 Both clients offer the same operations under language-typical names (`wait_for_run` / `waitForRun`), and share:
 
+- **User-Agent.** Every request names the SDK and its version (`nodestro-sdk-python/<version>`,
+  `nodestro-sdk-ts/<version>`), so server logs show which client called; a `User-Agent` passed in `headers` wins.
 - **Timeouts and retries.** Reads are retried after connection errors and 502/503/504 (3 attempts, exponential
   backoff with jitter). Requests that change something are never retried, except starts of runs (published
   workflows and the studio's `start_run`/`startRun`), which carry an idempotency key, so a retry returns the same run

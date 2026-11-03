@@ -128,6 +128,14 @@ export async function pollUntil<T extends { status?: string }>(
   }
 }
 
+/** The version of this package (package.json; a test checks they agree). */
+export const SDK_VERSION = "0.2.0";
+/**
+ * Sent with every request (API2-14), so the server's logs show which SDK and version called; a `User-Agent` in the
+ * client's `headers` wins. (Browsers may keep their own.)
+ */
+export const USER_AGENT = `nodestro-sdk-ts/${SDK_VERSION}`;
+
 export class Transport {
   readonly baseUrl: string;
   readonly timeoutMs: number;
@@ -161,7 +169,7 @@ export class Transport {
     const retryable = SAFE_METHODS.has(method.toUpperCase()) || options.retryUnsafe === true;
     const attempts = retryable ? this.retry.attempts : 1;
     const timeoutMs = checkTimeout("timeoutMs", options.timeoutMs ?? this.timeoutMs);
-    const headers = mergeHeaders({ Accept: "application/json" }, this.headers, options.headers);
+    const headers = mergeHeaders({ Accept: "application/json", "User-Agent": USER_AGENT }, this.headers, options.headers);
     let body: string | undefined;
     if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
@@ -234,7 +242,7 @@ export class Transport {
     let response: Response;
     try {
       response = await this.fetcher(this.url(path), {
-        headers: mergeHeaders(this.headers, { Accept: "text/event-stream" }, options.headers),
+        headers: mergeHeaders({ "User-Agent": USER_AGENT }, this.headers, { Accept: "text/event-stream" }, options.headers),
         signal,
         redirect: "manual",
       });

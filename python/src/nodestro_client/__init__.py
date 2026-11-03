@@ -11,9 +11,7 @@ and response types (:mod:`nodestro_client.models`) are generated from the API's 
 
 from __future__ import annotations
 
-from importlib.metadata import PackageNotFoundError, version
-
-from ._http import Event, RetryPolicy
+from ._http import SDK_VERSION, Event, RetryPolicy
 from .client import NodestroClient
 from .errors import (
     NodestroAPIError,
@@ -24,10 +22,7 @@ from .errors import (
 )
 from .published import PublishedWorkflow
 
-try:
-    __version__ = version("nodestro-client")
-except PackageNotFoundError:  # pragma: no cover - running from a source checkout
-    __version__ = "0.0.0"
+__version__ = SDK_VERSION
 
 #: The version of the Nodestro API whose OpenAPI document the models were generated from.
 API_VERSION = "0.2.0"

@@ -9,7 +9,7 @@
 
 export * from "./client.js";
 export * from "./errors.js";
-export { DEFAULT_RETRY, EventParser, type ClientOptions, type RequestOptions, type RetryPolicy, type ServerEvent } from "./http.js";
+export { DEFAULT_RETRY, EventParser, SDK_VERSION, USER_AGENT, type ClientOptions, type RequestOptions, type RetryPolicy, type ServerEvent } from "./http.js";
 export * from "./published.js";
 export type { components, paths } from "./generated/openapi.js";
 
