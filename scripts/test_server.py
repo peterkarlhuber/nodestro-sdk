@@ -27,6 +27,7 @@ from typing import Any
 from fastapi.routing import APIRoute
 from nodestro_api.app import create_app
 from nodestro_api.context import AppConfig
+from nodestro_runtime.schemas import DEFAULT_AGENT_MODEL, DEFAULT_ASSISTANT_MODEL, SettingsIn
 from nodestro_runtime.testing import ScriptedClient, parsed, text
 import uvicorn
 
@@ -91,6 +92,10 @@ def main() -> None:
     args = parser.parse_args()
     client = ScriptedClient(script())
     app = create_app(AppConfig(data_dir=Path(args.data_dir)), client_factory=lambda _provider: client, integrations=[])
+    # The scripted client answers like the cloud models, so the server keeps their defaults (a new installation
+    # would otherwise default to local models).
+    defaults = SettingsIn(default_model=DEFAULT_AGENT_MODEL, assistant_model=DEFAULT_ASSISTANT_MODEL)
+    app.state.nodestro.update_settings(defaults)
     # First, so that no catch-all route of the studio answers it; not part of the OpenAPI document.
     marker = APIRoute("/sdk-test-server", lambda: MARKER, methods=["GET"], include_in_schema=False)
     app.router.routes.insert(0, marker)

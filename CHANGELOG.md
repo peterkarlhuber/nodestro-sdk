@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Pin nodestro-api fc73079 (nodestro-api #78: local models, embeddings and semantic knowledge search). The
+  regenerated types add the local model routes (overview, catalog with vendor, region and languages, hardware,
+  recommendations, jobs), the knowledge index status, the retrieval mode of a knowledge search with per-hit ranks,
+  `local_requests` in usage and the `local` price status.
+  - Both clients manage local models: `local_models` / `localModels`, `recommend_local_model` /
+    `recommendLocalModel`, start and stop the managed model server, install the pinned runtime, download, import
+    (an offline package or a GGUF file) and delete a model, and follow or cancel a job.
+  - Both clients build, follow and cancel the semantic knowledge index (`knowledge_index`,
+    `rebuild_knowledge_index`, `cancel_knowledge_index` and their camel-case twins).
+  - The test server keeps cloud models as defaults, because a new installation now defaults to local models.
 - Pin nodestro-api 7c195ed (nodestro-api #77: the export works on installations without test tools). The API
   contract is unchanged, so the generated types are unchanged.
 - Pin nodestro-api 84ca99d (nodestro-api #75: `nodestro-server check --skip-identity-provider`). The API contract is

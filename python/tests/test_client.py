@@ -604,3 +604,16 @@ def test_a_budget_decision_ends_the_run(nodestro: NodestroClient) -> None:
     nodestro.end_run_for_budget(run_id, request_id)
     done = nodestro.wait_for_run(run_id, timeout=30, poll=0.1)
     assert done["status"] == "cancelled" and done.get("error_code") == "run.budget_ended"
+
+
+def test_local_models_and_the_semantic_index(nodestro: NodestroClient) -> None:
+    overview = nodestro.local_models()
+    assert overview["status"]["pinned_version"] and overview["catalog"][0]["name"] == "qwen3.5:4b"
+    assert {item["task"] for item in overview["recommendations"]} >= {"classify", "embedding"}
+    assert nodestro.recommend_local_model("embedding")["model"] == "ollama:qwen3-embedding:0.6b"
+    with pytest.raises(NodestroAPIError) as refused:
+        nodestro.recommend_local_model("dance")
+    assert refused.value.code == "local.task_unknown"
+    index = nodestro.knowledge_index()
+    assert index["state"] == "off" and index["mode"] == "fts"
+    assert nodestro.cancel_knowledge_index()["state"] == "off"

@@ -131,6 +131,10 @@ class ArchiveEntry(TypedDict):
     status: NotRequired[Literal['ok', 'unsupported', 'nested', 'skipped']]
 
 
+class AutostartIn(TypedDict):
+    enabled: bool
+
+
 class BackupContents(TypedDict):
     conversations: NotRequired[int]
     input_files: NotRequired[int]
@@ -342,6 +346,28 @@ class CaseOrigin(TypedDict):
 
 class CaseProposalIn(TypedDict):
     personal_data: NotRequired[bool]
+
+
+class CatalogEntry(TypedDict):
+    context: NotRequired[int | None]
+    cpu_friendly: NotRequired[bool]
+    digest: str
+    dimensions: NotRequired[int | None]
+    download_bytes: int
+    family: str
+    installed: NotRequired[bool]
+    kind: Literal['chat', 'embedding']
+    languages: NotRequired[list[str]]
+    license: str
+    listed_capabilities: list[str]
+    memory_bytes: int
+    min_ollama: str
+    name: str
+    notes: NotRequired[str]
+    rank: NotRequired[int]
+    region: NotRequired[Literal['eu', 'us', 'cn', 'other']]
+    vendor: NotRequired[str]
+    verified: NotRequired[bool]
 
 
 class ChatLimits(TypedDict):
@@ -696,6 +722,23 @@ class Handover(TypedDict):
     workflow_name: NotRequired[str | None]
 
 
+class Hardware(TypedDict):
+    cpus: int
+    gpu: NotRequired[Literal['nvidia', 'apple', 'none']]
+    gpu_memory_bytes: NotRequired[int | None]
+    machine: str
+    ram_bytes: NotRequired[int | None]
+    system: str
+
+
+class ImportIn(TypedDict):
+    kind: Literal['package', 'gguf']
+    models: NotRequired[list[str] | None]
+    name: NotRequired[str | None]
+    path: str
+    projector: NotRequired[str | None]
+
+
 class InfoOut(TypedDict):
     approvals: bool
     description: NotRequired[str]
@@ -748,6 +791,18 @@ class InputFileOut(TypedDict):
     size: int
 
 
+class InstalledModel(TypedDict):
+    capabilities: NotRequired[list[str]]
+    catalog: NotRequired[bool]
+    context_length: NotRequired[int | None]
+    digest: str
+    embedding_length: NotRequired[int | None]
+    kind: Literal['chat', 'embedding']
+    name: str
+    size: int
+    verified: NotRequired[bool]
+
+
 class JobRequest(TypedDict):
     requirement: str
 
@@ -774,6 +829,7 @@ class KnowledgeConfig(TypedDict):
     citations: NotRequired[bool]
     file_ids: NotRequired[list[str]]
     mode: NotRequired[Literal['context', 'on_demand', 'search']]
+    retrieval: NotRequired[Literal['default', 'fts', 'vector', 'hybrid']]
 
 
 class KnowledgeFile(TypedDict):
@@ -858,6 +914,41 @@ class LocalBackup(TypedDict):
     created_at: str
     name: str
     size: int
+
+
+class LocalJob(TypedDict):
+    completed: NotRequired[int]
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    finished_at: NotRequired[str | None]
+    id: str
+    kind: Literal[
+        'pull', 'install_runtime', 'import_package', 'import_gguf', 'move_models'
+    ]
+    message: NotRequired[str]
+    started_at: str
+    state: NotRequired[Literal['running', 'done', 'failed', 'cancelled']]
+    target: str
+    total: NotRequired[int | None]
+
+
+class LocalStatus(TypedDict):
+    autostart: NotRequired[bool]
+    base_url: NotRequired[str | None]
+    detected_external: NotRequired[str | None]
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    free_bytes: NotRequired[int | None]
+    mode: Literal['managed', 'container', 'external', 'unavailable']
+    models: NotRequired[list[InstalledModel]]
+    models_dir: NotRequired[str | None]
+    offline: NotRequired[bool]
+    pinned_version: NotRequired[str]
+    running: NotRequired[bool]
+    runtime_bundled: NotRequired[bool]
+    runtime_installed: NotRequired[bool]
+    runtime_path: NotRequired[str | None]
+    version: NotRequired[str | None]
 
 
 class LockedPackage(TypedDict):
@@ -1365,6 +1456,10 @@ class PublicationPatch(TypedDict):
     slug: NotRequired[str | None]
 
 
+class PullIn(TypedDict):
+    model: str
+
+
 class PythonLock(TypedDict):
     lock: NotRequired[str]
     lock_sha: NotRequired[str]
@@ -1386,6 +1481,17 @@ class QualityCriterion(TypedDict):
     description: str
     name: str
     required: NotRequired[bool]
+
+
+class Recommendation(TypedDict):
+    alternatives: NotRequired[list[str]]
+    better: NotRequired[str | None]
+    download_bytes: NotRequired[int]
+    installed: NotRequired[bool]
+    model: str | None
+    quality: Literal['recommended', 'acceptable', 'limited', 'insufficient']
+    reasons: NotRequired[list[str]]
+    task: str
 
 
 class ReconciliationIn(TypedDict):
@@ -1419,6 +1525,21 @@ class ReferenceUser(TypedDict):
     release: NotRequired[int | None]
     role: NotRequired[Literal['agent', 'start']]
     workflow_id: NotRequired[str | None]
+
+
+class ReindexIn(TypedDict):
+    model: NotRequired[str | None]
+
+
+class ReindexJob(TypedDict):
+    completed: NotRequired[int]
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    finished_at: NotRequired[str | None]
+    model: str
+    started_at: NotRequired[str]
+    state: NotRequired[Literal['running', 'done', 'failed', 'cancelled']]
+    total: NotRequired[int]
 
 
 class ReleaseCheckSummary(TypedDict):
@@ -1597,6 +1718,11 @@ class RunWarning(TypedDict):
     tool: NotRequired[str | None]
 
 
+class RuntimeInstallIn(TypedDict):
+    archive: NotRequired[str | None]
+    download: NotRequired[bool]
+
+
 class SampleInfo(TypedDict):
     description: str
     field: str
@@ -1713,6 +1839,7 @@ class ScheduleIn(TypedDict):
 
 class SearchHit(TypedDict):
     file_id: str | None
+    ranks: NotRequired[dict[str, int]]
     score: float
     source: str
     text: str
@@ -1746,12 +1873,15 @@ class SettingsIn(TypedDict):
     clear_max_run_budget: NotRequired[bool | None]
     default_budget_usd: NotRequired[float | None]
     default_model: NotRequired[str | None]
+    embedding_model: NotRequired[str | None]
+    knowledge_retrieval: NotRequired[Literal['fts', 'vector', 'hybrid'] | None]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     max_run_budget_usd: NotRequired[float | str | None]
     ocr_enabled: NotRequired[bool | None]
     price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
     sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker'] | None]
+    strict_offline: NotRequired[bool | None]
 
 
 class Snapshot(TypedDict):
@@ -1809,6 +1939,11 @@ class StepOut(TypedDict):
     node_id: str
     status: str
     type: str
+
+
+class StorageIn(TypedDict):
+    path: str
+    transfer: NotRequired[Literal['use', 'copy']]
 
 
 class StorageInfo(TypedDict):
@@ -2189,6 +2324,7 @@ class Usage(TypedDict):
     estimated_cost_usd: NotRequired[float | None]
     input_tokens: NotRequired[int]
     known_cost_usd: NotRequired[float | None]
+    local_requests: NotRequired[int]
     missing_cost_components: NotRequired[list[str]]
     output_tokens: NotRequired[int]
     pricing_quality: NotRequired[str | None]
@@ -2210,6 +2346,7 @@ class UsageBucket(TypedDict):
     key: str
     known_cost_usd: NotRequired[float]
     label: str
+    local_requests: NotRequired[int]
     missing_cost_components: NotRequired[list[str]]
     operations: NotRequired[int]
     output_tokens: NotRequired[int]
@@ -2714,6 +2851,32 @@ class InstallState(TypedDict):
     step: NotRequired[str | None]
 
 
+class KnowledgeIndexStatus(TypedDict):
+    active: NotRequired[dict[str, Any] | None]
+    building: NotRequired[dict[str, Any] | None]
+    building_embedded: NotRequired[int]
+    chunks: NotRequired[int]
+    detail: NotRequired[str]
+    embedded: NotRequired[int]
+    embedding_model: NotRequired[str | None]
+    job: NotRequired[ReindexJob | None]
+    mode: NotRequired[Literal['fts', 'vector', 'hybrid']]
+    pgvector: NotRequired[bool | None]
+    state: NotRequired[
+        Literal[
+            'off', 'ready', 'incomplete', 'building', 'reindex_required', 'unavailable'
+        ]
+    ]
+
+
+class LocalOverview(TypedDict):
+    catalog: list[CatalogEntry]
+    hardware: Hardware
+    manageable: bool
+    recommendations: list[Recommendation]
+    status: LocalStatus
+
+
 class McpServerIn(TypedDict):
     allow_loopback: NotRequired[bool]
     auth: NotRequired[Literal['none', 'bearer', 'oauth']]
@@ -2921,6 +3084,7 @@ class ProviderStatus(TypedDict):
     key_source: Literal['environment', 'settings', 'none', 'not_needed']
     key_stored: NotRequired[bool]
     label: str
+    local_server: NotRequired[bool]
     operator_role: NotRequired[bool | None]
     profile_name: NotRequired[str | None]
     region: NotRequired[str | None]
@@ -3151,8 +3315,11 @@ class Settings(TypedDict):
     default_model: NotRequired[str]
     default_provider: NotRequired[str]
     docker_available: NotRequired[bool]
+    embedding_model: NotRequired[str | None]
+    knowledge_retrieval: NotRequired[Literal['fts', 'vector', 'hybrid']]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     max_run_budget_usd: NotRequired[str | None]
+    model_defaults: NotRequired[Literal['local', 'kept']]
     ocr_available: NotRequired[bool]
     ocr_enabled: NotRequired[bool]
     operator_max_run_budget_usd: NotRequired[str | None]
@@ -3161,6 +3328,7 @@ class Settings(TypedDict):
     sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
     sandbox_backends: NotRequired[list[SandboxBackendStatus]]
     sandbox_selection: NotRequired[SandboxSelection]
+    strict_offline: NotRequired[bool]
 
 
 class Suite(TypedDict):

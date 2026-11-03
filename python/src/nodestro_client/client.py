@@ -543,6 +543,77 @@ class NodestroClient:
         """The audit log of the MCP configuration (never tokens or tool arguments)."""
         return cast(list[models.McpEvent], self._http.json("GET", "/api/mcp/events", params={"limit": limit}))
 
+    # ---- local models (Ollama) and the semantic knowledge index ---------------------------
+
+    def local_models(self) -> models.LocalOverview:
+        """The local model server's state, the catalog with what is installed, this computer's hardware and a
+        recommendation per task. A recommendation is a suggestion: store the chosen model explicitly."""
+        return cast(models.LocalOverview, self._http.json("GET", "/api/local-models"))
+
+    def recommend_local_model(self, task: str) -> models.Recommendation:
+        """The local model for a task profile (``classify``, ``write``, ``analysis``, ``embedding`` ...)."""
+        return cast(models.Recommendation, self._http.json("GET", "/api/local-models/recommend", params={"task": task}))
+
+    def start_local_models(self) -> models.LocalStatus:
+        """Start the managed local model server (desktop); a server's tenants get 403 ``local.server_managed``."""
+        return cast(models.LocalStatus, self._http.json("POST", "/api/local-models/start"))
+
+    def stop_local_models(self) -> models.LocalStatus:
+        return cast(models.LocalStatus, self._http.json("POST", "/api/local-models/stop"))
+
+    def install_local_runtime(self, *, archive: str | None = None, download: bool = False) -> models.LocalJob:
+        """Install the pinned, SHA-256-verified Ollama runtime from a release archive on the Nodestro computer, or
+        download it (refused in the strict offline mode). Follow the job with :meth:`local_model_job`."""
+        body = {"archive": archive, "download": download}
+        return cast(models.LocalJob, self._http.json("POST", "/api/local-models/runtime", json_body=body))
+
+    def pull_local_model(self, model: str) -> models.LocalJob:
+        """Download a model (e.g. ``qwen3.5:4b``); needs the internet."""
+        return cast(models.LocalJob, self._http.json("POST", "/api/local-models/pull", json_body={"model": model}))
+
+    def import_local_model(
+        self,
+        kind: Literal["package", "gguf"],
+        path: str,
+        *,
+        name: str | None = None,
+        select: Sequence[str] | None = None,
+        projector: str | None = None,
+    ) -> models.LocalJob:
+        """Import offline: an offline model package (checked by SHA-256; ``select`` picks some of its models) or a GGUF
+        file (``name`` the model to create, ``projector`` an optional vision projector). Paths name files on the
+        computer that runs Nodestro."""
+        body: dict[str, Any] = {"kind": kind, "path": path, "name": name, "projector": projector}
+        if select is not None:
+            body["models"] = list(select)
+        return cast(models.LocalJob, self._http.json("POST", "/api/local-models/import", json_body=body))
+
+    def delete_local_model(self, name: str) -> None:
+        self._http.request("DELETE", f"/api/local-models/models/{path_segment(name)}")
+
+    def local_model_job(self, job_id: str) -> models.LocalJob:
+        """A job's progress (``completed`` of ``total``) and outcome."""
+        return cast(models.LocalJob, self._http.json("GET", f"/api/local-models/jobs/{path_segment(job_id)}"))
+
+    def cancel_local_model_job(self, job_id: str) -> models.LocalJob:
+        path = f"/api/local-models/jobs/{path_segment(job_id)}/cancel"
+        return cast(models.LocalJob, self._http.json("POST", path))
+
+    def knowledge_index(self) -> models.KnowledgeIndexStatus:
+        """The semantic knowledge index: retrieval mode, embedding model, state and how many chunks are embedded."""
+        return cast(models.KnowledgeIndexStatus, self._http.json("GET", "/api/knowledge/index"))
+
+    def rebuild_knowledge_index(self, model: str | None = None) -> models.KnowledgeIndexStatus:
+        """Build or rebuild the semantic index (default: the embedding model of the settings). Searches keep the
+        complete current index until the new one is finished; a cancelled rebuild continues where it stopped."""
+        body = {"model": model}
+        return cast(
+            models.KnowledgeIndexStatus, self._http.json("POST", "/api/knowledge/index/rebuild", json_body=body)
+        )
+
+    def cancel_knowledge_index(self) -> models.KnowledgeIndexStatus:
+        return cast(models.KnowledgeIndexStatus, self._http.json("POST", "/api/knowledge/index/cancel"))
+
     def list_examples(self, language: str | None = None) -> list[models.TemplateSummary]:
         """The example library (``language``: ``de``, ``en``, ``es``, ``fr``, ``it`` or ``pt-BR``)."""
         return cast(list[models.TemplateSummary], self._http.json("GET", "/api/library", params={"language": language}))

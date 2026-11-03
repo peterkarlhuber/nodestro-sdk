@@ -35,6 +35,12 @@ export type ResultFile = Stored<Schemas["ResultFile"]>;
 export type AgentTemplate = Stored<Schemas["AgentTemplate"]>;
 export type AgentTemplateIn = Schemas["AgentTemplateIn"];
 export type ToolInfo = Schemas["ToolInfo"];
+export type LocalOverview = Schemas["LocalOverview"];
+export type LocalStatus = Schemas["LocalStatus"];
+export type LocalJob = Schemas["LocalJob"];
+export type LocalImport = Schemas["ImportIn"];
+export type Recommendation = Schemas["Recommendation"];
+export type KnowledgeIndexStatus = Schemas["KnowledgeIndexStatus"];
 export type McpStatus = Schemas["McpStatus"];
 export type McpServerView = Schemas["McpServerView"];
 export type McpServerIn = Schemas["McpServerIn"];
@@ -493,6 +499,82 @@ export class NodestroClient {
   /** The audit log of the MCP configuration (never tokens or tool arguments). */
   async mcpEvents(limit = 100): Promise<McpEvent[]> {
     return this.http.json("GET", `/api/mcp/events?limit=${encodeURIComponent(String(limit))}`);
+  }
+
+  // ---- local models (Ollama) and the semantic knowledge index
+
+  /**
+   * The local model server's state, the catalog with what is installed, this computer's hardware and a
+   * recommendation per task. A recommendation is a suggestion: store the chosen model explicitly.
+   */
+  async localModels(): Promise<LocalOverview> {
+    return this.http.json("GET", "/api/local-models");
+  }
+
+  /** The local model for a task profile (`classify`, `write`, `analysis`, `embedding` ...). */
+  async recommendLocalModel(task: string): Promise<Recommendation> {
+    return this.http.json("GET", "/api/local-models/recommend", { query: { task } });
+  }
+
+  /** Start the managed local model server (desktop); a server's tenants get 403 `local.server_managed`. */
+  async startLocalModels(): Promise<LocalStatus> {
+    return this.http.json("POST", "/api/local-models/start");
+  }
+
+  async stopLocalModels(): Promise<LocalStatus> {
+    return this.http.json("POST", "/api/local-models/stop");
+  }
+
+  /**
+   * Install the pinned, SHA-256-verified Ollama runtime from a release archive on the Nodestro computer, or download
+   * it (refused in the strict offline mode). Follow the job with {@link localModelJob}.
+   */
+  async installLocalRuntime(source: { archive?: string; download?: boolean }): Promise<LocalJob> {
+    return this.http.json("POST", "/api/local-models/runtime", { body: source });
+  }
+
+  /** Download a model (e.g. `qwen3.5:4b`); needs the internet. */
+  async pullLocalModel(model: string): Promise<LocalJob> {
+    return this.http.json("POST", "/api/local-models/pull", { body: { model } });
+  }
+
+  /**
+   * Import offline: an offline model package (checked by SHA-256; `models` picks some of its models) or a GGUF file
+   * (`name` the model to create, `projector` an optional vision projector). Paths name files on the computer that runs
+   * Nodestro.
+   */
+  async importLocalModel(request: LocalImport): Promise<LocalJob> {
+    return this.http.json("POST", "/api/local-models/import", { body: request });
+  }
+
+  async deleteLocalModel(name: string): Promise<void> {
+    await this.http.request("DELETE", `/api/local-models/models/${enc(name)}`);
+  }
+
+  /** A job's progress (`completed` of `total`) and outcome. */
+  async localModelJob(jobId: string): Promise<LocalJob> {
+    return this.http.json("GET", `/api/local-models/jobs/${enc(jobId)}`);
+  }
+
+  async cancelLocalModelJob(jobId: string): Promise<LocalJob> {
+    return this.http.json("POST", `/api/local-models/jobs/${enc(jobId)}/cancel`);
+  }
+
+  /** The semantic knowledge index: retrieval mode, embedding model, state and how many chunks are embedded. */
+  async knowledgeIndex(): Promise<KnowledgeIndexStatus> {
+    return this.http.json("GET", "/api/knowledge/index");
+  }
+
+  /**
+   * Build or rebuild the semantic index (default: the embedding model of the settings). Searches keep the complete
+   * current index until the new one is finished; a cancelled rebuild continues where it stopped.
+   */
+  async rebuildKnowledgeIndex(model?: string): Promise<KnowledgeIndexStatus> {
+    return this.http.json("POST", "/api/knowledge/index/rebuild", { body: { model: model ?? null } });
+  }
+
+  async cancelKnowledgeIndex(): Promise<KnowledgeIndexStatus> {
+    return this.http.json("POST", "/api/knowledge/index/cancel");
   }
 
   async listExamples(language?: string): Promise<TemplateSummary[]> {

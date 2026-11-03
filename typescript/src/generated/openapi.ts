@@ -1235,6 +1235,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/knowledge/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Knowledge Index */
+        get: operations["knowledge_index_api_knowledge_index_get"];
+        put?: never;
+        post?: never;
+        /** Knowledge Drop Vectors */
+        delete: operations["knowledge_drop_vectors_api_knowledge_index_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/index/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Knowledge Cancel Reindex */
+        post: operations["knowledge_cancel_reindex_api_knowledge_index_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/index/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Knowledge Reindex */
+        post: operations["knowledge_reindex_api_knowledge_index_rebuild_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/knowledge/search": {
         parameters: {
             query?: never;
@@ -1242,7 +1294,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search Knowledge */
+        /**
+         * Search Knowledge
+         * @description ``mode``: full text, semantic or both (default: the workspace's setting); never a silent fallback.
+         */
         get: operations["search_knowledge_api_knowledge_search_get"];
         put?: never;
         post?: never;
@@ -1389,6 +1444,227 @@ export interface paths {
          */
         get: operations["download_library_sample_api_library__template_id__samples__sample_id__get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Local Overview */
+        get: operations["local_overview_api_local_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/autostart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Local Autostart */
+        put: operations["local_autostart_api_local_models_autostart_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Local Import */
+        post: operations["local_import_api_local_models_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Local Jobs */
+        get: operations["local_jobs_api_local_models_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Local Job */
+        get: operations["local_job_api_local_models_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/jobs/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Local Cancel */
+        post: operations["local_cancel_api_local_models_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/models/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Local Delete */
+        delete: operations["local_delete_api_local_models_models__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Local Pull */
+        post: operations["local_pull_api_local_models_pull_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/recommend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Local Recommend */
+        get: operations["local_recommend_api_local_models_recommend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Local Install Runtime */
+        post: operations["local_install_runtime_api_local_models_runtime_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Local Start */
+        post: operations["local_start_api_local_models_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Local Stop */
+        post: operations["local_stop_api_local_models_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Local Storage */
+        put: operations["local_storage_api_local_models_storage_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -5032,6 +5308,11 @@ export interface components {
             /** Version */
             version?: string | null;
         };
+        /** AutostartIn */
+        AutostartIn: {
+            /** Enabled */
+            enabled: boolean;
+        };
         /** BackupContents */
         BackupContents: {
             /**
@@ -5929,6 +6210,72 @@ export interface components {
              * @default 0
              */
             tokens: number;
+        };
+        /** CatalogEntry */
+        CatalogEntry: {
+            /** Context */
+            context?: number | null;
+            /**
+             * Cpu Friendly
+             * @default true
+             */
+            cpu_friendly: boolean;
+            /** Digest */
+            digest: string;
+            /** Dimensions */
+            dimensions?: number | null;
+            /** Download Bytes */
+            download_bytes: number;
+            /** Family */
+            family: string;
+            /**
+             * Installed
+             * @default false
+             */
+            installed: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "chat" | "embedding";
+            /** Languages */
+            languages?: string[];
+            /** License */
+            license: string;
+            /** Listed Capabilities */
+            listed_capabilities: string[];
+            /** Memory Bytes */
+            memory_bytes: number;
+            /** Min Ollama */
+            min_ollama: string;
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /**
+             * Rank
+             * @default 0
+             */
+            rank: number;
+            /**
+             * Region
+             * @default other
+             * @enum {string}
+             */
+            region: "eu" | "us" | "cn" | "other";
+            /**
+             * Vendor
+             * @default
+             */
+            vendor: string;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /**
          * ChatLimits
@@ -7132,6 +7479,44 @@ export interface components {
             /** Workflow Name */
             workflow_name?: string | null;
         };
+        /**
+         * Hardware
+         * @description What this computer offers to local models (memory sizes in bytes; ``None``: not known).
+         */
+        Hardware: {
+            /** Cpus */
+            cpus: number;
+            /**
+             * Gpu
+             * @default none
+             * @enum {string}
+             */
+            gpu: "nvidia" | "apple" | "none";
+            /** Gpu Memory Bytes */
+            gpu_memory_bytes?: number | null;
+            /** Machine */
+            machine: string;
+            /** Ram Bytes */
+            ram_bytes?: number | null;
+            /** System */
+            system: string;
+        };
+        /** ImportIn */
+        ImportIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "package" | "gguf";
+            /** Models */
+            models?: string[] | null;
+            /** Name */
+            name?: string | null;
+            /** Path */
+            path: string;
+            /** Projector */
+            projector?: string | null;
+        };
         /** InfoOut */
         InfoOut: {
             /** Approvals */
@@ -7294,6 +7679,36 @@ export interface components {
             /** Step */
             step?: string | null;
         };
+        /** InstalledModel */
+        InstalledModel: {
+            /** Capabilities */
+            capabilities?: string[];
+            /**
+             * Catalog
+             * @default false
+             */
+            catalog: boolean;
+            /** Context Length */
+            context_length?: number | null;
+            /** Digest */
+            digest: string;
+            /** Embedding Length */
+            embedding_length?: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "chat" | "embedding";
+            /** Name */
+            name: string;
+            /** Size */
+            size: number;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
+        };
         /** JobRequest */
         JobRequest: {
             /** Requirement */
@@ -7351,6 +7766,9 @@ export interface components {
          *     ``context`` puts the files into the prompt, ``on_demand`` gives the agent the
          *     ``files`` tool to load them when needed, ``search`` gives it the ``search``
          *     tool over their text (RAG with citations).
+         *
+         *     ``retrieval`` is how ``search`` ranks: ``default`` follows the workspace setting, ``fts`` full text,
+         *     ``vector`` semantic search (needs the semantic index), ``hybrid`` both.
          */
         KnowledgeConfig: {
             /**
@@ -7366,6 +7784,12 @@ export interface components {
              * @enum {string}
              */
             mode: "context" | "on_demand" | "search";
+            /**
+             * Retrieval
+             * @default default
+             * @enum {string}
+             */
+            retrieval: "default" | "fts" | "vector" | "hybrid";
         };
         /** KnowledgeFile */
         KnowledgeFile: {
@@ -7436,6 +7860,57 @@ export interface components {
             size: number;
             /** Source Format */
             source_format?: string | null;
+        };
+        /**
+         * KnowledgeIndexStatus
+         * @description The semantic index of the knowledge base: which model filled it and how complete it is.
+         */
+        KnowledgeIndexStatus: {
+            /** Active */
+            active?: {
+                [key: string]: unknown;
+            } | null;
+            /** Building */
+            building?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Building Embedded
+             * @default 0
+             */
+            building_embedded: number;
+            /**
+             * Chunks
+             * @default 0
+             */
+            chunks: number;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Embedded
+             * @default 0
+             */
+            embedded: number;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            job?: components["schemas"]["ReindexJob"] | null;
+            /**
+             * Mode
+             * @default fts
+             * @enum {string}
+             */
+            mode: "fts" | "vector" | "hybrid";
+            /** Pgvector */
+            pgvector?: boolean | null;
+            /**
+             * State
+             * @default off
+             * @enum {string}
+             */
+            state: "off" | "ready" | "incomplete" | "building" | "reindex_required" | "unavailable";
         };
         /** KnowledgeInfo */
         KnowledgeInfo: {
@@ -7591,6 +8066,117 @@ export interface components {
             name: string;
             /** Size */
             size: number;
+        };
+        /** LocalJob */
+        LocalJob: {
+            /**
+             * Completed
+             * @default 0
+             */
+            completed: number;
+            /** Error */
+            error?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pull" | "install_runtime" | "import_package" | "import_gguf" | "move_models";
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * State
+             * @default running
+             * @enum {string}
+             */
+            state: "running" | "done" | "failed" | "cancelled";
+            /** Target */
+            target: string;
+            /** Total */
+            total?: number | null;
+        };
+        /** LocalOverview */
+        LocalOverview: {
+            /** Catalog */
+            catalog: components["schemas"]["CatalogEntry"][];
+            hardware: components["schemas"]["Hardware"];
+            /** Manageable */
+            manageable: boolean;
+            /** Recommendations */
+            recommendations: components["schemas"]["Recommendation"][];
+            status: components["schemas"]["LocalStatus"];
+        };
+        /**
+         * LocalStatus
+         * @description The state of the local model server of this workspace.
+         */
+        LocalStatus: {
+            /**
+             * Autostart
+             * @default true
+             */
+            autostart: boolean;
+            /** Base Url */
+            base_url?: string | null;
+            /** Detected External */
+            detected_external?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Free Bytes */
+            free_bytes?: number | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "managed" | "container" | "external" | "unavailable";
+            /** Models */
+            models?: components["schemas"]["InstalledModel"][];
+            /** Models Dir */
+            models_dir?: string | null;
+            /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
+            /**
+             * Pinned Version
+             * @default 0.40.14
+             */
+            pinned_version: string;
+            /**
+             * Running
+             * @default false
+             */
+            running: boolean;
+            /**
+             * Runtime Bundled
+             * @default false
+             */
+            runtime_bundled: boolean;
+            /**
+             * Runtime Installed
+             * @default false
+             */
+            runtime_installed: boolean;
+            /** Runtime Path */
+            runtime_path?: string | null;
+            /** Version */
+            version?: string | null;
         };
         /** LockedPackage */
         LockedPackage: {
@@ -9241,6 +9827,11 @@ export interface components {
             key_stored: boolean;
             /** Label */
             label: string;
+            /**
+             * Local Server
+             * @default false
+             */
+            local_server: boolean;
             /** Operator Role */
             operator_role?: boolean | null;
             /** Profile Name */
@@ -9391,6 +9982,11 @@ export interface components {
             publication: components["schemas"]["Publication"];
             release: components["schemas"]["ReleaseSummary"];
         };
+        /** PullIn */
+        PullIn: {
+            /** Model */
+            model: string;
+        };
         /**
          * PythonEnvironment
          * @description The stored definition of one scope's environment.
@@ -9518,6 +10114,37 @@ export interface components {
              */
             required: boolean;
         };
+        /**
+         * Recommendation
+         * @description The model suggested for a task, and why.
+         */
+        Recommendation: {
+            /** Alternatives */
+            alternatives?: string[];
+            /** Better */
+            better?: string | null;
+            /**
+             * Download Bytes
+             * @default 0
+             */
+            download_bytes: number;
+            /**
+             * Installed
+             * @default false
+             */
+            installed: boolean;
+            /** Model */
+            model: string | null;
+            /**
+             * Quality
+             * @enum {string}
+             */
+            quality: "recommended" | "acceptable" | "limited" | "insufficient";
+            /** Reasons */
+            reasons?: string[];
+            /** Task */
+            task: string;
+        };
         /** ReconciliationIn */
         ReconciliationIn: {
             /**
@@ -9644,6 +10271,43 @@ export interface components {
         /** Refresh */
         Refresh: {
             workflow?: components["schemas"]["WorkflowIn"] | null;
+        };
+        /** ReindexIn */
+        ReindexIn: {
+            /** Model */
+            model?: string | null;
+        };
+        /** ReindexJob */
+        ReindexJob: {
+            /**
+             * Completed
+             * @default 0
+             */
+            completed: number;
+            /** Error */
+            error?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Model */
+            model: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at?: string;
+            /**
+             * State
+             * @default running
+             * @enum {string}
+             */
+            state: "running" | "done" | "failed" | "cancelled";
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /** Release */
         Release: {
@@ -10465,6 +11129,16 @@ export interface components {
             /** Tool */
             tool?: string | null;
         };
+        /** RuntimeInstallIn */
+        RuntimeInstallIn: {
+            /** Archive */
+            archive?: string | null;
+            /**
+             * Download
+             * @default false
+             */
+            download: boolean;
+        };
         /**
          * SampleInfo
          * @description A sample file as the gallery lists it (download: ``/api/library/{id}/samples/{sample}``).
@@ -10912,6 +11586,13 @@ export interface components {
         SearchHit: {
             /** File Id */
             file_id: string | null;
+            /**
+             * Ranks
+             * @default {}
+             */
+            ranks: {
+                [key: string]: number;
+            };
             /** Score */
             score: number;
             /** Source */
@@ -11043,10 +11724,24 @@ export interface components {
              * @default false
              */
             docker_available: boolean;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            /**
+             * Knowledge Retrieval
+             * @default fts
+             * @enum {string}
+             */
+            knowledge_retrieval: "fts" | "vector" | "hybrid";
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
             /** Max Run Budget Usd */
             max_run_budget_usd?: string | null;
+            /**
+             * Model Defaults
+             * @default kept
+             * @enum {string}
+             */
+            model_defaults: "local" | "kept";
             /**
              * Ocr Available
              * @default false
@@ -11076,6 +11771,11 @@ export interface components {
             /** Sandbox Backends */
             sandbox_backends?: components["schemas"]["SandboxBackendStatus"][];
             sandbox_selection?: components["schemas"]["SandboxSelection"];
+            /**
+             * Strict Offline
+             * @default false
+             */
+            strict_offline: boolean;
         };
         /** SettingsIn */
         SettingsIn: {
@@ -11095,6 +11795,10 @@ export interface components {
             default_budget_usd?: number | null;
             /** Default Model */
             default_model?: string | null;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            /** Knowledge Retrieval */
+            knowledge_retrieval?: ("fts" | "vector" | "hybrid") | null;
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
             /** Max Run Budget Usd */
@@ -11109,6 +11813,8 @@ export interface components {
             } | null;
             /** Sandbox */
             sandbox?: ("auto" | "subprocess" | "linux" | "docker") | null;
+            /** Strict Offline */
+            strict_offline?: boolean | null;
         };
         /**
          * Snapshot
@@ -11268,6 +11974,17 @@ export interface components {
             status: string;
             /** Type */
             type: string;
+        };
+        /** StorageIn */
+        StorageIn: {
+            /** Path */
+            path: string;
+            /**
+             * Transfer
+             * @default copy
+             * @enum {string}
+             */
+            transfer: "use" | "copy";
         };
         /** StorageInfo */
         StorageInfo: {
@@ -12304,6 +13021,11 @@ export interface components {
             input_tokens: number;
             /** Known Cost Usd */
             known_cost_usd?: number | null;
+            /**
+             * Local Requests
+             * @default 0
+             */
+            local_requests: number;
             /** Missing Cost Components */
             missing_cost_components?: string[];
             /**
@@ -12380,6 +13102,11 @@ export interface components {
             known_cost_usd: number;
             /** Label */
             label: string;
+            /**
+             * Local Requests
+             * @default 0
+             */
+            local_requests: number;
             /** Missing Cost Components */
             missing_cost_components?: string[];
             /**
@@ -15477,12 +16204,133 @@ export interface operations {
             };
         };
     };
+    knowledge_index_api_knowledge_index_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeIndexStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    knowledge_drop_vectors_api_knowledge_index_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeIndexStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    knowledge_cancel_reindex_api_knowledge_index_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeIndexStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    knowledge_reindex_api_knowledge_index_rebuild_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReindexIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeIndexStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     search_knowledge_api_knowledge_search_get: {
         parameters: {
             query: {
                 q: string;
                 file_ids?: string | null;
                 k?: number;
+                mode?: ("fts" | "vector" | "hybrid") | null;
             };
             header?: never;
             path?: never;
@@ -15756,6 +16604,409 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_overview_api_local_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalOverview"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_autostart_api_local_models_autostart_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutostartIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_import_api_local_models_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_jobs_api_local_models_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_job_api_local_models_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_cancel_api_local_models_jobs__job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_delete_api_local_models_models__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_pull_api_local_models_pull_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PullIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_recommend_api_local_models_recommend_get: {
+        parameters: {
+            query: {
+                task: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recommendation"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_install_runtime_api_local_models_runtime_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuntimeInstallIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_start_api_local_models_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_stop_api_local_models_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_storage_api_local_models_storage_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"] | components["schemas"]["LocalStatus"];
                 };
             };
             /** @description Error */
