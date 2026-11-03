@@ -57,8 +57,25 @@ def test_changes_are_never_sent_twice() -> None:
         return httpx.Response(503, json={"detail": "busy", "code": "busy", "params": {}})
 
     with pytest.raises(NodestroAPIError) as raised:
-        client_with(handler).start_run("wf_1", input="x")
+        client_with(handler).create_workflow({"name": "x", "nodes": [], "edges": []})
     assert calls == ["POST"] and raised.value.status == 503
+
+
+def test_starting_a_run_is_retried_with_one_idempotency_key() -> None:
+    """API2-08: every start carries an Idempotency-Key, so a retry cannot start the run twice."""
+    keys: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        keys.append(request.headers.get("idempotency-key"))
+        if len(keys) < 2:
+            return httpx.Response(503)
+        return httpx.Response(201, json={"id": "run_1", "status": "queued"})
+
+    assert client_with(handler).start_run("wf_1", input="x")["id"] == "run_1"
+    assert len(keys) == 2 and keys[0] and keys[0] == keys[1]
+    keys.clear()
+    client_with(handler).start_run("wf_1", input="x", idempotency_key="order-7")
+    assert keys == ["order-7", "order-7"]
 
 
 def test_both_error_formats_become_one_exception() -> None:
@@ -590,3 +607,24 @@ def test_waiting_returns_at_a_budget_decision() -> None:
     client = client_with(lambda _request: httpx.Response(200, json=run))
     paused = client.wait_for_run("run_1", timeout=1)
     assert paused["status"] == "paused" and (paused.get("budget") or {}).get("pending_request_id") == "bud_1"
+
+
+def test_requests_name_the_sdk_and_its_version() -> None:
+    """API2-14: ``User-Agent: nodestro-sdk-python/<version>``; the caller's own wins."""
+    from nodestro_client import __version__
+
+    agents: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        agents.append(request.headers.get("user-agent"))
+        return httpx.Response(200, json={"version": "0.2.0", "publication": "slug"})
+
+    client_with(handler).meta()
+    published_with(handler).info()
+    assert agents == [f"nodestro-sdk-python/{__version__}"] * 2 and __version__ != "0.0.0"
+    agents.clear()
+    mine = httpx.Client(transport=httpx.MockTransport(handler))
+    NodestroClient("http://nodestro.test", headers={"User-Agent": "my-tool/1"}, http_client=mine).meta()
+    shared = httpx.Client(transport=httpx.MockTransport(handler), headers={"User-Agent": "shared/2"})
+    NodestroClient("http://nodestro.test", http_client=shared).meta()
+    assert agents == ["my-tool/1", "shared/2"]

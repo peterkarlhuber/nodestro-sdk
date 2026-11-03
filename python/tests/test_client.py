@@ -62,6 +62,19 @@ def test_the_sandbox_status_and_self_test(nodestro: NodestroClient) -> None:
     assert all({"name", "ok"} <= set(check) for check in tested.get("checks", []))
 
 
+def test_a_retried_start_returns_the_same_run(nodestro: NodestroClient) -> None:
+    """API2-08: the same Idempotency-Key starts one run; another request with it is a conflict."""
+    workflow = nodestro.create_workflow(simple())
+    first = nodestro.start_run(workflow["id"], input="x", idempotency_key="sdk-order-1")
+    again = nodestro.start_run(workflow["id"], input="x", idempotency_key="sdk-order-1")
+    assert again["id"] == first["id"]
+    with pytest.raises(NodestroAPIError) as conflict:
+        nodestro.start_run(workflow["id"], input="y", idempotency_key="sdk-order-1")
+    assert conflict.value.status == 409 and conflict.value.code == "idempotency.conflict"
+    assert nodestro.start_run(workflow["id"], input="x")["id"] != first["id"]
+    nodestro.wait_for_run(first["id"], timeout=30, poll=0.1)
+
+
 def test_a_workflow_runs_and_returns_its_result(nodestro: NodestroClient) -> None:
     workflow = nodestro.create_workflow(simple())
     assert workflow["id"] in {item["id"] for item in nodestro.list_workflows()}
@@ -172,6 +185,29 @@ def test_a_published_form_starts_with_its_values(nodestro: NodestroClient, serve
         assert refused.value.status == 422 and refused.value.code == "request.invalid"
         started = api.start({"values": {"customer": "ACME"}})
         assert api.wait_for_result(started["run_id"], timeout=30, poll=0.1)["status"] == "succeeded"
+
+
+def test_keys_and_publications_are_managed(nodestro: NodestroClient, server: str) -> None:
+    """DX-25: list, rotate, revoke and delete keys; list and delete publications."""
+    workflow = nodestro.create_workflow(simple())
+    publication = nodestro.publish(workflow["id"], slug="sdk-managed")["publication"]
+    assert publication["id"] in {item["id"] for item in nodestro.list_publications()}
+    key = nodestro.create_api_key("SDK managed", ["read"], [publication["id"]])
+    listed = {item["id"]: item for item in nodestro.list_api_keys()}
+    assert key["key"]["id"] in listed and "token" not in listed[key["key"]["id"]]
+    rotated = nodestro.rotate_api_key(key["key"]["id"])
+    assert rotated["token"] != key["token"] and rotated["key"]["name"] == "SDK managed"
+    with PublishedWorkflow(server, "sdk-managed", api_key=key["token"]) as old:
+        with pytest.raises(NodestroAPIError) as refused:
+            old.info()
+        assert refused.value.status == 401
+    with PublishedWorkflow(server, "sdk-managed", api_key=rotated["token"]) as new:
+        assert new.info()["publication"] == "sdk-managed"
+    assert nodestro.revoke_api_key(rotated["key"]["id"])["id"] == rotated["key"]["id"]
+    nodestro.delete_api_key(rotated["key"]["id"])
+    assert rotated["key"]["id"] not in {item["id"] for item in nodestro.list_api_keys()}
+    nodestro.delete_publication(publication["id"])
+    assert publication["id"] not in {item["id"] for item in nodestro.list_publications()}
 
 
 def test_a_published_workflow_through_its_own_api(nodestro: NodestroClient, server: str) -> None:

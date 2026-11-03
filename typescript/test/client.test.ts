@@ -64,6 +64,37 @@ describe("studio API", () => {
     expect((await nodestro.listRuns({ workflowId: workflow.id })).map((item) => item.id)).toContain(run.id);
   });
 
+  it("starts a run once per idempotency key (API2-08)", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const first = await nodestro.startRun(workflow.id, { input: "x", idempotencyKey: "ts-order-1" });
+    const again = await nodestro.startRun(workflow.id, { input: "x", idempotencyKey: "ts-order-1" });
+    expect(again.id).toBe(first.id);
+    const conflict = await nodestro.startRun(workflow.id, { input: "y", idempotencyKey: "ts-order-1" }).catch((error: unknown) => error);
+    expect(conflict).toBeInstanceOf(NodestroAPIError);
+    expect((conflict as NodestroAPIError).status).toBe(409);
+    expect((conflict as NodestroAPIError).code).toBe("idempotency.conflict");
+    await nodestro.waitForRun(first.id, fast);
+  });
+
+  it("manages keys and publications (DX-25)", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const { publication } = await nodestro.publish(workflow.id, { slug: "ts-managed" });
+    expect((await nodestro.listPublications()).map((item) => item.id)).toContain(publication.id);
+    const key = await nodestro.createApiKey("TS managed", ["read"], [publication.id]);
+    expect((await nodestro.listApiKeys()).map((item) => item.id)).toContain(key.key.id);
+    const rotated = await nodestro.rotateApiKey(key.key.id);
+    expect(rotated.token).not.toBe(key.token);
+    const old = new PublishedWorkflow(server, "ts-managed", { apiKey: key.token });
+    const refused = await old.info().catch((error: unknown) => error);
+    expect((refused as NodestroAPIError).status).toBe(401);
+    expect((await new PublishedWorkflow(server, "ts-managed", { apiKey: rotated.token }).info()).publication).toBe("ts-managed");
+    expect((await nodestro.revokeApiKey(rotated.key.id)).id).toBe(rotated.key.id);
+    await nodestro.deleteApiKey(rotated.key.id);
+    expect((await nodestro.listApiKeys()).map((item) => item.id)).not.toContain(rotated.key.id);
+    await nodestro.deletePublication(publication.id);
+    expect((await nodestro.listPublications()).map((item) => item.id)).not.toContain(publication.id);
+  });
+
   it("streams the events of a run", async () => {
     const workflow = await nodestro.createWorkflow(simple());
     const run = await nodestro.startRun(workflow.id, { input: "x" });

@@ -33,8 +33,8 @@ class NodestroClient:
     ``base_url`` is the address of the installation (``http`` or ``https``, host, optional port and
     path prefix; no query). ``timeout`` limits each phase of a request (connect, write, each read)
     in seconds; ``retry`` repeats reads after connection errors and 502/503/504, never a request
-    that changes something (except run chat messages and budget decisions: they carry a key). ``headers`` are
-    sent with every request. An ``http_client`` passed in is used as is (its proxies, certificates
+    that changes something (except run starts, run chat messages and budget decisions: they carry a key).
+    ``headers`` are sent with every request. An ``http_client`` passed in is used as is (its proxies, certificates
     and limits) and is not closed by :meth:`close`.
 
     Raises ``ValueError`` for an invalid base URL, timeout or id (``""``, ``.``, ``..``);
@@ -193,11 +193,24 @@ class NodestroClient:
         input: str = "",
         values: Mapping[str, Any] | None = None,
         file_ids: Sequence[str] = (),
+        idempotency_key: str | None = None,
     ) -> models.Run:
-        """Start a run; it runs in the background (see :meth:`wait_for_run` and :meth:`events`)."""
+        """Start a run; it runs in the background (see :meth:`wait_for_run` and :meth:`events`).
+
+        Every start carries an ``Idempotency-Key`` (a new random one unless given), so the automatic retry after a
+        lost answer or a 502/503/504 returns the run that already started instead of starting a second one. Pass
+        your own key (at most 200 characters) to make your own retries safe too; the same key with a different
+        request is refused (409 ``idempotency.conflict``)."""
         body: models.RunIn = {"input": input, "values": dict(values or {}), "file_ids": list(file_ids)}
         return cast(
-            models.Run, self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/runs", json_body=body)
+            models.Run,
+            self._http.json(
+                "POST",
+                f"/api/workflows/{path_segment(workflow_id)}/runs",
+                json_body=body,
+                headers={"Idempotency-Key": idempotency_key or uuid.uuid4().hex},
+                retry_unsafe=True,
+            ),
         )
 
     def get_run(self, run_id: str) -> models.Run:
@@ -586,6 +599,32 @@ class NodestroClient:
         """
         body: models.KeyIn = {"name": name, "scopes": cast(Any, list(scopes)), "publications": list(publications)}
         return cast(models.NewApiKey, self._http.json("POST", "/api/api-keys", json_body=body))
+
+    def list_api_keys(self) -> list[models.ApiKeyOut]:
+        """Every key for published workflows (never its token: only a hash is stored)."""
+        return cast(list[models.ApiKeyOut], self._http.json("GET", "/api/api-keys"))
+
+    def revoke_api_key(self, key_id: str) -> models.ApiKeyOut:
+        """Revoke a key at once; it stays listed as revoked."""
+        return cast(models.ApiKeyOut, self._http.json("POST", f"/api/api-keys/{path_segment(key_id)}/revoke"))
+
+    def rotate_api_key(self, key_id: str) -> models.NewApiKey:
+        """A new key with the same name, permissions and publications; the old one is revoked in the same step. The
+        new ``token`` is returned only this once."""
+        return cast(models.NewApiKey, self._http.json("POST", f"/api/api-keys/{path_segment(key_id)}/rotate"))
+
+    def delete_api_key(self, key_id: str) -> None:
+        """Delete a key (revoked or not) from the list."""
+        self._http.request("DELETE", f"/api/api-keys/{path_segment(key_id)}")
+
+    def list_publications(self) -> list[models.Publication]:
+        """Every published workflow API of the installation."""
+        return cast(list[models.Publication], self._http.json("GET", "/api/publications"))
+
+    def delete_publication(self, publication_id: str) -> None:
+        """Take a workflow's API offline and delete its publication with its releases (keys lose it); refused with
+        ``api.runs_active`` while runs of the API have not finished."""
+        self._http.request("DELETE", f"/api/publications/{path_segment(publication_id)}")
 
 
 def _amount(value: str | Decimal) -> str:

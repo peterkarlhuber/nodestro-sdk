@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Backend audit round 2 (2026-11-03):
+  - `start_run` / `startRun` always send an `Idempotency-Key` (generated when the caller gives none), so a retried
+    start never creates a second run (API2-08).
+  - Both clients manage API keys and publications (DX-25).
+  - Both clients send a `User-Agent` (`nodestro-sdk-python/<version>`, `nodestro-sdk-ts/<version>`) (API2-14).
+  - vitest 4.1.12 and an `npm audit` step in CI (API2-13); CI installs the public sibling repositories anonymously
+    (OPS2-05).
+- Pin nodestro-api 54478b3 (nodestro-api #74: backend audit round 2; runtime 140d479). The regenerated types add the
+  uniform error shape (`ErrorResponse` for `4XX`) and the `label` of a waiting budget request.
 - Pin nodestro-api f21fd6a (nodestro-api #73: runtime bcfea7f, security review round 4; #71: warm Docker monitor at
   worker start; 2026-11-02). The API contract is unchanged, so the generated types are unchanged.
 - Pin nodestro-api 6071911 (nodestro-api #72: a suspended tenant's tool generation jobs are stopped, NF-1; runtime

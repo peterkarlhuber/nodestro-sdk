@@ -236,6 +236,7 @@ class BillingKeyOut(TypedDict):
 class BlockedRequest(TypedDict):
     agent: str
     bounded: NotRequired[bool]
+    label: NotRequired[str | None]
     max_cost_usd: NotRequired[str | None]
     model: str
     node_id: str
@@ -561,6 +562,12 @@ class ErrorOut(TypedDict):
     code: str
     message: str
     params: NotRequired[dict[str, Any]]
+
+
+class ErrorResponse(TypedDict):
+    code: str
+    detail: str
+    params: dict[str, Any]
 
 
 class EvaluationRecord(TypedDict):

@@ -56,7 +56,7 @@ without starting a run.
   prefix; a trailing slash is ignored. A query, fragment or credentials throw a `TypeError`.
 - `timeoutMs` (default 30 000): time limit of one request from sending it to the end of its body.
 - `retry`: `{ attempts: 3, backoffMs: 500, maxBackoffMs: 8000 }`; `attempts` counts the first try (`1` = never
-  retry; values below 1 throw a `RangeError`). Only reads, starts of published workflows (idempotency key), run chat
+  retry; values below 1 throw a `RangeError`). Only reads, starts of runs (published workflows and `start_run`/`startRun`: idempotency key), run chat
   messages (`client_id`) and budget decisions (`idempotency_key`) are retried, after connection errors and 502/503/504. The bodies of discarded answers are released.
 - `headers`: sent with every request; `PublishedWorkflow` always sends its own `Authorization`.
 - `fetch`: a replacement for the global `fetch` (proxies, tests).

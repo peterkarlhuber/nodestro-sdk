@@ -14,7 +14,8 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 
 - **`NodestroClient`** talks to the studio REST API of an installation (`/api`): workflows and their versions,
   pre-checks, runs, live events, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
-  tools, the example library, publishing, and API keys.
+  tools, the example library, publishing (publish, list, change, delete publications), and API keys (create, list,
+  rotate, revoke, delete).
 - **`PublishedWorkflow`** talks to one published workflow API (`/api/published/{slug}`) with a Nodestro API key:
   start (with an `Idempotency-Key`), status, result, waiting, events with `Last-Event-ID`, cancelling,
   approvals, continuing, result files and usage. The same API is served by Nodestro itself and by a standalone
@@ -22,9 +23,12 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 
 Both clients offer the same operations under language-typical names (`wait_for_run` / `waitForRun`), and share:
 
+- **User-Agent.** Every request names the SDK and its version (`nodestro-sdk-python/<version>`,
+  `nodestro-sdk-ts/<version>`), so server logs show which client called; a `User-Agent` passed in `headers` wins.
 - **Timeouts and retries.** Reads are retried after connection errors and 502/503/504 (3 attempts, exponential
-  backoff with jitter). Requests that change something are never retried, except starts of published workflows,
-  which carry an idempotency key, so a retry returns the same run instead of starting a second one, run chat
+  backoff with jitter). Requests that change something are never retried, except starts of runs (published
+  workflows and the studio's `start_run`/`startRun`), which carry an idempotency key, so a retry returns the same run
+  instead of starting a second one, run chat
   messages, which carry a `client_id`, so a retry returns the stored message instead of sending it twice, and run
   budget decisions, which carry an `idempotency_key`, so a retry returns the stored decision.
 - **One error class for both API error formats.** `NodestroAPIError` with `status`, `code` (for example
@@ -77,8 +81,7 @@ model provider is called and nothing is paid. The `test` extra installs `nodestr
 this. `NODESTRO_SDK_SERVER=<url>` runs the tests against an already running `scripts/test_server.py` instead; the
 tests refuse any other server, because they create workflows, publications and keys.
 
-The CI needs the repository secret `NODESTRO_READ` (read access to orkexa and the Nodestro repositories); it is
-only handed to the dependency installation step.
+The CI needs no secret: orkexa and the Nodestro repositories are public and are installed anonymously.
 
 Open work (known bugs, follow-ups and planned improvements) is listed in [docs/TODO.md](docs/TODO.md).
 

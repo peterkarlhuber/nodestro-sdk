@@ -1,5 +1,6 @@
 /** The HTTP layer without a server: retries, error formats and the event parser. */
 
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
@@ -11,6 +12,7 @@ import {
   NodestroConnectionError,
   NodestroTimeoutError,
   PublishedWorkflow,
+  SDK_VERSION,
   newIdempotencyKey,
   type ServerEvent,
 } from "../src/index.js";
@@ -45,8 +47,33 @@ describe("transport", () => {
         throw new TypeError("fetch failed");
       },
     });
-    await expect(client.startRun("wf_1")).rejects.toBeInstanceOf(NodestroConnectionError);
+    await expect(client.createWorkflow({ name: "x", nodes: [], edges: [] })).rejects.toBeInstanceOf(NodestroConnectionError);
     expect(calls).toBe(1);
+  });
+
+  it("names the SDK and its version in User-Agent; the caller's own wins (API2-14)", async () => {
+    const { calls, fetcher } = recording(() => json(200, { version: "0.2.0" }));
+    await new NodestroClient("http://nodestro.test", { fetch: fetcher }).meta();
+    expect(calls.at(-1)!.headers.get("user-agent")).toBe(`nodestro-sdk-ts/${SDK_VERSION}`);
+    await new NodestroClient("http://nodestro.test", { fetch: fetcher, headers: { "user-agent": "my-tool/1" } }).meta();
+    expect(calls.at(-1)!.headers.get("user-agent")).toBe("my-tool/1");
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+    expect(SDK_VERSION).toBe(manifest.version);
+  });
+
+  it("retries a studio run start with one idempotency key (API2-08)", async () => {
+    const { calls, fetcher } = recording((_url, _init, call) => {
+      if (call === 1) throw new TypeError("fetch failed");
+      return json(201, { id: "run_1", status: "queued" });
+    });
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher, retry: { backoffMs: 1 } });
+    expect((await client.startRun("wf_1", { input: "x" })).id).toBe("run_1");
+    const keys = new Set(calls.map((call) => call.headers.get("idempotency-key")));
+    expect(calls).toHaveLength(2);
+    expect(keys.size).toBe(1);
+    expect([...keys][0]).toMatch(/^[0-9a-f]{32}$/);
+    await client.startRun("wf_1", { idempotencyKey: "order-7" });
+    expect(calls.at(-1)!.headers.get("idempotency-key")).toBe("order-7");
   });
 
   it("reads both error formats", () => {

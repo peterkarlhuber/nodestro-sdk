@@ -27,19 +27,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      # The tests start the pinned nodestro-api (private, like orkexa): git clones them with a read token.
-      # The token lives only in this step's environment, never in a configuration file.
-      - name: Install with read access to the private repositories
-        env:
-          NODESTRO_READ: ${{ secrets.NODESTRO_READ }}
+      - name: Install
         run: |
-          if [ -z "$NODESTRO_READ" ]; then
-            echo "::error::The secret NODESTRO_READ is missing: a token with read access to orkexa and the Nodestro repositories."
-            exit 1
-          fi
-          export GIT_CONFIG_COUNT=1
-          export GIT_CONFIG_KEY_0="url.https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/.insteadOf"
-          export GIT_CONFIG_VALUE_0="https://github.com/peterkarlhuber/"
           pip install -e ".[dev,test]"
       - run: ruff check . ../scripts
       - run: ruff format --check . ../scripts
@@ -88,17 +77,8 @@ jobs:
           python-version: "3.13"
           cache: pip
       # The test server only (scripts/test_server.py); the TypeScript SDK needs no Python.
-      - name: Install the test server with read access to the private repositories
-        env:
-          NODESTRO_READ: ${{ secrets.NODESTRO_READ }}
+      - name: Install the test server
         run: |
-          if [ -z "$NODESTRO_READ" ]; then
-            echo "::error::The secret NODESTRO_READ is missing: a token with read access to orkexa and the Nodestro repositories."
-            exit 1
-          fi
-          export GIT_CONFIG_COUNT=1
-          export GIT_CONFIG_KEY_0="url.https://x-access-token:${NODESTRO_READ}@github.com/peterkarlhuber/.insteadOf"
-          export GIT_CONFIG_VALUE_0="https://github.com/peterkarlhuber/"
           pip install "./python[test]"
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -112,6 +92,11 @@ jobs:
         if: matrix.node == 22
         working-directory: typescript
         run: npm audit --omit=dev --audit-level=high
+      # The development tools too (vitest, the generator): no critical advisory (API2-13, D-04).
+      - name: Dependency audit (all dependencies, critical)
+        if: matrix.node == 22
+        working-directory: typescript
+        run: npm audit --audit-level=critical
       - working-directory: typescript
         run: npm run typecheck
       - working-directory: typescript

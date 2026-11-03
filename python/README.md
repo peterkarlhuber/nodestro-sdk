@@ -59,7 +59,7 @@ problem without starting a run.
   it are refused with `ValueError`.
 - `timeout`: seconds for each phase of a request (connecting, sending, each read), not for the whole request.
 - `retry`: `RetryPolicy(attempts=3, backoff=0.5, max_backoff=8.0)`. `attempts` counts the first try (`1` = never
-  retry; values below 1 raise `ValueError`). Only reads, starts of published workflows (idempotency key), run chat
+  retry; values below 1 raise `ValueError`). Only reads, starts of runs (published workflows and `start_run`/`startRun`: idempotency key), run chat
   messages (`client_id`) and budget decisions (`idempotency_key`) are retried, after connection errors and
   502/503/504.
 - `headers`: sent with every request (for example for a proxy).

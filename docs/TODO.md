@@ -3,7 +3,7 @@
 > Open work for this repository: release blockers, known bugs, security follow-ups, technical debt and planned improvements.
 > GitHub issues are the source of truth for details; this file is the entry point and summary.
 >
-> **Last full review:** 2026-11-01 against `master` at `dbbc7e5`.
+> **Last full review:** 2026-11-03 against `master` at `799d548` (backend audit round 2).
 
 ## Summary
 
@@ -11,8 +11,8 @@
 |---|---|
 | P0 Critical | 0 |
 | P1 High | 0 |
-| P2 Medium | 1 |
-| P3 Low | 7 |
+| P2 Medium | 0 |
+| P3 Low | 6 |
 | P4 Optional | 4 |
 
 **Release blockers:** None for this repository.
@@ -108,22 +108,12 @@ None known.
 
 ### SDK-007 · The README's security notes describe only the desktop
 
-- **Priority:** P3 Low · **Status:** Open · **Refs:** `README.md` "Security", `README.md` "Development"
-- **What:**
-  - "Security" says that the studio API has no login. A `nodestro-server` installation has logins, and the SDK
-    cannot use them (SDK-005).
-  - "Development" calls the dependencies private.
-- **Next step:** Describe both profiles and what the SDK supports on each. Update the token note together with
-  SDK-008.
+- **Priority:** P3 Low · **Status:** Open · **Refs:** `README.md` "Security"
+- **What:** "Security" says that the studio API has no login. A `nodestro-server` installation has logins, and the
+  SDK cannot use them (SDK-005).
+- **Next step:** Describe both profiles and what the SDK supports on each.
 
 ## Technical debt
-
-### SDK-008 · CI requires a read token, so every Dependabot PR fails
-
-- **Priority:** P2 Medium · **Status:** Open · **Refs:** #47, PRs #38-#41; same change in runtime #75 (RT-029)
-- **What:** Both CI jobs exit when `NODESTRO_READ` is empty. Dependabot runs get no secrets, and the dependencies
-  are public now.
-- **Next step:** Install anonymously and keep the token optional or remove it. Then re-run #38-#41.
 
 ### SDK-009 · TypeScript 7 (Dependabot #40) breaks type generation
 
@@ -135,6 +125,8 @@ None known.
 - **Next step:** Do not merge #40. Ignore TypeScript majors in `.github/dependabot.yml`, or keep TypeScript 5 only
   for generation.
 - **Depends on:** openapi-typescript support for TypeScript 7 (upstream)
+- **Also:** the remaining moderate `npm audit` advisory (minimatch, GHSA-g3hv-75wg-m249) is a dev-only dependency
+  of openapi-typescript; it goes away with the openapi-typescript update (backend audit round 2).
 
 ### SDK-010 · Supported Node.js range and `@types/node` (Dependabot #41)
 
@@ -146,13 +138,13 @@ None known.
 
 ### SDK-011 · Minor Dependabot updates #39 and #38
 
-- **Priority:** P3 Low · **Status:** Blocked · **Refs:** PR #39 (openapi-typescript 7.13.0), PR #38 (actions/setup-node 7.1.0)
+- **Priority:** P3 Low · **Status:** Open · **Refs:** PR #39 (openapi-typescript 7.13.0), PR #38 (actions/setup-node 7.1.0)
 - **What:**
   - openapi-typescript 7.13.0 changes the JSDoc layout of the generated types (checked locally), so #39 needs a
     regenerated `typescript/src/generated/openapi.ts` before CI can pass.
   - #38 needs only a green run.
-- **Next step:** After SDK-008, rebase both, add the regenerated types to #39, and merge when green.
-- **Depends on:** SDK-008
+- **Next step:** CI no longer needs the read token (backend audit round 2, OPS2-05): rebase both, add the
+  regenerated types to #39, and merge when green.
 
 ### SDK-012 · Python package not published to PyPI, TypeScript package not on npm
 
@@ -175,7 +167,6 @@ None known.
 | This repo item | Other repo | Other item | Relation |
 |---|---|---|---|
 | SDK-005 | nodestro-api | API-012 | needs the server contract |
-| SDK-008 | all component repositories | `NODESTRO_READ` CI change (runtime RT-029) | same change everywhere |
 | (pointer) | nodestro-api | API-016, API-017, API-018 | new API fields reach the SDK by regenerating at the next pin |
 
 ## Maintaining this file
