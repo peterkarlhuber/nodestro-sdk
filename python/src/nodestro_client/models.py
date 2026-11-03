@@ -563,6 +563,12 @@ class ErrorOut(TypedDict):
     params: NotRequired[dict[str, Any]]
 
 
+class ErrorResponse(TypedDict):
+    code: str
+    detail: str
+    params: dict[str, Any]
+
+
 class EvaluationRecord(TypedDict):
     attempts: int
     feedback: str
