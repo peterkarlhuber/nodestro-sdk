@@ -1431,6 +1431,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/{template_id}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Library Template Models
+         * @description The model each agent of the template would get in a copy (EX-011): with local models the one recommended for
+         *     its task on this computer among the installed ones, with the reasons; otherwise the cloud tiers.
+         */
+        get: operations["library_template_models_api_library__template_id__models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/{template_id}/samples/{sample_id}": {
         parameters: {
             query?: never;
@@ -1479,6 +1500,27 @@ export interface paths {
         /** Local Autostart */
         put: operations["local_autostart_api_local_models_autostart_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/local-models/benchmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Local Benchmark
+         * @description Measure how fast an installed chat model answers here (a short request; the result is stored with the
+         *     model). Shown instead of any estimate; loads the model like an agent's first request.
+         */
+        post: operations["local_benchmark_api_local_models_benchmark_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4536,6 +4578,42 @@ export interface components {
             /** Notes */
             notes?: components["schemas"]["Problem"][];
         };
+        /**
+         * AgentModel
+         * @description The model one agent of a template gets, and why.
+         */
+        AgentModel: {
+            /** Alternatives */
+            alternatives?: string[];
+            /**
+             * Installed
+             * @default false
+             */
+            installed: boolean;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @default agent
+             */
+            kind: string;
+            /** Model */
+            model?: string | null;
+            /** Name */
+            name: string;
+            /** Needs */
+            needs?: string[];
+            /** Part */
+            part?: string | null;
+            /** Reasons */
+            reasons?: string[];
+            /** Suggested */
+            suggested?: string | null;
+            /** Task */
+            task: string;
+            /** Tier */
+            tier: string;
+        };
         /** AgentTemplate */
         AgentTemplate: {
             agent: components["schemas"]["AgentConfig"];
@@ -4613,6 +4691,8 @@ export interface components {
             output?: unknown;
             /** Prompt */
             prompt: string;
+            /** Reasoning Reduced */
+            reasoning_reduced?: string | null;
             /**
              * Started At
              * Format: date-time
@@ -5682,6 +5762,11 @@ export interface components {
             /** Workflow Version */
             workflow_version?: number | null;
         };
+        /** BenchmarkIn */
+        BenchmarkIn: {
+            /** Model */
+            model: string;
+        };
         /** BenchmarkPlan */
         BenchmarkPlan: {
             /**
@@ -6089,6 +6174,23 @@ export interface components {
             workflow_name: string;
         };
         /**
+         * BuildInput
+         * @description One pinned upstream file a catalog model is built from (what an offline build needs on this computer).
+         */
+        BuildInput: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "weights" | "template";
+            /** Sha256 */
+            sha256: string;
+            /** Size */
+            size?: number | null;
+            /** Url */
+            url: string;
+        };
+        /**
          * BuiltinSandboxStatus
          * @description Whether the built-in Linux sandbox isolates AI-generated code on this computer (desktop profile only).
          */
@@ -6218,6 +6320,8 @@ export interface components {
              * @default false
              */
             alternative: boolean;
+            /** Build Inputs */
+            build_inputs?: components["schemas"]["BuildInput"][];
             /** Context */
             context?: number | null;
             /**
@@ -6233,6 +6337,11 @@ export interface components {
             download_bytes: number;
             /** Family */
             family: string;
+            /**
+             * Fits
+             * @default true
+             */
+            fits: boolean;
             /**
              * Installed
              * @default false
@@ -7718,6 +7827,7 @@ export interface components {
             name: string;
             /** Size */
             size: number;
+            speed?: components["schemas"]["ModelSpeed"] | null;
             /**
              * Verified
              * @default false
@@ -8064,11 +8174,47 @@ export interface components {
             };
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /** Models */
+            models?: {
+                [key: string]: string;
+            };
             /**
              * Tests
              * @default false
              */
             tests: boolean;
+        };
+        /** LibraryModelPlan */
+        LibraryModelPlan: {
+            /** Agents */
+            agents: components["schemas"]["AgentModel"][];
+            /** Judge */
+            judge?: string | null;
+            /** Local */
+            local: boolean;
+        };
+        /**
+         * LocalAdvice
+         * @description A hint about the local models of this computer; the interface shows its own text for the ``code``.
+         *
+         *     ``value`` and ``recommended`` depend on the code: tokens for ``local.context_small``, tokens per second times ten
+         *     for ``local.model_slow``, bytes for ``local.memory_low``.
+         */
+        LocalAdvice: {
+            /** Code */
+            code: string;
+            /** Model */
+            model?: string | null;
+            /** Recommended */
+            recommended?: number | null;
+            /**
+             * Severity
+             * @default info
+             * @enum {string}
+             */
+            severity: "info" | "warning";
+            /** Value */
+            value?: number | null;
         };
         /** LocalBackup */
         LocalBackup: {
@@ -8101,7 +8247,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "pull" | "build" | "install_runtime" | "import_package" | "import_gguf" | "move_models";
+            kind: "pull" | "build" | "install_runtime" | "import_package" | "import_gguf" | "move_models" | "benchmark";
             /**
              * Message
              * @default
@@ -8125,6 +8271,8 @@ export interface components {
         };
         /** LocalOverview */
         LocalOverview: {
+            /** Advice */
+            advice?: components["schemas"]["LocalAdvice"][];
             /** Catalog */
             catalog: components["schemas"]["CatalogEntry"][];
             hardware: components["schemas"]["Hardware"];
@@ -8139,6 +8287,8 @@ export interface components {
          * @description The state of the local model server of this workspace.
          */
         LocalStatus: {
+            /** Accelerated */
+            accelerated?: boolean | null;
             /**
              * Autostart
              * @default true
@@ -8146,6 +8296,14 @@ export interface components {
             autostart: boolean;
             /** Base Url */
             base_url?: string | null;
+            /** Context Length */
+            context_length?: number | null;
+            /**
+             * Context Source
+             * @default unknown
+             * @enum {string}
+             */
+            context_source: "configured" | "server" | "unknown";
             /** Detected External */
             detected_external?: string | null;
             /** Error */
@@ -8815,6 +8973,25 @@ export interface components {
             objective: "cost" | "duration" | "quality";
         };
         /**
+         * ModelSpeed
+         * @description How fast an installed model answered here, measured by :meth:`LocalModelService.benchmark` (never estimated).
+         */
+        ModelSpeed: {
+            /** Context Length */
+            context_length?: number | null;
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Processor */
+            processor?: ("gpu" | "cpu" | "mixed") | null;
+            /** Prompt Tokens Per Second */
+            prompt_tokens_per_second?: number | null;
+            /** Tokens Per Second */
+            tokens_per_second: number;
+        };
+        /**
          * NeededRequirement
          * @description A direct requirement of a scope: the union of what its tools need.
          */
@@ -8990,6 +9167,8 @@ export interface components {
             prompt?: string | null;
             /** Proposals */
             proposals?: components["schemas"]["KnowledgeProposal"][];
+            /** Reasoning Reduced */
+            reasoning_reduced?: string | null;
             /** Reused From */
             reused_from?: string | null;
             /** Started At */
@@ -11749,6 +11928,12 @@ export interface components {
             knowledge_retrieval: "fts" | "vector" | "hybrid";
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /**
+             * Local Reasoning
+             * @default auto
+             * @enum {string}
+             */
+            local_reasoning: "auto" | "full";
             /** Max Run Budget Usd */
             max_run_budget_usd?: string | null;
             /**
@@ -11821,6 +12006,8 @@ export interface components {
             knowledge_retrieval?: ("fts" | "vector" | "hybrid") | null;
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /** Local Reasoning */
+            local_reasoning?: ("auto" | "full") | null;
             /** Max Run Budget Usd */
             max_run_budget_usd?: number | string | null;
             /** Ocr Enabled */
@@ -12211,6 +12398,8 @@ export interface components {
             role: ("research" | "analysis" | "planning" | "review" | "writing") | null;
             /** Structured */
             structured: boolean;
+            /** Task */
+            task?: string | null;
             /** Tools */
             tools: string[];
         };
@@ -16605,6 +16794,39 @@ export interface operations {
             };
         };
     };
+    library_template_models_api_library__template_id__models_get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryModelPlan"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     download_library_sample_api_library__template_id__samples__sample_id__get: {
         parameters: {
             query?: {
@@ -16688,6 +16910,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LocalStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_benchmark_api_local_models_benchmark_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
                 };
             };
             /** @description Error */

@@ -29,6 +29,21 @@ class AdoptSource(TypedDict):
     title: NotRequired[str]
 
 
+class AgentModel(TypedDict):
+    alternatives: NotRequired[list[str]]
+    installed: NotRequired[bool]
+    key: str
+    kind: NotRequired[str]
+    model: NotRequired[str | None]
+    name: str
+    needs: NotRequired[list[str]]
+    part: NotRequired[str | None]
+    reasons: NotRequired[list[str]]
+    suggested: NotRequired[str | None]
+    task: str
+    tier: str
+
+
 class ApiExamples(TypedDict):
     base_url: str
     curl: dict[str, str]
@@ -197,6 +212,10 @@ class BatchSummary(TypedDict):
     workflow_version: NotRequired[int | None]
 
 
+class BenchmarkIn(TypedDict):
+    model: str
+
+
 class BenchmarkStart(TypedDict):
     concurrency: NotRequired[int]
     confirm_external: NotRequired[bool]
@@ -326,6 +345,13 @@ class BudgetRequest(TypedDict):
     workflow_name: str
 
 
+class BuildInput(TypedDict):
+    role: Literal['weights', 'template']
+    sha256: str
+    size: NotRequired[int | None]
+    url: str
+
+
 class BuiltinSandboxStatus(TypedDict):
     available: NotRequired[bool]
     detail: NotRequired[str]
@@ -350,12 +376,14 @@ class CaseProposalIn(TypedDict):
 
 class CatalogEntry(TypedDict):
     alternative: NotRequired[bool]
+    build_inputs: NotRequired[list[BuildInput]]
     context: NotRequired[int | None]
     cpu_friendly: NotRequired[bool]
     digest: str
     dimensions: NotRequired[int | None]
     download_bytes: int
     family: str
+    fits: NotRequired[bool]
     installed: NotRequired[bool]
     kind: Literal['chat', 'embedding']
     languages: NotRequired[list[str]]
@@ -795,18 +823,6 @@ class InputFileOut(TypedDict):
     size: int
 
 
-class InstalledModel(TypedDict):
-    capabilities: NotRequired[list[str]]
-    catalog: NotRequired[bool]
-    context_length: NotRequired[int | None]
-    digest: str
-    embedding_length: NotRequired[int | None]
-    kind: Literal['chat', 'embedding']
-    name: str
-    size: int
-    verified: NotRequired[bool]
-
-
 class JobRequest(TypedDict):
     requirement: str
 
@@ -911,7 +927,22 @@ class LegacyReport(TypedDict):
 class LibraryCopy(TypedDict):
     integrations: NotRequired[dict[str, str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    models: NotRequired[dict[str, str]]
     tests: NotRequired[bool]
+
+
+class LibraryModelPlan(TypedDict):
+    agents: list[AgentModel]
+    judge: NotRequired[str | None]
+    local: bool
+
+
+class LocalAdvice(TypedDict):
+    code: str
+    model: NotRequired[str | None]
+    recommended: NotRequired[int | None]
+    severity: NotRequired[Literal['info', 'warning']]
+    value: NotRequired[int | None]
 
 
 class LocalBackup(TypedDict):
@@ -933,31 +964,13 @@ class LocalJob(TypedDict):
         'import_package',
         'import_gguf',
         'move_models',
+        'benchmark',
     ]
     message: NotRequired[str]
     started_at: str
     state: NotRequired[Literal['running', 'done', 'failed', 'cancelled']]
     target: str
     total: NotRequired[int | None]
-
-
-class LocalStatus(TypedDict):
-    autostart: NotRequired[bool]
-    base_url: NotRequired[str | None]
-    detected_external: NotRequired[str | None]
-    error: NotRequired[str | None]
-    error_code: NotRequired[str | None]
-    free_bytes: NotRequired[int | None]
-    mode: Literal['managed', 'container', 'external', 'unavailable']
-    models: NotRequired[list[InstalledModel]]
-    models_dir: NotRequired[str | None]
-    offline: NotRequired[bool]
-    pinned_version: NotRequired[str]
-    running: NotRequired[bool]
-    runtime_bundled: NotRequired[bool]
-    runtime_installed: NotRequired[bool]
-    runtime_path: NotRequired[str | None]
-    version: NotRequired[str | None]
 
 
 class LockedPackage(TypedDict):
@@ -1128,6 +1141,14 @@ class ModelPolicy(TypedDict):
     min_pass_rate: NotRequired[float | None]
     no_new_failures: NotRequired[bool]
     objective: NotRequired[Literal['cost', 'duration', 'quality']]
+
+
+class ModelSpeed(TypedDict):
+    context_length: NotRequired[int | None]
+    measured_at: str
+    processor: NotRequired[Literal['gpu', 'cpu', 'mixed'] | None]
+    prompt_tokens_per_second: NotRequired[float | None]
+    tokens_per_second: float
 
 
 class NeededRequirement(TypedDict):
@@ -1885,6 +1906,7 @@ class SettingsIn(TypedDict):
     embedding_model: NotRequired[str | None]
     knowledge_retrieval: NotRequired[Literal['fts', 'vector', 'hybrid'] | None]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    local_reasoning: NotRequired[Literal['auto', 'full'] | None]
     max_run_budget_usd: NotRequired[float | str | None]
     ocr_enabled: NotRequired[bool | None]
     prefer_european_models: NotRequired[bool | None]
@@ -2012,6 +2034,7 @@ class TemplateAgent(TypedDict):
     receives: list[str]
     role: Literal['research', 'analysis', 'planning', 'review', 'writing'] | None
     structured: bool
+    task: NotRequired[str | None]
     tools: list[str]
 
 
@@ -2574,6 +2597,7 @@ class AgentTestResult(TypedDict):
     model: str
     output: NotRequired[Any]
     prompt: str
+    reasoning_reduced: NotRequired[str | None]
     started_at: NotRequired[str]
     status: NotRequired[Literal['succeeded', 'failed']]
     text: NotRequired[str]
@@ -2861,6 +2885,19 @@ class InstallState(TypedDict):
     step: NotRequired[str | None]
 
 
+class InstalledModel(TypedDict):
+    capabilities: NotRequired[list[str]]
+    catalog: NotRequired[bool]
+    context_length: NotRequired[int | None]
+    digest: str
+    embedding_length: NotRequired[int | None]
+    kind: Literal['chat', 'embedding']
+    name: str
+    size: int
+    speed: NotRequired[ModelSpeed | None]
+    verified: NotRequired[bool]
+
+
 class KnowledgeIndexStatus(TypedDict):
     active: NotRequired[dict[str, Any] | None]
     building: NotRequired[dict[str, Any] | None]
@@ -2879,12 +2916,26 @@ class KnowledgeIndexStatus(TypedDict):
     ]
 
 
-class LocalOverview(TypedDict):
-    catalog: list[CatalogEntry]
-    hardware: Hardware
-    manageable: bool
-    recommendations: list[Recommendation]
-    status: LocalStatus
+class LocalStatus(TypedDict):
+    accelerated: NotRequired[bool | None]
+    autostart: NotRequired[bool]
+    base_url: NotRequired[str | None]
+    context_length: NotRequired[int | None]
+    context_source: NotRequired[Literal['configured', 'server', 'unknown']]
+    detected_external: NotRequired[str | None]
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    free_bytes: NotRequired[int | None]
+    mode: Literal['managed', 'container', 'external', 'unavailable']
+    models: NotRequired[list[InstalledModel]]
+    models_dir: NotRequired[str | None]
+    offline: NotRequired[bool]
+    pinned_version: NotRequired[str]
+    running: NotRequired[bool]
+    runtime_bundled: NotRequired[bool]
+    runtime_installed: NotRequired[bool]
+    runtime_path: NotRequired[str | None]
+    version: NotRequired[str | None]
 
 
 class McpServerIn(TypedDict):
@@ -2992,6 +3043,7 @@ class NodeRun(TypedDict):
     output: NotRequired[Any]
     prompt: NotRequired[str | None]
     proposals: NotRequired[list[KnowledgeProposal]]
+    reasoning_reduced: NotRequired[str | None]
     reused_from: NotRequired[str | None]
     started_at: NotRequired[str | None]
     status: NotRequired[
@@ -3328,6 +3380,7 @@ class Settings(TypedDict):
     embedding_model: NotRequired[str | None]
     knowledge_retrieval: NotRequired[Literal['fts', 'vector', 'hybrid']]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    local_reasoning: NotRequired[Literal['auto', 'full']]
     max_run_budget_usd: NotRequired[str | None]
     model_defaults: NotRequired[Literal['local', 'kept']]
     ocr_available: NotRequired[bool]
@@ -3616,6 +3669,15 @@ class GateRecord(TypedDict):
     override_by: NotRequired[str | None]
     override_reason: NotRequired[str | None]
     report: GateReport
+
+
+class LocalOverview(TypedDict):
+    advice: NotRequired[list[LocalAdvice]]
+    catalog: list[CatalogEntry]
+    hardware: Hardware
+    manageable: bool
+    recommendations: list[Recommendation]
+    status: LocalStatus
 
 
 class McpDiscovery(TypedDict):

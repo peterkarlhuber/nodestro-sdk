@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Pin nodestro-api c2a2ad3 (api #82) and regenerate the types: `GET /api/library/{template_id}/models` (models per agent of an example copy), `LibraryCopy.models`, `POST /api/local-models/benchmark`, local model `advice`, context window and GPU use, catalog `fits` and `build_inputs`.
 - Pin nodestro-api a24f32b (nodestro-api #81: runtime 90ba97b). Regenerated types: job kind `build`,
   `ImportIn.template` and `kind: "build"` (build a catalog model such as `mdenseon:307m` from local files),
   `LocalModelInfo.source`.
