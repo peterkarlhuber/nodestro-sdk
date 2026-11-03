@@ -33,8 +33,8 @@ class NodestroClient:
     ``base_url`` is the address of the installation (``http`` or ``https``, host, optional port and
     path prefix; no query). ``timeout`` limits each phase of a request (connect, write, each read)
     in seconds; ``retry`` repeats reads after connection errors and 502/503/504, never a request
-    that changes something (except run chat messages and budget decisions: they carry a key). ``headers`` are
-    sent with every request. An ``http_client`` passed in is used as is (its proxies, certificates
+    that changes something (except run starts, run chat messages and budget decisions: they carry a key).
+    ``headers`` are sent with every request. An ``http_client`` passed in is used as is (its proxies, certificates
     and limits) and is not closed by :meth:`close`.
 
     Raises ``ValueError`` for an invalid base URL, timeout or id (``""``, ``.``, ``..``);
@@ -193,11 +193,24 @@ class NodestroClient:
         input: str = "",
         values: Mapping[str, Any] | None = None,
         file_ids: Sequence[str] = (),
+        idempotency_key: str | None = None,
     ) -> models.Run:
-        """Start a run; it runs in the background (see :meth:`wait_for_run` and :meth:`events`)."""
+        """Start a run; it runs in the background (see :meth:`wait_for_run` and :meth:`events`).
+
+        Every start carries an ``Idempotency-Key`` (a new random one unless given), so the automatic retry after a
+        lost answer or a 502/503/504 returns the run that already started instead of starting a second one. Pass
+        your own key (at most 200 characters) to make your own retries safe too; the same key with a different
+        request is refused (409 ``idempotency.conflict``)."""
         body: models.RunIn = {"input": input, "values": dict(values or {}), "file_ids": list(file_ids)}
         return cast(
-            models.Run, self._http.json("POST", f"/api/workflows/{path_segment(workflow_id)}/runs", json_body=body)
+            models.Run,
+            self._http.json(
+                "POST",
+                f"/api/workflows/{path_segment(workflow_id)}/runs",
+                json_body=body,
+                headers={"Idempotency-Key": idempotency_key or uuid.uuid4().hex},
+                retry_unsafe=True,
+            ),
         )
 
     def get_run(self, run_id: str) -> models.Run:

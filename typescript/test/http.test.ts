@@ -45,8 +45,23 @@ describe("transport", () => {
         throw new TypeError("fetch failed");
       },
     });
-    await expect(client.startRun("wf_1")).rejects.toBeInstanceOf(NodestroConnectionError);
+    await expect(client.createWorkflow({ name: "x", nodes: [], edges: [] })).rejects.toBeInstanceOf(NodestroConnectionError);
     expect(calls).toBe(1);
+  });
+
+  it("retries a studio run start with one idempotency key (API2-08)", async () => {
+    const { calls, fetcher } = recording((_url, _init, call) => {
+      if (call === 1) throw new TypeError("fetch failed");
+      return json(201, { id: "run_1", status: "queued" });
+    });
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher, retry: { backoffMs: 1 } });
+    expect((await client.startRun("wf_1", { input: "x" })).id).toBe("run_1");
+    const keys = new Set(calls.map((call) => call.headers.get("idempotency-key")));
+    expect(calls).toHaveLength(2);
+    expect(keys.size).toBe(1);
+    expect([...keys][0]).toMatch(/^[0-9a-f]{32}$/);
+    await client.startRun("wf_1", { idempotencyKey: "order-7" });
+    expect(calls.at(-1)!.headers.get("idempotency-key")).toBe("order-7");
   });
 
   it("reads both error formats", () => {

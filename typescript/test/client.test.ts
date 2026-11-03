@@ -64,6 +64,18 @@ describe("studio API", () => {
     expect((await nodestro.listRuns({ workflowId: workflow.id })).map((item) => item.id)).toContain(run.id);
   });
 
+  it("starts a run once per idempotency key (API2-08)", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const first = await nodestro.startRun(workflow.id, { input: "x", idempotencyKey: "ts-order-1" });
+    const again = await nodestro.startRun(workflow.id, { input: "x", idempotencyKey: "ts-order-1" });
+    expect(again.id).toBe(first.id);
+    const conflict = await nodestro.startRun(workflow.id, { input: "y", idempotencyKey: "ts-order-1" }).catch((error: unknown) => error);
+    expect(conflict).toBeInstanceOf(NodestroAPIError);
+    expect((conflict as NodestroAPIError).status).toBe(409);
+    expect((conflict as NodestroAPIError).code).toBe("idempotency.conflict");
+    await nodestro.waitForRun(first.id, fast);
+  });
+
   it("streams the events of a run", async () => {
     const workflow = await nodestro.createWorkflow(simple());
     const run = await nodestro.startRun(workflow.id, { input: "x" });

@@ -23,8 +23,9 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 Both clients offer the same operations under language-typical names (`wait_for_run` / `waitForRun`), and share:
 
 - **Timeouts and retries.** Reads are retried after connection errors and 502/503/504 (3 attempts, exponential
-  backoff with jitter). Requests that change something are never retried, except starts of published workflows,
-  which carry an idempotency key, so a retry returns the same run instead of starting a second one, run chat
+  backoff with jitter). Requests that change something are never retried, except starts of runs (published
+  workflows and the studio's `start_run`/`startRun`), which carry an idempotency key, so a retry returns the same run
+  instead of starting a second one, run chat
   messages, which carry a `client_id`, so a retry returns the stored message instead of sending it twice, and run
   budget decisions, which carry an `idempotency_key`, so a retry returns the stored decision.
 - **One error class for both API error formats.** `NodestroAPIError` with `status`, `code` (for example

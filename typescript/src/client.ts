@@ -192,13 +192,20 @@ export class NodestroClient {
 
   // ---- runs
 
-  /** Start a run; it runs in the background (see {@link waitForRun} and {@link events}). */
+  /**
+   * Start a run; it runs in the background (see {@link waitForRun} and {@link events}).
+   *
+   * Every start carries an `Idempotency-Key` (a new random one unless `idempotencyKey` is given), so the automatic
+   * retry after a lost answer or a 502/503/504 returns the run that already started instead of starting a second
+   * one. The same key with a different request is refused (409 `idempotency.conflict`).
+   */
   async startRun(
     workflowId: string,
-    options: { input?: string; values?: Record<string, unknown>; fileIds?: string[] } = {},
+    options: { input?: string; values?: Record<string, unknown>; fileIds?: string[]; idempotencyKey?: string } = {},
   ): Promise<Run> {
     const body: RunIn = { input: options.input ?? "", values: options.values ?? {}, file_ids: options.fileIds ?? [] };
-    return this.http.json("POST", `/api/workflows/${enc(workflowId)}/runs`, { body });
+    const headers = { "Idempotency-Key": options.idempotencyKey ?? newIdempotencyKey() };
+    return this.http.json("POST", `/api/workflows/${enc(workflowId)}/runs`, { body, headers, retryUnsafe: true });
   }
 
   async getRun(runId: string): Promise<Run> {

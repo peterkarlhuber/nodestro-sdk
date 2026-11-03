@@ -57,8 +57,25 @@ def test_changes_are_never_sent_twice() -> None:
         return httpx.Response(503, json={"detail": "busy", "code": "busy", "params": {}})
 
     with pytest.raises(NodestroAPIError) as raised:
-        client_with(handler).start_run("wf_1", input="x")
+        client_with(handler).create_workflow({"name": "x", "nodes": [], "edges": []})
     assert calls == ["POST"] and raised.value.status == 503
+
+
+def test_starting_a_run_is_retried_with_one_idempotency_key() -> None:
+    """API2-08: every start carries an Idempotency-Key, so a retry cannot start the run twice."""
+    keys: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        keys.append(request.headers.get("idempotency-key"))
+        if len(keys) < 2:
+            return httpx.Response(503)
+        return httpx.Response(201, json={"id": "run_1", "status": "queued"})
+
+    assert client_with(handler).start_run("wf_1", input="x")["id"] == "run_1"
+    assert len(keys) == 2 and keys[0] and keys[0] == keys[1]
+    keys.clear()
+    client_with(handler).start_run("wf_1", input="x", idempotency_key="order-7")
+    assert keys == ["order-7", "order-7"]
 
 
 def test_both_error_formats_become_one_exception() -> None:

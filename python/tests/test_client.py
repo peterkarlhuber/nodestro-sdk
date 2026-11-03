@@ -62,6 +62,19 @@ def test_the_sandbox_status_and_self_test(nodestro: NodestroClient) -> None:
     assert all({"name", "ok"} <= set(check) for check in tested.get("checks", []))
 
 
+def test_a_retried_start_returns_the_same_run(nodestro: NodestroClient) -> None:
+    """API2-08: the same Idempotency-Key starts one run; another request with it is a conflict."""
+    workflow = nodestro.create_workflow(simple())
+    first = nodestro.start_run(workflow["id"], input="x", idempotency_key="sdk-order-1")
+    again = nodestro.start_run(workflow["id"], input="x", idempotency_key="sdk-order-1")
+    assert again["id"] == first["id"]
+    with pytest.raises(NodestroAPIError) as conflict:
+        nodestro.start_run(workflow["id"], input="y", idempotency_key="sdk-order-1")
+    assert conflict.value.status == 409 and conflict.value.code == "idempotency.conflict"
+    assert nodestro.start_run(workflow["id"], input="x")["id"] != first["id"]
+    nodestro.wait_for_run(first["id"], timeout=30, poll=0.1)
+
+
 def test_a_workflow_runs_and_returns_its_result(nodestro: NodestroClient) -> None:
     workflow = nodestro.create_workflow(simple())
     assert workflow["id"] in {item["id"] for item in nodestro.list_workflows()}
