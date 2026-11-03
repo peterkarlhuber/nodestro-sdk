@@ -6213,6 +6213,11 @@ export interface components {
         };
         /** CatalogEntry */
         CatalogEntry: {
+            /**
+             * Alternative
+             * @default false
+             */
+            alternative: boolean;
             /** Context */
             context?: number | null;
             /**
@@ -6266,6 +6271,8 @@ export interface components {
              * @enum {string}
              */
             region: "eu" | "us" | "cn" | "other";
+            /** Tasks */
+            tasks?: string[];
             /**
              * Vendor
              * @default
@@ -11755,6 +11762,11 @@ export interface components {
             /** Operator Max Run Budget Usd */
             operator_max_run_budget_usd?: string | null;
             /**
+             * Prefer European Models
+             * @default false
+             */
+            prefer_european_models: boolean;
+            /**
              * Price Mode
              * @default standard
              * @enum {string}
@@ -11805,6 +11817,8 @@ export interface components {
             max_run_budget_usd?: number | string | null;
             /** Ocr Enabled */
             ocr_enabled?: boolean | null;
+            /** Prefer European Models */
+            prefer_european_models?: boolean | null;
             /** Price Mode */
             price_mode?: ("standard" | "strict") | null;
             /** Providers */

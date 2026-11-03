@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api cd02529 (nodestro-api #80: runtime df725c5). Regenerated types: `Settings.prefer_european_models`
+  and `SettingsIn.prefer_european_models`, catalog entries `tasks` and `alternative`.
 - Pin nodestro-api fc73079 (nodestro-api #78: local models, embeddings and semantic knowledge search). The
   regenerated types add the local model routes (overview, catalog with vendor, region and languages, hardware,
   recommendations, jobs), the knowledge index status, the retrieval mode of a knowledge search with per-hit ranks,

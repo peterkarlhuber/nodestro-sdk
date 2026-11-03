@@ -349,6 +349,7 @@ class CaseProposalIn(TypedDict):
 
 
 class CatalogEntry(TypedDict):
+    alternative: NotRequired[bool]
     context: NotRequired[int | None]
     cpu_friendly: NotRequired[bool]
     digest: str
@@ -366,6 +367,7 @@ class CatalogEntry(TypedDict):
     notes: NotRequired[str]
     rank: NotRequired[int]
     region: NotRequired[Literal['eu', 'us', 'cn', 'other']]
+    tasks: NotRequired[list[str]]
     vendor: NotRequired[str]
     verified: NotRequired[bool]
 
@@ -1878,6 +1880,7 @@ class SettingsIn(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     max_run_budget_usd: NotRequired[float | str | None]
     ocr_enabled: NotRequired[bool | None]
+    prefer_european_models: NotRequired[bool | None]
     price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
     sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker'] | None]
@@ -3323,6 +3326,7 @@ class Settings(TypedDict):
     ocr_available: NotRequired[bool]
     ocr_enabled: NotRequired[bool]
     operator_max_run_budget_usd: NotRequired[str | None]
+    prefer_european_models: NotRequired[bool]
     price_mode: NotRequired[Literal['standard', 'strict']]
     providers: NotRequired[list[ProviderStatus]]
     sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
