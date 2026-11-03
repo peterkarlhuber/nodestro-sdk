@@ -236,6 +236,7 @@ class BillingKeyOut(TypedDict):
 class BlockedRequest(TypedDict):
     agent: str
     bounded: NotRequired[bool]
+    label: NotRequired[str | None]
     max_cost_usd: NotRequired[str | None]
     model: str
     node_id: str

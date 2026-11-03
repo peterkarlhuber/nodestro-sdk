@@ -5606,6 +5606,8 @@ export interface components {
              * @default false
              */
             bounded: boolean;
+            /** Label */
+            label?: string | null;
             /** Max Cost Usd */
             max_cost_usd?: string | null;
             /** Model */
