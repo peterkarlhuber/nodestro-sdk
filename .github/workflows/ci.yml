@@ -112,6 +112,11 @@ jobs:
         if: matrix.node == 22
         working-directory: typescript
         run: npm audit --omit=dev --audit-level=high
+      # The development tools too (vitest, the generator): no critical advisory (API2-13, D-04).
+      - name: Dependency audit (all dependencies, critical)
+        if: matrix.node == 22
+        working-directory: typescript
+        run: npm audit --audit-level=critical
       - working-directory: typescript
         run: npm run typecheck
       - working-directory: typescript
