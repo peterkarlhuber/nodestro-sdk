@@ -22,8 +22,9 @@ from nodestro_client import NodestroAPIError, NodestroClient, NodestroClientErro
 
 # The studio API of a local installation (no key; it answers only this computer).
 with NodestroClient("http://127.0.0.1:8000", timeout=30) as nodestro:
-    workflow = nodestro.list_workflows()[0]
-    run = nodestro.start_run(workflow["id"], input="Quote for ACME")
+    # A new installation has no workflows yet: copy one from the example library (list_examples()).
+    workflow = next(iter(nodestro.list_workflows()), None) or nodestro.copy_example("blog-article")
+    run = nodestro.start_run(workflow["id"], input="Quote for ACME")  # needs the provider key of its agents
     for event in nodestro.events(run["id"]):  # snapshot, event ..., end
         print(event.event)
     done = nodestro.wait_for_run(run["id"], timeout=300, raise_on_failure=True)
@@ -42,6 +43,11 @@ except NodestroClientError as error:  # unreachable, timed out, run failed, ...
 ```
 
 Never write a key into the code; read it from the environment or a secret store.
+
+A run calls the model provider of the workflow's agents. Without that provider's key (for example
+`ANTHROPIC_API_KEY`, or the key entered in the studio's settings), `start_run()` raises `NodestroAPIError` with
+status 400 and code `api_key_missing` (`params["provider"]` names the provider); `check_workflow()` reports the same
+problem without starting a run.
 
 ## Configuration
 

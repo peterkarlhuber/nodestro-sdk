@@ -24,8 +24,9 @@ import { NodestroAPIError, NodestroClient, NodestroClientError, PublishedWorkflo
 
 // The studio API of a local installation (no key; it answers only this computer).
 const nodestro = new NodestroClient("http://127.0.0.1:8000", { timeoutMs: 30_000 });
-const [workflow] = await nodestro.listWorkflows();
-const run = await nodestro.startRun(workflow!.id, { input: "Quote for ACME" });
+// A new installation has no workflows yet: copy one from the example library (listExamples()).
+const workflow = (await nodestro.listWorkflows())[0] ?? (await nodestro.copyExample("blog-article"));
+const run = await nodestro.startRun(workflow.id, { input: "Quote for ACME" }); // needs the provider key of its agents
 for await (const event of nodestro.events(run.id)) console.log(event.event); // snapshot, event ..., end
 const done = await nodestro.waitForRun(run.id, { timeoutMs: 300_000, raiseOnFailure: true });
 
@@ -41,6 +42,11 @@ try {
   else throw error;
 }
 ```
+
+A run calls the model provider of the workflow's agents. Without that provider's key (for example
+`ANTHROPIC_API_KEY`, or the key entered in the studio's settings), `startRun()` throws `NodestroAPIError` with status
+400 and code `api_key_missing` (`params.provider` names the provider); `checkWorkflow()` reports the same problem
+without starting a run.
 
 ## Options
 
