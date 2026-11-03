@@ -81,8 +81,7 @@ model provider is called and nothing is paid. The `test` extra installs `nodestr
 this. `NODESTRO_SDK_SERVER=<url>` runs the tests against an already running `scripts/test_server.py` instead; the
 tests refuse any other server, because they create workflows, publications and keys.
 
-The CI needs the repository secret `NODESTRO_READ` (read access to orkexa and the Nodestro repositories); it is
-only handed to the dependency installation step.
+The CI needs no secret: orkexa and the Nodestro repositories are public and are installed anonymously.
 
 Open work (known bugs, follow-ups and planned improvements) is listed in [docs/TODO.md](docs/TODO.md).
 
