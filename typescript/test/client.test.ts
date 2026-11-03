@@ -43,6 +43,16 @@ describe("studio API", () => {
     expect(JSON.stringify(await nodestro.settings())).not.toMatch(/sk-[a-z0-9]/i);
   });
 
+  it("lists local models and the semantic index", async () => {
+    const overview = await nodestro.localModels();
+    expect(overview.catalog[0]?.name).toBe("qwen3.5:4b");
+    expect((await nodestro.recommendLocalModel("embedding")).model).toBe("ollama:qwen3-embedding:0.6b");
+    const refused = await nodestro.recommendLocalModel("dance").catch((error: unknown) => error);
+    expect((refused as NodestroAPIError).code).toBe("local.task_unknown");
+    const index = await nodestro.knowledgeIndex();
+    expect([index.state, index.mode]).toEqual(["off", "fts"]);
+  });
+
   it("reports the Docker sandbox and runs its self-test", async () => {
     const states = ["approved", "unavailable", "checking"];
     const status = await nodestro.sandboxStatus();
