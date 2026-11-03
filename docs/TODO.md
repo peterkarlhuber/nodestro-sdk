@@ -3,7 +3,7 @@
 > Open work for this repository: release blockers, known bugs, security follow-ups, technical debt and planned improvements.
 > GitHub issues are the source of truth for details; this file is the entry point and summary.
 >
-> **Last full review:** 2026-11-03 against `master` at `799d548` (backend audit round 2).
+> **Last full review:** 2026-11-03 against `master` at `f44d156` (close-out of the backend audit round 2).
 
 ## Summary
 
@@ -168,6 +168,13 @@ None known.
 |---|---|---|---|
 | SDK-005 | nodestro-api | API-012 | needs the server contract |
 | (pointer) | nodestro-api | API-016, API-017, API-018 | new API fields reach the SDK by regenerating at the next pin |
+
+## CI access to private repositories
+
+Keep the repository secret `NODESTRO_READ`; do not delete it. CI currently installs the sibling repositories anonymously
+because they are public, and does not need the secret. When the repositories become private, CI authenticates again
+with this read-only secret, passed only in the environment of the install steps (never in a global Git configuration,
+a log or an image layer).
 
 ## Maintaining this file
 
