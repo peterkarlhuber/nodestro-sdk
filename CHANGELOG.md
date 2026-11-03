@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Pin nodestro-api a24f32b (nodestro-api #81: runtime 90ba97b). Regenerated types: job kind `build`,
+  `ImportIn.template` and `kind: "build"` (build a catalog model such as `mdenseon:307m` from local files),
+  `LocalModelInfo.source`.
 - Pin nodestro-api cd02529 (nodestro-api #80: runtime df725c5). Regenerated types: `Settings.prefer_european_models`
   and `SettingsIn.prefer_european_models`, catalog entries `tasks` and `alternative`.
 - Pin nodestro-api fc73079 (nodestro-api #78: local models, embeddings and semantic knowledge search). The

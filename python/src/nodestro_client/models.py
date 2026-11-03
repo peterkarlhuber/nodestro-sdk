@@ -367,6 +367,7 @@ class CatalogEntry(TypedDict):
     notes: NotRequired[str]
     rank: NotRequired[int]
     region: NotRequired[Literal['eu', 'us', 'cn', 'other']]
+    source: NotRequired[Literal['registry', 'build']]
     tasks: NotRequired[list[str]]
     vendor: NotRequired[str]
     verified: NotRequired[bool]
@@ -734,11 +735,12 @@ class Hardware(TypedDict):
 
 
 class ImportIn(TypedDict):
-    kind: Literal['package', 'gguf']
+    kind: Literal['package', 'gguf', 'build']
     models: NotRequired[list[str] | None]
     name: NotRequired[str | None]
     path: str
     projector: NotRequired[str | None]
+    template: NotRequired[str | None]
 
 
 class InfoOut(TypedDict):
@@ -925,7 +927,12 @@ class LocalJob(TypedDict):
     finished_at: NotRequired[str | None]
     id: str
     kind: Literal[
-        'pull', 'install_runtime', 'import_package', 'import_gguf', 'move_models'
+        'pull',
+        'build',
+        'install_runtime',
+        'import_package',
+        'import_gguf',
+        'move_models',
     ]
     message: NotRequired[str]
     started_at: str
