@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api 7c195ed (nodestro-api #77: the export works on installations without test tools). The API
+  contract is unchanged, so the generated types are unchanged.
 - Pin nodestro-api 84ca99d (nodestro-api #75: `nodestro-server check --skip-identity-provider`). The API contract is
   unchanged, so the generated types are unchanged.
 - Backend audit round 2 (2026-11-03):
