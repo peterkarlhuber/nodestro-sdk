@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api 84ca99d (nodestro-api #75: `nodestro-server check --skip-identity-provider`). The API contract is
+  unchanged, so the generated types are unchanged.
 - Backend audit round 2 (2026-11-03):
   - `start_run` / `startRun` always send an `Idempotency-Key` (generated when the caller gives none), so a retried
     start never creates a second run (API2-08).
