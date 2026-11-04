@@ -42,12 +42,23 @@ except NodestroClientError as error:  # unreachable, timed out, run failed, ...
     print(error)
 ```
 
-Never write a key into the code; read it from the environment or a secret store.
+Never write a key into the code; read it from the environment or a secret store. A key comes from the studio
+(publication, "API keys") or from `NodestroClient.publish(workflow_id, slug="quote")` and
+`create_api_key("My app", ["run", "read"], [publication_id])`, whose `token` is the secret, returned only once.
 
 A run calls the model provider of the workflow's agents. Without that provider's key (for example
 `ANTHROPIC_API_KEY`, or the key entered in the studio's settings), `start_run()` raises `NodestroAPIError` with
-status 400 and code `api_key_missing` (`params["provider"]` names the provider); `check_workflow()` reports the same
-problem without starting a run.
+status 400 and code `api_key_missing` (`params["provider"]` names the provider).
+
+A **new** desktop installation uses local models by default (`settings()["default_model"]`, for example
+`ollama:qwen3.5:4b`), and `copy_example()` gives the copied agents the local models recommended for this computer,
+even when a cloud key is set. Until the local model runtime is installed and a model is downloaded, `start_run()`
+raises `NodestroAPIError` with status 400, code `workflow.blocked` and the problem `check.local_runtime_missing` in
+`params["problems"]`; see [Local models and the knowledge index](#local-models-and-the-knowledge-index), or choose a
+cloud model as the default model in the studio's settings before copying the example.
+
+`check_workflow(nodestro.get_workflow(workflow_id), workflow_id)` reports these problems without starting a run; it
+takes the workflow document (also an unsaved one), not its id.
 
 ## Configuration
 
@@ -138,6 +149,38 @@ or cancelled; `params` has `request_status` and `decided_by`), 422 `budget.limit
 (`params["current_limit_usd"]`) and `budget.limit_invalid`, 403 `budget.over_policy` (above
 `params["max_limit_usd"]`) and `access.forbidden` (only the person who started the run or an administrator decides;
 `params["reason"]`).
+
+## Local models and the knowledge index
+
+On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as
+jobs on the computer that runs Nodestro; paths name files there:
+
+```python
+import time
+
+overview = nodestro.local_models()  # status, catalog, hardware and a recommendation per task
+if not overview["status"]["runtime_installed"]:
+    job = nodestro.install_local_runtime(download=True)  # or archive="/path/ollama-linux-amd64.tar.zst" (offline)
+    while (job := nodestro.local_model_job(job["id"]))["state"] == "running":
+        time.sleep(2)
+nodestro.start_local_models()
+model = nodestro.recommend_local_model("write")["model"]  # e.g. "ollama:qwen3.5:4b"
+if model:
+    job = nodestro.pull_local_model(model)  # network; offline: import_local_model(...)
+```
+
+- `local_model_job(job_id)` reports `state` (`running`, `done`, `failed`, `cancelled`), `completed` of `total` and,
+  on failure, `error_code`; `cancel_local_model_job()` stops it.
+- `recommend_local_model(task)` takes the task profiles `classify`, `extract`, `write`, `document_vision`,
+  `tool_agent`, `analysis`, `coding`, `judge`, `orchestrator`, `architect`, `assistant` and `embedding`; another
+  name is refused with 400 `local.task_unknown`. A recommendation is a suggestion, never stored on its own.
+- Refusals carry `local.*` codes, for example 400 `local.runtime_missing` (`start_local_models()` before the
+  runtime is installed), `local.not_running` (a download while no local server runs), `local.archive_or_download`
+  and `local.file_missing`; tenants of a server get 403 `local.server_managed`.
+- `knowledge_index()` shows the retrieval mode (`fts`, `vector`, `hybrid`) and how many chunks are embedded;
+  `rebuild_knowledge_index(model=None)` builds the semantic index with the embedding model of the settings (400
+  `knowledge.embedding_model_missing` while none is chosen); searches keep the complete current index until the new
+  one is finished, and `cancel_knowledge_index()` stops the build.
 
 ## Errors
 
