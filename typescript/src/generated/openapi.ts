@@ -1016,6 +1016,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/export-jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Export Job */
+        get: operations["get_export_job_api_export_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/export-jobs/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Export Job */
+        post: operations["cancel_export_job_api_export_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -2385,6 +2419,27 @@ export interface paths {
         put?: never;
         /** Set Enabled */
         post: operations["set_enabled_api_publications__publication_id__enabled_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publications/{publication_id}/export-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Export Jobs */
+        get: operations["list_export_jobs_api_publications__publication_id__export_jobs_get"];
+        put?: never;
+        /**
+         * Start Export Job
+         * @description Build a portable package in the background (``options.kind`` must be ``portable``).
+         */
+        post: operations["start_export_job_api_publications__publication_id__export_jobs_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7244,6 +7299,7 @@ export interface components {
             files?: string[];
             /** Ok */
             ok: boolean;
+            portable?: components["schemas"]["PortableCheck"] | null;
             /** Problems */
             problems?: components["schemas"]["CheckIssue"][];
             /** Resources */
@@ -7263,15 +7319,95 @@ export interface components {
             number?: number | null;
             options?: components["schemas"]["ExportOptions"];
         };
+        /**
+         * ExportJob
+         * @description A portable export being built (kept in the database; a restart marks a running one as interrupted).
+         */
+        ExportJob: {
+            /**
+             * Bytes Done
+             * @default 0
+             */
+            bytes_done: number;
+            /**
+             * Bytes Total
+             * @default 0
+             */
+            bytes_total: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Error */
+            error?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Export Id */
+            export_id?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id?: string;
+            /** Log */
+            log?: string[];
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+            /** Options */
+            options?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Progress
+             * @default 0
+             */
+            progress: number;
+            /** Publication Id */
+            publication_id: string;
+            /** Release Number */
+            release_number: number;
+            /**
+             * State
+             * @default running
+             * @enum {string}
+             */
+            state: "running" | "done" | "failed" | "cancelled";
+            /**
+             * Step
+             * @default check
+             */
+            step: string;
+            /** Steps */
+            steps?: string[];
+        };
         /** ExportOptions */
         ExportOptions: {
+            /**
+             * Allow Downloads
+             * @default true
+             */
+            allow_downloads: boolean;
             /**
              * Confirm Distribution
              * @default false
              */
             confirm_distribution: boolean;
+            /**
+             * Confirm Models
+             * @default false
+             */
+            confirm_models: boolean;
             /** Guide Id */
             guide_id?: string | null;
+            /**
+             * Kind
+             * @default standard
+             * @enum {string}
+             */
+            kind: "standard" | "portable";
             /** Knowledge */
             knowledge?: string[];
             /**
@@ -7279,15 +7415,37 @@ export interface components {
              * @default en
              * @enum {string}
              */
-            language: "de" | "en";
+            language: "de" | "en" | "es" | "fr" | "pt-BR" | "it";
+            /**
+             * Local Models
+             * @default true
+             */
+            local_models: boolean;
             /** Memory */
             memory?: string[];
+            /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
             /**
              * Orkexa
              * @default git
              * @enum {string}
              */
             orkexa: "git" | "bundle";
+            /**
+             * Output Dir
+             * @default
+             */
+            output_dir: string;
+            /** Platform */
+            platform?: string | null;
+            /**
+             * Web Ui
+             * @default false
+             */
+            web_ui: boolean;
         };
         /** ExportRecord */
         ExportRecord: {
@@ -8269,6 +8427,57 @@ export interface components {
             /** Total */
             total?: number | null;
         };
+        /**
+         * LocalModelInfo
+         * @description A local model of a release, as this installation knows it.
+         */
+        LocalModelInfo: {
+            /** Capabilities */
+            capabilities?: string[];
+            /**
+             * Catalog
+             * @default false
+             */
+            catalog: boolean;
+            /** Context */
+            context?: number | null;
+            /** Cpu Friendly */
+            cpu_friendly?: boolean | null;
+            /** Digest */
+            digest?: string | null;
+            /**
+             * Installed
+             * @default false
+             */
+            installed: boolean;
+            /**
+             * Kind
+             * @default chat
+             * @enum {string}
+             */
+            kind: "chat" | "embedding";
+            /** License */
+            license?: string | null;
+            /** Memory Bytes */
+            memory_bytes?: number | null;
+            /** Name */
+            name: string;
+            /**
+             * Redistribution
+             * @default unknown
+             * @enum {string}
+             */
+            redistribution: "permitted" | "unknown";
+            /** Roles */
+            roles?: ("agent" | "fallback" | "judge" | "orchestrator" | "embedding")[];
+            /**
+             * Size
+             * @default 0
+             */
+            size: number;
+            /** Used By */
+            used_by?: string[];
+        };
         /** LocalOverview */
         LocalOverview: {
             /** Advice */
@@ -8992,6 +9201,22 @@ export interface components {
             tokens_per_second: number;
         };
         /**
+         * ModelUse
+         * @description One model of a release and where it is used.
+         */
+        ModelUse: {
+            /** Local */
+            local: boolean;
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
+            /** Roles */
+            roles?: ("agent" | "fallback" | "judge" | "orchestrator" | "embedding")[];
+            /** Used By */
+            used_by?: string[];
+        };
+        /**
          * NeededRequirement
          * @description A direct requirement of a scope: the union of what its tools need.
          */
@@ -9044,6 +9269,26 @@ export interface components {
              * @default
              */
             tls_keyfile: string;
+        };
+        /**
+         * NetworkNeed
+         * @description Something the release needs a network connection or an outside service for.
+         */
+        NetworkNeed: {
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "cloud_model" | "endpoint" | "server_tool" | "mcp" | "docker_sandbox" | "ollama_cloud";
+            /** Name */
+            name: string;
+            /** Used By */
+            used_by?: string[];
         };
         /** NetworkStatus */
         NetworkStatus: {
@@ -9589,6 +9834,46 @@ export interface components {
              * @description Precise specification: purpose, inputs with types and units, output, edge cases.
              */
             requirement: string;
+        };
+        /**
+         * PortableCheck
+         * @description What a portable package of the release would contain and need (:mod:`nodestro_api.portable_build`).
+         */
+        PortableCheck: {
+            /** Bundled Models */
+            bundled_models?: string[];
+            /** Downloads */
+            downloads?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Estimated Bytes
+             * @default 0
+             */
+            estimated_bytes: number;
+            /** Local Models */
+            local_models?: components["schemas"]["LocalModelInfo"][];
+            /** Memory Bytes */
+            memory_bytes?: number | null;
+            /** Models */
+            models?: components["schemas"]["ModelUse"][];
+            /** Network Needs */
+            network_needs?: components["schemas"]["NetworkNeed"][];
+            /**
+             * Offline Capable
+             * @default false
+             */
+            offline_capable: boolean;
+            /** Platform */
+            platform: string;
+            /** Platforms */
+            platforms?: {
+                [key: string]: string;
+            }[];
+            /** Providers */
+            providers?: string[];
+            /** Target Requirements */
+            target_requirements?: string[];
         };
         /** Position */
         Position: {
@@ -15952,6 +16237,68 @@ export interface operations {
             };
         };
     };
+    get_export_job_api_export_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    cancel_export_job_api_export_jobs__job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     download_export_api_exports__export_id__download_get: {
         parameters: {
             query?: never;
@@ -18739,6 +19086,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnableOut"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_export_jobs_api_publications__publication_id__export_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJob"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    start_export_job_api_publications__publication_id__export_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJob"];
                 };
             };
             /** @description Error */

@@ -638,13 +638,41 @@ class ExampleMessage(TypedDict):
     role: Literal['user', 'assistant']
 
 
+class ExportJob(TypedDict):
+    bytes_done: NotRequired[int]
+    bytes_total: NotRequired[int]
+    created_at: NotRequired[str]
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    export_id: NotRequired[str | None]
+    finished_at: NotRequired[str | None]
+    id: NotRequired[str]
+    log: NotRequired[list[str]]
+    message: NotRequired[str]
+    options: NotRequired[dict[str, Any]]
+    progress: NotRequired[float]
+    publication_id: str
+    release_number: int
+    state: NotRequired[Literal['running', 'done', 'failed', 'cancelled']]
+    step: NotRequired[str]
+    steps: NotRequired[list[str]]
+
+
 class ExportOptions(TypedDict):
+    allow_downloads: NotRequired[bool]
     confirm_distribution: NotRequired[bool]
+    confirm_models: NotRequired[bool]
     guide_id: NotRequired[str | None]
+    kind: NotRequired[Literal['standard', 'portable']]
     knowledge: NotRequired[list[str]]
-    language: NotRequired[Literal['de', 'en']]
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
+    local_models: NotRequired[bool]
     memory: NotRequired[list[str]]
+    offline: NotRequired[bool]
     orkexa: NotRequired[Literal['git', 'bundle']]
+    output_dir: NotRequired[str]
+    platform: NotRequired[str | None]
+    web_ui: NotRequired[bool]
 
 
 class ExportRecord(TypedDict):
@@ -973,6 +1001,25 @@ class LocalJob(TypedDict):
     total: NotRequired[int | None]
 
 
+class LocalModelInfo(TypedDict):
+    capabilities: NotRequired[list[str]]
+    catalog: NotRequired[bool]
+    context: NotRequired[int | None]
+    cpu_friendly: NotRequired[bool | None]
+    digest: NotRequired[str | None]
+    installed: NotRequired[bool]
+    kind: NotRequired[Literal['chat', 'embedding']]
+    license: NotRequired[str | None]
+    memory_bytes: NotRequired[int | None]
+    name: str
+    redistribution: NotRequired[Literal['permitted', 'unknown']]
+    roles: NotRequired[
+        list[Literal['agent', 'fallback', 'judge', 'orchestrator', 'embedding']]
+    ]
+    size: NotRequired[int]
+    used_by: NotRequired[list[str]]
+
+
 class LockedPackage(TypedDict):
     direct: NotRequired[bool]
     key: str
@@ -1151,6 +1198,16 @@ class ModelSpeed(TypedDict):
     tokens_per_second: float
 
 
+class ModelUse(TypedDict):
+    local: bool
+    model: str
+    provider: str
+    roles: NotRequired[
+        list[Literal['agent', 'fallback', 'judge', 'orchestrator', 'embedding']]
+    ]
+    used_by: NotRequired[list[str]]
+
+
 class NeededRequirement(TypedDict):
     extras: NotRequired[list[str]]
     key: str
@@ -1167,6 +1224,20 @@ class NetworkConfig(TypedDict):
     port: NotRequired[int]
     tls_certfile: NotRequired[str]
     tls_keyfile: NotRequired[str]
+
+
+class NetworkNeed(TypedDict):
+    detail: NotRequired[str]
+    kind: Literal[
+        'cloud_model',
+        'endpoint',
+        'server_tool',
+        'mcp',
+        'docker_sandbox',
+        'ollama_cloud',
+    ]
+    name: str
+    used_by: NotRequired[list[str]]
 
 
 class NetworkStatus(TypedDict):
@@ -1273,6 +1344,21 @@ class PlanPackage(TypedDict):
 class PlannedTool(TypedDict):
     name: str
     requirement: str
+
+
+class PortableCheck(TypedDict):
+    bundled_models: NotRequired[list[str]]
+    downloads: NotRequired[list[dict[str, Any]]]
+    estimated_bytes: NotRequired[int]
+    local_models: NotRequired[list[LocalModelInfo]]
+    memory_bytes: NotRequired[int | None]
+    models: NotRequired[list[ModelUse]]
+    network_needs: NotRequired[list[NetworkNeed]]
+    offline_capable: NotRequired[bool]
+    platform: str
+    platforms: NotRequired[list[dict[str, str]]]
+    providers: NotRequired[list[str]]
+    target_requirements: NotRequired[list[str]]
 
 
 class Position(TypedDict):
@@ -2837,6 +2923,7 @@ class ExportCheck(TypedDict):
     dependencies: NotRequired[list[str]]
     files: NotRequired[list[str]]
     ok: bool
+    portable: NotRequired[PortableCheck | None]
     problems: NotRequired[list[CheckIssue]]
     resources: NotRequired[list[ExportResource]]
     runtime: NotRequired[dict[str, str]]
