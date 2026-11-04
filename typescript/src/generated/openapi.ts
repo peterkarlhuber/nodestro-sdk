@@ -9346,6 +9346,12 @@ export interface components {
              */
             required: boolean;
             /**
+             * Source
+             * @default model
+             * @enum {string}
+             */
+            source: "model" | "tool";
+            /**
              * Type
              * @default string
              * @enum {string}

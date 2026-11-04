@@ -1218,6 +1218,7 @@ class OutputField(TypedDict):
     description: NotRequired[str]
     name: str
     required: NotRequired[bool]
+    source: NotRequired[Literal['model', 'tool']]
     type: NotRequired[
         Literal['string', 'number', 'integer', 'boolean', 'string_list', 'number_list']
     ]
