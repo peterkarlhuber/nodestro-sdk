@@ -12162,11 +12162,13 @@ export interface components {
          * @description A tool run by the provider itself; these are Anthropic's server tools.
          */
         ServerToolInfo: {
-            /** @default {
+            /**
+             * @default {
              *       "access": "write",
              *       "reach": "external",
              *       "source": "default"
-             *     } */
+             *     }
+             */
             capability: components["schemas"]["ToolCapability"];
             /** Definition */
             definition: {
@@ -13291,11 +13293,13 @@ export interface components {
         /** ToolInfo */
         ToolInfo: {
             adoption?: components["schemas"]["ToolAdoption"] | null;
-            /** @default {
+            /**
+             * @default {
              *       "access": "write",
              *       "reach": "external",
              *       "source": "default"
-             *     } */
+             *     }
+             */
             capability: components["schemas"]["ToolCapability"];
             /** Code */
             code?: string | null;

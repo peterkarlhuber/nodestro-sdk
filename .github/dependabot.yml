@@ -21,3 +21,9 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
+    # TypeScript 7 breaks openapi-typescript (SDK-009); @types/node follows the lowest supported Node major (SDK-010).
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]

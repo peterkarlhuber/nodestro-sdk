@@ -3,7 +3,7 @@
 > Open work for this repository: release blockers, known bugs, security follow-ups, technical debt and planned improvements.
 > GitHub issues are the source of truth for details; this file is the entry point and summary.
 >
-> **Last full review:** 2026-11-03 against `master` at `f44d156` (close-out of the backend audit round 2).
+> **Last full review:** 2026-11-04 against `master` at `4ec713e` (internal backend audit round 3).
 
 ## Summary
 
@@ -13,7 +13,7 @@
 | P1 High | 0 |
 | P2 Medium | 0 |
 | P3 Low | 6 |
-| P4 Optional | 4 |
+| P4 Optional | 5 |
 
 **Release blockers:** None for this repository.
 
@@ -66,8 +66,8 @@ None known.
 
 - **Priority:** P4 Optional · **Status:** Open · **Refs:** `python/src/nodestro_client/client.py`, `typescript/src/client.ts`
 - **What:** The clients have no methods for batches, schedules, test series, knowledge, input files, per-call
-  tool approvals or settings changes (for example the run budget maximum `max_run_budget_usd` and
-  `budget_decision_hours`). Callers have to build these requests themselves.
+  tool approvals, exports, export jobs or local models; settings changes have `update_settings`/`updateSettings`
+  since round 3. Callers have to build the other requests themselves (the generated types cover them).
 - **Next step:** Add methods for the areas that SDK users ask for, starting with batches and schedules.
 
 ### SDK-004 · Ergonomics of waits, event streams and downloads
@@ -122,29 +122,20 @@ None known.
   - Checked locally: `tsc --noEmit` and the build pass with 7.0.2.
   - openapi-typescript (7.8.0 and 7.13.0) crashes under TypeScript 7, because it needs the TypeScript 5 compiler
     API. `make generate` and the CI check of the generated types would therefore fail.
-- **Next step:** Do not merge #40. Ignore TypeScript majors in `.github/dependabot.yml`, or keep TypeScript 5 only
-  for generation.
+- **Next step:** #40 is closed and `.github/dependabot.yml` ignores TypeScript majors (round 3). Revisit when
+  openapi-typescript supports TypeScript 7.
 - **Depends on:** openapi-typescript support for TypeScript 7 (upstream)
 - **Also:** the remaining moderate `npm audit` advisory (minimatch, GHSA-g3hv-75wg-m249) is a dev-only dependency
-  of openapi-typescript; it goes away with the openapi-typescript update (backend audit round 2).
+  of openapi-typescript (3 moderate dev advisories); no critical or high advisory is left (vitest 4.1.12, API2-13
+  done).
 
 ### SDK-010 · Supported Node.js range and `@types/node` (Dependabot #41)
 
-- **Priority:** P3 Low · **Status:** Needs decision · **Refs:** #50, PR #41
+- **Priority:** P3 Low · **Status:** Needs decision · **Refs:** #50, PR #41 (closed)
 - **What:** `engines` says `>=20`, and CI tests 20 and 22. Node 20 is end-of-life, and Node 24 LTS is untested.
   `@types/node` 26 type-checks, but it should follow the lowest supported Node major.
-- **Next step:** Choose the range, then update CI, `engines` and the README. Add an ignore rule for `@types/node`
-  majors and close #41.
-
-### SDK-011 · Minor Dependabot updates #39 and #38
-
-- **Priority:** P3 Low · **Status:** Open · **Refs:** PR #39 (openapi-typescript 7.13.0), PR #38 (actions/setup-node 7.1.0)
-- **What:**
-  - openapi-typescript 7.13.0 changes the JSDoc layout of the generated types (checked locally), so #39 needs a
-    regenerated `typescript/src/generated/openapi.ts` before CI can pass.
-  - #38 needs only a green run.
-- **Next step:** CI no longer needs the read token (backend audit round 2, OPS2-05): rebase both, add the
-  regenerated types to #39, and merge when green.
+- **Next step:** Choose the range, then update CI, `engines` and the README. `@types/node` majors are ignored by
+  Dependabot since round 3 (#41 closed); bump it together with the range.
 
 ### SDK-012 · Python package not published to PyPI, TypeScript package not on npm
 
@@ -153,6 +144,18 @@ None known.
   release workflow with provenance.
 - **Next step:** Decide whether to publish. If yes, add a tag-triggered release workflow with trusted publishing
   and provenance.
+
+### SDK-013 · No User-Agent or compatibility check
+
+- **Priority:** P4 Optional · **Status:** Open · **Refs:** backend audit round 2 API2-14 (still true in round 3)
+- **What:** Neither client sends a User-Agent or checks the API version it talks to.
+- **Next step:** Send `nodestro-client/<version>` and add `check_compatibility()` against `/api/meta`.
+
+### SDK-014 · `import_local_model` cannot build from weights
+
+- **Priority:** P3 Low · **Status:** Open · **Refs:** UX round 3 DX handover B11
+- **What:** `import_local_model`/`importLocalModel` do not offer the API's import kind `build` with `template`.
+- **Next step:** Add the kind and the template argument in both clients, with a test against the test server.
 
 ## Later optimizations
 
