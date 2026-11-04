@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api 3536268 (api #84: runtime 2f1de71, examples c05ae45) and regenerate the types: `OutputField.source`
+  (`model` or `tool`, a key figure that must come from a tool).
 - Pin nodestro-api 5951197 (api #83: runtime 7cb9b4b). The OpenAPI document is unchanged.
 - Pin nodestro-api c2a2ad3 (api #82) and regenerate the types: `GET /api/library/{template_id}/models` (models per agent of an example copy), `LibraryCopy.models`, `POST /api/local-models/benchmark`, local model `advice`, context window and GPU use, catalog `fits` and `build_inputs`.
 - Pin nodestro-api a24f32b (nodestro-api #81: runtime 90ba97b). Regenerated types: job kind `build`,
