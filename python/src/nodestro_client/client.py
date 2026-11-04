@@ -72,6 +72,12 @@ class NodestroClient:
         """The settings as the interface shows them (API keys are never returned)."""
         return cast(models.Settings, self._http.json("GET", "/api/settings"))
 
+    def update_settings(self, changes: models.SettingsIn | Mapping[str, Any]) -> models.Settings:
+        """Change some settings (needs ``admin``): only the fields given change, e.g.
+        ``update_settings({"default_model": "anthropic:claude-sonnet-4-5"})``. Returns the settings afterwards
+        (keys are never returned)."""
+        return cast(models.Settings, self._http.json("PUT", "/api/settings", json_body=dict(changes)))
+
     def sandbox_status(self, *, refresh: bool = False, wait: float = 0.0) -> models.SandboxStatus:
         """The Docker sandbox of the computer the API runs on, as its background check last found it (``state``
         ``checking``, ``approved`` or ``unavailable``, with ``reason`` and ``checks``). Never waits for Docker;
@@ -169,7 +175,15 @@ class NodestroClient:
     def check_workflow(
         self, workflow: models.WorkflowIn | Mapping[str, Any], workflow_id: str | None = None
     ) -> models.WorkflowCheck:
-        """The pre-check of a run: problems per workflow and per agent (free, no model request)."""
+        """The pre-check of a run: problems per workflow and per agent (free, no model request).
+
+        ``workflow`` is the workflow document; for a saved one pass ``check_workflow(client.get_workflow(id), id)``.
+        """
+        if isinstance(workflow, str):
+            raise TypeError(
+                "check_workflow() takes the workflow document, not its id: "
+                "check_workflow(client.get_workflow(workflow_id), workflow_id)"
+            )
         return cast(
             models.WorkflowCheck,
             self._http.json(

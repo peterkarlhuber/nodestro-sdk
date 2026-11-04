@@ -388,6 +388,7 @@ class CatalogEntry(TypedDict):
     kind: Literal['chat', 'embedding']
     languages: NotRequired[list[str]]
     license: str
+    license_source: NotRequired[Literal['ollama', 'upstream']]
     listed_capabilities: list[str]
     memory_bytes: int
     min_ollama: str
@@ -492,6 +493,11 @@ class ContextRef(TypedDict):
     snapshot_id: str
     variant: NotRequired[Literal['saved', 'draft']]
     version: NotRequired[str | None]
+
+
+class ContractField(TypedDict):
+    description: str
+    name: str
 
 
 class ConversationSummary(TypedDict):
@@ -2187,6 +2193,7 @@ class TemplateTeam(TypedDict):
     approval: bool
     capabilities: list[str]
     contract: list[str]
+    contract_fields: NotRequired[list[ContractField]]
     description: str
     name: str
     parameters: list[str]
@@ -3762,7 +3769,7 @@ class GateRecord(TypedDict):
 class LocalOverview(TypedDict):
     advice: NotRequired[list[LocalAdvice]]
     catalog: list[CatalogEntry]
-    hardware: Hardware
+    hardware: Hardware | None
     manageable: bool
     recommendations: list[Recommendation]
     status: LocalStatus
