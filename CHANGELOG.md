@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Pin nodestro-api b55793a (api #85: portable export; runtime c6f0240, examples ed350b2) and regenerate the types:
-  export jobs (`POST /api/publications/{id}/export-jobs`, `GET`/`DELETE /api/export-jobs/{id}`), portable export
+  export jobs (`GET`/`POST /api/publications/{id}/export-jobs`, `GET /api/export-jobs/{id}`, `POST .../cancel`), portable export
   options (`kind: "portable"`, platform, web UI, language, local models, offline, output folder) and the portable
   check (`PortableCheck`: models with size, memory and license, providers, network needs, downloads).
 - Pin nodestro-api 3536268 (api #84: runtime 2f1de71, examples c05ae45) and regenerate the types: `OutputField.source`
