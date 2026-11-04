@@ -43,10 +43,23 @@ try {
 }
 ```
 
+Keep keys out of the code. A key comes from the studio (publication, "API keys") or from
+`nodestro.publish(workflowId, { slug: "quote" })` and `nodestro.createApiKey("My app", ["run", "read"], [publicationId])`,
+whose `token` is the secret, returned only once.
+
 A run calls the model provider of the workflow's agents. Without that provider's key (for example
 `ANTHROPIC_API_KEY`, or the key entered in the studio's settings), `startRun()` throws `NodestroAPIError` with status
-400 and code `api_key_missing` (`params.provider` names the provider); `checkWorkflow()` reports the same problem
-without starting a run.
+400 and code `api_key_missing` (`params.provider` names the provider).
+
+A **new** desktop installation uses local models by default (`(await nodestro.settings()).default_model`, for example
+`ollama:qwen3.5:4b`), and `copyExample()` gives the copied agents the local models recommended for this computer, even
+when a cloud key is set. Until the local model runtime is installed and a model is downloaded, `startRun()` throws
+`NodestroAPIError` with status 400, code `workflow.blocked` and the problem `check.local_runtime_missing` in
+`params.problems`; see [Local models and the knowledge index](#local-models-and-the-knowledge-index), or choose a
+cloud model as the default model in the studio's settings before copying the example.
+
+`checkWorkflow(await nodestro.getWorkflow(workflowId), workflowId)` reports these problems without starting a run; it
+takes the workflow document (also an unsaved one), not its id.
 
 ## Options
 
@@ -131,6 +144,38 @@ Refusals are `NodestroAPIError`s: 404 (run or request unknown), 409 `budget.not_
 or cancelled; `params.request_status`, `params.decided_by`), 422 `budget.limit_not_higher`
 (`params.current_limit_usd`) and `budget.limit_invalid`, 403 `budget.over_policy` (above `params.max_limit_usd`) and
 `access.forbidden` (only the person who started the run or an administrator decides; `params.reason`).
+
+## Local models and the knowledge index
+
+On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as
+jobs on the computer that runs Nodestro; paths name files there:
+
+```ts
+const overview = await nodestro.localModels(); // status, catalog, hardware and a recommendation per task
+if (!overview.status.runtime_installed) {
+  let job = await nodestro.installLocalRuntime({ download: true }); // or { archive: "/path/ollama-linux-amd64.tar.zst" }
+  while (job.state === "running") {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    job = await nodestro.localModelJob(job.id);
+  }
+}
+await nodestro.startLocalModels();
+const { model } = await nodestro.recommendLocalModel("write"); // e.g. "ollama:qwen3.5:4b"
+if (model) await nodestro.pullLocalModel(model); // network; offline: importLocalModel(...)
+```
+
+- `localModelJob(jobId)` reports `state` (`running`, `done`, `failed`, `cancelled`), `completed` of `total` and, on
+  failure, `error_code`; `cancelLocalModelJob()` stops it.
+- `recommendLocalModel(task)` takes the task profiles `classify`, `extract`, `write`, `document_vision`,
+  `tool_agent`, `analysis`, `coding`, `judge`, `orchestrator`, `architect`, `assistant` and `embedding`; another
+  name is refused with 400 `local.task_unknown`. A recommendation is a suggestion, never stored on its own.
+- Refusals carry `local.*` codes, for example 400 `local.runtime_missing` (`startLocalModels()` before the runtime
+  is installed), `local.not_running` (a download while no local server runs), `local.archive_or_download` and
+  `local.file_missing`; tenants of a server get 403 `local.server_managed`.
+- `knowledgeIndex()` shows the retrieval mode (`fts`, `vector`, `hybrid`) and how many chunks are embedded;
+  `rebuildKnowledgeIndex(model?)` builds the semantic index with the embedding model of the settings (400
+  `knowledge.embedding_model_missing` while none is chosen); searches keep the complete current index until the new
+  one is finished, and `cancelKnowledgeIndex()` stops the build.
 
 ## Errors
 
