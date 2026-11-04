@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Contract of nodestro-api `wip/a3-api-nodestro-api` (backend audit round 3; bump the test pin when it is merged):
+- Pin nodestro-api 5ee13f7 (api #87: backend audit round 3; runtime 40c8c06, examples 64e534a) and regenerate the types:
   `LocalOverview.hardware` may be `null` (a server's tenants), `GET /api/knowledge/search` takes `k` 1..50 and `q` up
   to 2000 characters, unknown workflow/run/publication ids answer `workflow.not_found`/`run.not_found`/
   `publication.not_found` (params `id`, `kind`, `name`) instead of `not_found`.
