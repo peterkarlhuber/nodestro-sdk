@@ -1519,8 +1519,9 @@ export interface paths {
          * Local Overview
          * @description The local model server's state, the catalog, this computer's hardware and the recommendations.
          *
-         *     For a server's tenants the server's machine stays hidden: ``hardware`` is ``null`` and the status has no
-         *     ``base_url``, ``runtime_path``, ``models_dir``, ``free_bytes`` or ``detected_external``.
+         *     For a server's tenants the server's machine stays hidden: ``hardware`` is ``null``, the status has no
+         *     ``base_url``, ``runtime_path``, ``models_dir``, ``free_bytes`` or ``detected_external``, and advice and
+         *     recommendation reasons that describe the machine (memory, CPU, GPU, model speed or size) are left out.
          */
         get: operations["local_overview_api_local_models_get"];
         put?: never;
@@ -6424,6 +6425,12 @@ export interface components {
             languages?: string[];
             /** License */
             license: string;
+            /**
+             * License Source
+             * @default ollama
+             * @enum {string}
+             */
+            license_source: "ollama" | "upstream";
             /** Listed Capabilities */
             listed_capabilities: string[];
             /** Memory Bytes */
@@ -6875,6 +6882,16 @@ export interface components {
             variant: "saved" | "draft";
             /** Version */
             version?: string | null;
+        };
+        /**
+         * ContractField
+         * @description A field of a team's output contract with its description in the language (its label for people).
+         */
+        ContractField: {
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
         };
         /** ConversationDetail */
         ConversationDetail: {
@@ -12856,6 +12873,8 @@ export interface components {
             capabilities: string[];
             /** Contract */
             contract: string[];
+            /** Contract Fields */
+            contract_fields?: components["schemas"]["ContractField"][];
             /** Description */
             description: string;
             /** Name */
