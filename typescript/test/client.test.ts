@@ -40,7 +40,11 @@ describe("studio API", () => {
     const meta = await nodestro.meta();
     expect(meta.version).toBeTruthy();
     expect(meta.providers.map((item) => item.id)).toEqual(expect.arrayContaining(["anthropic", "openai", "gemini"]));
-    expect(JSON.stringify(await nodestro.settings())).not.toMatch(/sk-[a-z0-9]/i);
+    const settings = await nodestro.settings();
+    expect(JSON.stringify(settings)).not.toMatch(/sk-[a-z0-9]/i);
+    const changed = await nodestro.updateSettings({ default_budget_usd: 7.5 });
+    expect(changed.default_budget_usd).toBe(7.5);
+    expect(changed.default_model).toBe(settings.default_model);
   });
 
   it("lists local models and the semantic index", async () => {
@@ -176,7 +180,7 @@ describe("studio API", () => {
     const missing = await nodestro.getRun("run_does_not_exist").catch((error: unknown) => error);
     expect(missing).toBeInstanceOf(NodestroAPIError);
     expect((missing as NodestroAPIError).status).toBe(404);
-    expect((missing as NodestroAPIError).code).toBe("not_found");
+    expect((missing as NodestroAPIError).code).toBe("run.not_found");
     const empty = await nodestro.createWorkflow({ name: "leer", nodes: [], edges: [] });
     const refused = await nodestro.startRun(empty.id, { input: "x" }).catch((error: unknown) => error);
     expect((refused as NodestroAPIError).status).toBe(400);
@@ -254,6 +258,7 @@ describe("studio API, further operations", () => {
     // The test server has no provider key; that is the only problem of a sound workflow.
     expect(check.problems.every((item) => item.code === "check.api_key_missing")).toBe(true);
     expect(check.agents).toEqual({ writer: [] });
+    await expect(nodestro.checkWorkflow(workflow.id as never)).rejects.toThrow(/workflow document/);
     const empty = await nodestro.checkWorkflow({ name: "empty", nodes: [], edges: [] });
     expect(empty.problems.map((item) => item.code)).toContain("workflow.no_agents");
     expect((await nodestro.updateWorkflow(workflow.id, { ...simple(), name: "SDK renamed" })).name).toBe("SDK renamed");

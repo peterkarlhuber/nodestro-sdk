@@ -1331,6 +1331,8 @@ export interface paths {
         /**
          * Search Knowledge
          * @description ``mode``: full text, semantic or both (default: the workspace's setting); never a silent fallback.
+         *
+         *     ``k`` is 1 to 50 hits and ``q`` at most 2000 characters (larger values answer 422).
          */
         get: operations["search_knowledge_api_knowledge_search_get"];
         put?: never;
@@ -1513,7 +1515,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Local Overview */
+        /**
+         * Local Overview
+         * @description The local model server's state, the catalog, this computer's hardware and the recommendations.
+         *
+         *     For a server's tenants the server's machine stays hidden: ``hardware`` is ``null`` and the status has no
+         *     ``base_url``, ``runtime_path``, ``models_dir``, ``free_bytes`` or ``detected_external``.
+         */
         get: operations["local_overview_api_local_models_get"];
         put?: never;
         post?: never;
@@ -2438,6 +2446,11 @@ export interface paths {
         /**
          * Start Export Job
          * @description Build a portable package in the background (``options.kind`` must be ``portable``).
+         *
+         *     On a server this answers ``403 export.server_unsupported`` unless its operator enabled export jobs
+         *     (``NODESTRO_SERVER_EXPORT_JOBS=1``); then one package is built at a time on the whole server
+         *     (``export.busy`` otherwise) and a package larger than ``NODESTRO_SERVER_EXPORT_MAX_BYTES`` (default 2 GiB) is
+         *     refused (``403 export.server_too_large`` from the estimate, or the job fails with that code).
          */
         post: operations["start_export_job_api_publications__publication_id__export_jobs_post"];
         delete?: never;
@@ -8484,7 +8497,7 @@ export interface components {
             advice?: components["schemas"]["LocalAdvice"][];
             /** Catalog */
             catalog: components["schemas"]["CatalogEntry"][];
-            hardware: components["schemas"]["Hardware"];
+            hardware: components["schemas"]["Hardware"] | null;
             /** Manageable */
             manageable: boolean;
             /** Recommendations */

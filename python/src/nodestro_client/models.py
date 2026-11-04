@@ -3762,7 +3762,7 @@ class GateRecord(TypedDict):
 class LocalOverview(TypedDict):
     advice: NotRequired[list[LocalAdvice]]
     catalog: list[CatalogEntry]
-    hardware: Hardware
+    hardware: Hardware | None
     manageable: bool
     recommendations: list[Recommendation]
     status: LocalStatus

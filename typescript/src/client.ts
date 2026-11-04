@@ -13,6 +13,7 @@ import { type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pat
 export type Schemas = components["schemas"];
 export type Meta = Schemas["Meta"];
 export type Settings = Schemas["Settings"];
+export type SettingsIn = Schemas["SettingsIn"];
 export type SandboxBackendStatus = Schemas["SandboxBackendStatus"];
 export type SandboxStatus = Schemas["SandboxStatus"];
 export type SandboxCheck = Schemas["SandboxCheck"];
@@ -143,6 +144,15 @@ export class NodestroClient {
   }
 
   /**
+   * Change some settings (needs `admin`): only the fields given change, e.g.
+   * `updateSettings({ default_model: "anthropic:claude-sonnet-4-5" })`. Returns the settings afterwards (keys are
+   * never returned).
+   */
+  async updateSettings(changes: SettingsIn): Promise<Settings> {
+    return this.http.json("PUT", "/api/settings", { body: changes });
+  }
+
+  /**
    * The Docker sandbox of the computer the API runs on, as its background check last found it (`state` `checking`,
    * `approved` or `unavailable`, with `reason` and `checks`). Never waits for Docker; `refresh` starts a new check
    * (answering at once), `wait` (seconds, at most 5) waits for a running one.
@@ -189,6 +199,11 @@ export class NodestroClient {
 
   /** The pre-check of a run: problems per workflow and per agent (free, no model request). */
   async checkWorkflow(workflow: WorkflowIn | Record<string, unknown>, workflowId?: string): Promise<WorkflowCheck> {
+    if (typeof workflow === "string") {
+      throw new TypeError(
+        "checkWorkflow() takes the workflow document, not its id: checkWorkflow(await client.getWorkflow(id), id)",
+      );
+    }
     return this.http.json("POST", "/api/workflows/check", { body: workflow, query: { workflow_id: workflowId } });
   }
 

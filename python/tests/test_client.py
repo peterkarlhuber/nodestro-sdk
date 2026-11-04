@@ -48,6 +48,9 @@ def test_meta_and_settings(nodestro: NodestroClient) -> None:
     assert meta["version"] and {item["id"] for item in meta["providers"]} >= {"anthropic", "openai", "gemini"}
     settings = nodestro.settings()
     assert "api_key" not in str(settings).lower() or all(not item.get("api_key") for item in settings["providers"])
+    # Only the given fields change.
+    changed = nodestro.update_settings({"default_budget_usd": 7.5})
+    assert changed["default_budget_usd"] == 7.5 and changed["default_model"] == settings["default_model"]
 
 
 def test_the_sandbox_status_and_self_test(nodestro: NodestroClient) -> None:
@@ -161,7 +164,8 @@ def test_examples_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
 def test_errors_carry_status_code_and_params(nodestro: NodestroClient) -> None:
     with pytest.raises(NodestroAPIError) as missing:
         nodestro.get_run("run_does_not_exist")
-    assert missing.value.status == 404 and missing.value.code == "not_found"
+    assert missing.value.status == 404 and missing.value.code == "run.not_found"
+    assert missing.value.params["id"] == "run_does_not_exist"
     workflow = nodestro.create_workflow({"name": "leer", "nodes": [], "edges": []})
     with pytest.raises(NodestroAPIError) as refused:
         nodestro.start_run(workflow["id"], input="x")
@@ -262,6 +266,8 @@ def test_workflows_are_checked_versioned_updated_and_deleted(nodestro: NodestroC
     # The test server has no provider key; that is the only problem of a sound workflow.
     assert {item["code"] for item in check["problems"]} <= {"check.api_key_missing"}
     assert check["agents"] == {"writer": []}
+    with pytest.raises(TypeError, match="workflow document"):
+        nodestro.check_workflow(workflow["id"])  # type: ignore[arg-type]
     empty = nodestro.check_workflow({"name": "empty", "nodes": [], "edges": []})
     assert empty["ok"] is False and "workflow.no_agents" in {item["code"] for item in empty["problems"]}
     updated = nodestro.update_workflow(workflow["id"], {**simple(), "name": "SDK renamed"})

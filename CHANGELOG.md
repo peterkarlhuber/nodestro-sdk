@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Contract of nodestro-api `wip/a3-api-nodestro-api` (backend audit round 3; bump the test pin when it is merged):
+  `LocalOverview.hardware` may be `null` (a server's tenants), `GET /api/knowledge/search` takes `k` 1..50 and `q` up
+  to 2000 characters, unknown workflow/run/publication ids answer `workflow.not_found`/`run.not_found`/
+  `publication.not_found` (params `id`, `kind`, `name`) instead of `not_found`.
+- `update_settings(changes)` / `updateSettings(changes)` (`PUT /api/settings`, only the given fields change), e.g. to
+  switch the default model of a new installation to a cloud model (DX handover B3).
+- `check_workflow` / `checkWorkflow` given a workflow id instead of the document raise a `TypeError` that says how to
+  call it (before: a `ValueError` about a dictionary update sequence, or the id sent as the body; DX handover B10).
 - Pin nodestro-api b55793a (api #85: portable export; runtime c6f0240, examples ed350b2) and regenerate the types:
   export jobs (`GET`/`POST /api/publications/{id}/export-jobs`, `GET /api/export-jobs/{id}`, `POST .../cancel`), portable export
   options (`kind: "portable"`, platform, web UI, language, local models, offline, output folder) and the portable
