@@ -134,14 +134,20 @@ None known.
 
 ### SDK-010 · Supported Node.js range and `@types/node` (Dependabot #41)
 
-- **Priority:** P3 Low · **Status:** Needs decision · **Refs:** #50, PR #41 (closed)
+- **Priority:** P3 Low · **Status:** Decided (owner, 2026-11-05), not implemented · **Refs:** #50, PR #41 and #81
+  (closed), studio ST-054 (Node.js 24 LTS)
 - **What:** `engines` says `>=20`, and CI tests 20 and 22. Node 20 is end-of-life, and Node 24 LTS is untested.
   `@types/node` 26 type-checks, but it should follow the lowest supported Node major.
   Vitest 5 (Dependabot #81, closed 2026-11-05) declares `node: ^22.12.0 || ^24.0.0 || >=26.0.0`; its CI run on
   Node 20 passed, but only because npm does not enforce `engines`. Node.js 22 is supported until 2027-04-30.
-- **Next step:** Choose the range (recommendation: `>=22.12`, CI 22 and 24), then update CI, `engines` and the
-  README. `@types/node` and Vitest majors are ignored by Dependabot (#41 and #81 closed); bump them together with the
-  range and remove both `ignore` rules.
+  **Owner decision 2026-11-05:** the minimum may rise to Node.js `>=22.12`; CI covers Node 22 and 24.
+- **Next step:** Separate pull request: `engines` `>=22.12`, CI matrix 22 and 24, README ("Node.js 22.12+"),
+  `@types/node` 22 stays (lowest supported major). Dropping Node 20 is a breaking change for users of
+  `@nodestro/client`: list it under "Changed" as **Breaking** in CHANGELOG and, because the package is still 0.x,
+  raise the minor version (0.2.0 → 0.3.0) with the next version bump through the pin cascade; no release in that
+  pull request. Then check Vitest 5 again on 22 and 24 (changelog, test run) in its own pull request and remove the
+  Dependabot `ignore` rule for Vitest majors when it passes. The later move to Node 24 as the common version
+  follows studio ST-054.
 
 ### SDK-012 · Python package not published to PyPI, TypeScript package not on npm
 
