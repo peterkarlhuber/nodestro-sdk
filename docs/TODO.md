@@ -20,8 +20,9 @@
 Both clients are complete for their scope and contract-tested against the pinned API (nodestro-api `5ee13f7`, #79).
 The open work is mainly API coverage and dependency hygiene: some API areas have no client methods yet (SDK-003,
 SDK-014), and TypeScript 7 still breaks type generation with openapi-typescript 7.13.0, so Dependabot ignores
-TypeScript and `@types/node` majors since #79 (SDK-009, SDK-010). The two open Dependabot pull requests (#80 npm
-minor/patch group, #81 vitest 5) pass CI and wait for review.
+TypeScript and `@types/node` majors since #79 (SDK-009, SDK-010). Dependency round 2026-11-05: #80 (TypeScript
+5.9.3, `@types/node` 22.20.5) is merged; #81 (Vitest 5) is closed and Vitest majors are ignored until SDK-010 decides
+the Node.js range, because Vitest 5 does not support Node.js 20.
 
 ## Priorities and statuses
 
@@ -136,8 +137,11 @@ None known.
 - **Priority:** P3 Low · **Status:** Needs decision · **Refs:** #50, PR #41 (closed)
 - **What:** `engines` says `>=20`, and CI tests 20 and 22. Node 20 is end-of-life, and Node 24 LTS is untested.
   `@types/node` 26 type-checks, but it should follow the lowest supported Node major.
-- **Next step:** Choose the range, then update CI, `engines` and the README. `@types/node` majors are ignored by
-  Dependabot since round 3 (#41 closed); bump it together with the range.
+  Vitest 5 (Dependabot #81, closed 2026-11-05) declares `node: ^22.12.0 || ^24.0.0 || >=26.0.0`; its CI run on
+  Node 20 passed, but only because npm does not enforce `engines`. Node.js 22 is supported until 2027-04-30.
+- **Next step:** Choose the range (recommendation: `>=22.12`, CI 22 and 24), then update CI, `engines` and the
+  README. `@types/node` and Vitest majors are ignored by Dependabot (#41 and #81 closed); bump them together with the
+  range and remove both `ignore` rules.
 
 ### SDK-012 · Python package not published to PyPI, TypeScript package not on npm
 
@@ -172,6 +176,7 @@ None known.
 
 | This repo item | Other repo | Other item | Relation |
 |---|---|---|---|
+| (pointer) | nodestro-studio | ST-052 (Dependabot policy: weekly groups, cooldown, manual merge; auto-merge prerequisites) | Full entry in studio |
 | SDK-005 | nodestro-api | API-012 | needs the server contract |
 | (pointer) | nodestro-api | API-016, API-017, API-018, API-052, API-053 | new API fields reach the SDK by regenerating at the next pin |
 
