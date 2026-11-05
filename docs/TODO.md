@@ -3,7 +3,7 @@
 > Open work for this repository: release blockers, known bugs, security follow-ups, technical debt and planned improvements.
 > GitHub issues are the source of truth for details; this file is the entry point and summary.
 >
-> **Last full review:** 2026-11-04 against `master` at `4ec713e` (internal backend audit round 3).
+> **Last full review:** 2026-11-05 against `master` at `abdf686` (quality round 3 close-out; TODO consolidated).
 
 ## Summary
 
@@ -15,11 +15,13 @@
 | P3 Low | 6 |
 | P4 Optional | 5 |
 
-**Release blockers:** None for this repository.
+**Release blockers:** None for this repository; every entry below is not a release blocker.
 
-Both clients are complete for their scope and contract-tested against the pinned API. The open work is mainly
-dependency and CI hygiene: four Dependabot pull requests fail on a now-unneeded token check, and TypeScript 7
-breaks type generation. A few API features of 2026-11-01 also have no client methods yet.
+Both clients are complete for their scope and contract-tested against the pinned API (nodestro-api `5ee13f7`, #79).
+The open work is mainly API coverage and dependency hygiene: some API areas have no client methods yet (SDK-003,
+SDK-014), and TypeScript 7 still breaks type generation with openapi-typescript 7.13.0, so Dependabot ignores
+TypeScript and `@types/node` majors since #79 (SDK-009, SDK-010). The two open Dependabot pull requests (#80 npm
+minor/patch group, #81 vitest 5) pass CI and wait for review.
 
 ## Priorities and statuses
 
@@ -65,9 +67,9 @@ None known.
 ### SDK-003 · Further studio API areas only through the generated types
 
 - **Priority:** P4 Optional · **Status:** Open · **Refs:** `python/src/nodestro_client/client.py`, `typescript/src/client.ts`
-- **What:** The clients have no methods for batches, schedules, test series, knowledge, input files, per-call
-  tool approvals, exports, export jobs or local models; settings changes have `update_settings`/`updateSettings`
-  since round 3. Callers have to build the other requests themselves (the generated types cover them).
+- **What:** The clients have no methods for batches, schedules, test series, knowledge files and search, input
+  files, per-call tool approvals, exports or export jobs. Local models and the knowledge index have methods since
+  #71 (building from weights is SDK-014), settings changes have `update_settings`/`updateSettings` since #79. Callers have to build the other requests themselves (the generated types cover them).
 - **Next step:** Add methods for the areas that SDK users ask for, starting with batches and schedules.
 
 ### SDK-004 · Ergonomics of waits, event streams and downloads
@@ -117,7 +119,7 @@ None known.
 
 ### SDK-009 · TypeScript 7 (Dependabot #40) breaks type generation
 
-- **Priority:** P3 Low · **Status:** Blocked · **Refs:** #48, PR #40
+- **Priority:** P3 Low · **Status:** Blocked · **Refs:** #48, PR #40 (closed)
 - **What:**
   - Checked locally: `tsc --noEmit` and the build pass with 7.0.2.
   - openapi-typescript (7.8.0 and 7.13.0) crashes under TypeScript 7, because it needs the TypeScript 5 compiler
@@ -145,15 +147,16 @@ None known.
 - **Next step:** Decide whether to publish. If yes, add a tag-triggered release workflow with trusted publishing
   and provenance.
 
-### SDK-013 · No User-Agent or compatibility check
+### SDK-013 · No compatibility check against the API version
 
-- **Priority:** P4 Optional · **Status:** Open · **Refs:** backend audit round 2 API2-14 (still true in round 3)
-- **What:** Neither client sends a User-Agent or checks the API version it talks to.
-- **Next step:** Send `nodestro-client/<version>` and add `check_compatibility()` against `/api/meta`.
+- **Priority:** P4 Optional · **Status:** Open · **Refs:** backend audit round 2 API2-14, round 3 API3-12
+- **What:** Both clients send a User-Agent (`nodestro-sdk-python/<version>`, `nodestro-sdk-ts/<version>`, since
+  #67), but neither checks the API version it talks to.
+- **Next step:** Add `check_compatibility()`/`checkCompatibility()` against `/api/meta`.
 
 ### SDK-014 · `import_local_model` cannot build from weights
 
-- **Priority:** P3 Low · **Status:** Open · **Refs:** UX round 3 DX handover B11
+- **Priority:** P3 Low · **Status:** Open · **Refs:** UX round 3 DX handover B11 (B3 and B10 done in #79)
 - **What:** `import_local_model`/`importLocalModel` do not offer the API's import kind `build` with `template`.
 - **Next step:** Add the kind and the template argument in both clients, with a test against the test server.
 
@@ -170,7 +173,7 @@ None known.
 | This repo item | Other repo | Other item | Relation |
 |---|---|---|---|
 | SDK-005 | nodestro-api | API-012 | needs the server contract |
-| (pointer) | nodestro-api | API-016, API-017, API-018 | new API fields reach the SDK by regenerating at the next pin |
+| (pointer) | nodestro-api | API-016, API-017, API-018, API-052, API-053 | new API fields reach the SDK by regenerating at the next pin |
 
 ## CI access to private repositories
 
