@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin nodestro-api f796916 (api #90: no price check in the strict offline mode, `pricing.offline_sync`; server batches
+  and test series follow their runs; runtime 57b40d2, examples f015a4d). The OpenAPI document is unchanged.
 - Pin nodestro-api 5ee13f7 (api #87: backend audit round 3; runtime 40c8c06, examples 64e534a) and regenerate the types:
   `LocalOverview.hardware` may be `null` (a server's tenants), `GET /api/knowledge/search` takes `k` 1..50 and `q` up
   to 2000 characters, unknown workflow/run/publication ids answer `workflow.not_found`/`run.not_found`/
