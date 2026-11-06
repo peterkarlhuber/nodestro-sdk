@@ -6,7 +6,7 @@
 
 All additions; the package version stays 0.3.0 (already raised this round, not released).
 
-- Pins nodestro-api f98b08b (api #96: members routes, export delete route and quota, reindex jobs) and regenerates
+- Pins nodestro-api 8efbfbb (api #96: members routes, export delete route and quota, reindex jobs) and regenerates
   the OpenAPI document and the TypeScript types.
 
 - Event streams reconnect when asked (SDK-004): `reconnect=True` or a `RetryPolicy` on `events()`,
