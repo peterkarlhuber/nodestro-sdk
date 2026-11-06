@@ -135,6 +135,15 @@ class ArchitectEvent(TypedDict):
     type: str
 
 
+class ArchitectReasoning(TypedDict):
+    active: NotRequired[bool]
+    kind: NotRequired[Literal['thinking', 'summary'] | None]
+    phases: NotRequired[int]
+    redacted: NotRequired[bool]
+    step: NotRequired[str]
+    text: NotRequired[str]
+
+
 class ArchiveEntry(TypedDict):
     compressed: NotRequired[int]
     format: NotRequired[str | None]
@@ -275,6 +284,10 @@ class BodyInspectApiBackupInspectPost(TypedDict):
 class BodyParseBatchFileApiBatchesParsePost(TypedDict):
     file: str
     workflow_id: str
+
+
+class BodyUploadFilesApiAssistantConversationsConversationIdFilesPost(TypedDict):
+    files: list[str]
 
 
 class BodyUploadInputsApiInputsPost(TypedDict):
@@ -500,10 +513,26 @@ class ContractField(TypedDict):
     name: str
 
 
+class ConversationFile(TypedDict):
+    added_at: NotRequired[str]
+    chars: NotRequired[int]
+    format: str
+    group: str
+    id: str
+    info: NotRequired[dict[str, Any]]
+    media_type: str
+    name: str
+    notes: NotRequired[list[str]]
+    outline: NotRequired[str]
+    sent_at: NotRequired[str | None]
+    size: int
+
+
 class ConversationSummary(TypedDict):
     attachments: int
     cost_usd: float | None
     created_at: str
+    files: NotRequired[int]
     id: str
     messages: int
     title: str
@@ -721,12 +750,42 @@ class FileRequest(TypedDict):
     sanitize: NotRequired[bool]
 
 
+class FileSupport(TypedDict):
+    formats: list[dict[str, Any]]
+    images: bool
+    max_file_mb: NotRequired[int]
+    max_files_per_conversation: NotRequired[int]
+    max_files_per_message: NotRequired[int]
+    model: str
+    pdfs: bool
+
+
 class FileText(TypedDict):
     format: NotRequired[str | None]
     name: str
     tables: NotRequired[list[dict[str, Any]]]
     text: str
     truncated: NotRequired[bool]
+
+
+class FileView(TypedDict):
+    added_at: NotRequired[str]
+    chars: NotRequired[int]
+    format: str
+    group: str
+    id: str
+    info: NotRequired[dict[str, Any]]
+    knowledge_ids: NotRequired[list[str]]
+    media_type: str
+    mode: NotRequired[
+        Literal['text', 'document', 'image', 'ocr_text', 'overview', 'unavailable']
+    ]
+    mode_notes: NotRequired[list[str]]
+    name: str
+    notes: NotRequired[list[str]]
+    outline: NotRequired[str]
+    sent_at: NotRequired[str | None]
+    size: int
 
 
 class FormatsInfo(TypedDict):
@@ -857,8 +916,23 @@ class InputFileOut(TypedDict):
     size: int
 
 
+class JobLayer(TypedDict):
+    completed: NotRequired[int]
+    digest: str
+    total: NotRequired[int | None]
+
+
 class JobRequest(TypedDict):
     requirement: str
+
+
+class JobStep(TypedDict):
+    detail: NotRequired[str | None]
+    finished_at: NotRequired[str | None]
+    id: str
+    note: NotRequired[str | None]
+    started_at: NotRequired[str | None]
+    state: NotRequired[Literal['pending', 'running', 'done', 'skipped', 'failed']]
 
 
 class JudgeVerdict(TypedDict):
@@ -989,22 +1063,36 @@ class LocalJob(TypedDict):
     completed: NotRequired[int]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
+    eta_scope: NotRequired[Literal['job', 'file'] | None]
+    eta_seconds: NotRequired[int | None]
     finished_at: NotRequired[str | None]
     id: str
     kind: Literal[
         'pull',
         'build',
+        'setup',
         'install_runtime',
         'import_package',
         'import_gguf',
         'move_models',
         'benchmark',
     ]
+    layers: NotRequired[list[JobLayer]]
+    log: NotRequired[list[str]]
     message: NotRequired[str]
+    phase: NotRequired[str | None]
+    progress_step: NotRequired[str | None]
+    rate: NotRequired[float | None]
+    resumed_bytes: NotRequired[int]
+    retryable: NotRequired[bool]
+    stalled_seconds: NotRequired[int | None]
     started_at: str
     state: NotRequired[Literal['running', 'done', 'failed', 'cancelled']]
+    steps: NotRequired[list[JobStep]]
     target: str
     total: NotRequired[int | None]
+    total_final: NotRequired[bool]
+    updated_at: NotRequired[str | None]
 
 
 class LocalModelInfo(TypedDict):
@@ -1159,11 +1247,13 @@ class MemoryText(TypedDict):
     path: str
 
 
-class ModelCapabilities(TypedDict):
-    capabilities: NotRequired[
-        dict[str, Literal['supported', 'unsupported', 'unknown']] | None
-    ]
+class ModelAlternative(TypedDict):
+    context_window: NotRequired[int | None]
+    limited: NotRequired[bool]
+    local: bool
+    max_output_tokens: NotRequired[int | None]
     model: str
+    provider: str
 
 
 class ModelInfo(TypedDict):
@@ -1190,10 +1280,62 @@ class ModelInfo(TypedDict):
     tier: str
 
 
+class ModelLimitsInfo(TypedDict):
+    context_window: NotRequired[int | None]
+    efforts: NotRequired[list[str] | None]
+    max_output_tokens: NotRequired[int | None]
+    source: NotRequired[str]
+    thinking_budget: NotRequired[bool | None]
+    thinking_modes: NotRequired[list[str] | None]
+
+
 class ModelPolicy(TypedDict):
     min_pass_rate: NotRequired[float | None]
     no_new_failures: NotRequired[bool]
     objective: NotRequired[Literal['cost', 'duration', 'quality']]
+
+
+class ModelProblem(TypedDict):
+    action: str
+    actions: NotRequired[
+        list[
+            Literal[
+                'download',
+                'setup_server',
+                'retry',
+                'choose_model',
+                'ask_admin',
+                'open_settings',
+            ]
+        ]
+    ]
+    blocked: NotRequired[Literal['permission', 'operator', 'offline'] | None]
+    catalog: NotRequired[bool]
+    cause: Literal[
+        'model_missing',
+        'runtime_missing',
+        'server_stopped',
+        'server_unreachable',
+        'server_missing',
+        'model_name_invalid',
+        'disk_full',
+        'capability_missing',
+        'hardware_insufficient',
+    ]
+    download_bytes: NotRequired[int | None]
+    fits: NotRequired[bool | None]
+    free_bytes: NotRequired[int | None]
+    host: NotRequired[str | None]
+    job: NotRequired[LocalJob | None]
+    location: Literal['this_computer', 'container', 'remote', 'server']
+    memory_bytes: NotRequired[int | None]
+    missing_capabilities: NotRequired[list[str]]
+    mode: Literal['managed', 'container', 'external', 'unavailable']
+    model: str
+    name: str
+    offline: NotRequired[bool]
+    partial_bytes: NotRequired[int | None]
+    previous_job: NotRequired[LocalJob | None]
 
 
 class ModelSpeed(TypedDict):
@@ -1212,6 +1354,12 @@ class ModelUse(TypedDict):
         list[Literal['agent', 'fallback', 'judge', 'orchestrator', 'embedding']]
     ]
     used_by: NotRequired[list[str]]
+
+
+class NativeToolSupport(TypedDict):
+    available: bool
+    key: str
+    reason: NotRequired[str | None]
 
 
 class NeededRequirement(TypedDict):
@@ -1267,6 +1415,12 @@ class NewApiKey(TypedDict):
 
 class NewConversation(TypedDict):
     title: NotRequired[str]
+
+
+class OptionSupport(TypedDict):
+    available: bool
+    reason: NotRequired[str | None]
+    values: NotRequired[list[str] | None]
 
 
 class OrchestratorMember(TypedDict):
@@ -1524,6 +1678,7 @@ class ProviderSettingsIn(TypedDict):
         dict[str, Literal['supported', 'unsupported', 'unknown']] | None
     ]
     data_residency: NotRequired[str | None]
+    limits: NotRequired[dict[str, int] | None]
     profile_name: NotRequired[str | None]
     region: NotRequired[str | None]
 
@@ -1571,6 +1726,22 @@ class PublicationListItem(TypedDict):
     workflow_id: str
 
 
+class PublicationOverviewItem(TypedDict):
+    active_release: int | None
+    active_version: NotRequired[int | None]
+    created_at: str
+    enabled: bool
+    exports: NotRequired[list[ExportRecord]]
+    id: str
+    name: str
+    network: bool
+    published_at: NotRequired[str | None]
+    slug: str
+    updated_at: str
+    workflow_id: str
+    workflow_name: NotRequired[str | None]
+
+
 class PublicationPatch(TypedDict):
     description: NotRequired[str | None]
     limits: NotRequired[ApiLimits | None]
@@ -1580,6 +1751,7 @@ class PublicationPatch(TypedDict):
 
 
 class PullIn(TypedDict):
+    attach: NotRequired[bool]
     model: str
 
 
@@ -1604,6 +1776,65 @@ class QualityCriterion(TypedDict):
     description: str
     name: str
     required: NotRequired[bool]
+
+
+class Readiness(TypedDict):
+    alternatives: NotRequired[list[ModelAlternative]]
+    model: str
+    problem: NotRequired[ModelProblem | None]
+    ready: bool
+
+
+class ReadinessIn(TypedDict):
+    action: NotRequired[
+        Literal[
+            'architect',
+            'assistant',
+            'agent_design',
+            'agent_test',
+            'run',
+            'knowledge_index',
+            'check',
+        ]
+    ]
+    capabilities: NotRequired[
+        list[
+            Literal[
+                'tools',
+                'forced_tool_choice',
+                'parallel_tool_calls',
+                'strict_tool_schemas',
+                'structured_output',
+                'streaming',
+                'image_input',
+                'document_input',
+                'reasoning',
+                'caching',
+                'server_tools',
+                'native_memory_tool',
+                'token_counting',
+                'batch',
+                'system_messages',
+            ]
+        ]
+    ]
+    model: str
+
+
+class ReasoningStreamInfo(TypedDict):
+    reason: NotRequired[str]
+    request_option: NotRequired[str | None]
+    requested: NotRequired[bool | None]
+    status: NotRequired[bool]
+    text: NotRequired[Literal['thinking', 'summary', 'none', 'unknown']]
+
+
+class ReasoningTrace(TypedDict):
+    active: NotRequired[bool]
+    kind: NotRequired[Literal['thinking', 'summary'] | None]
+    phases: NotRequired[int]
+    redacted: NotRequired[bool]
+    text: NotRequired[str]
 
 
 class Recommendation(TypedDict):
@@ -1774,6 +2005,7 @@ class ResumeRequest(TypedDict):
 
 class RetryRequest(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
+    model: NotRequired[str | None]
 
 
 class ReviewDecision(TypedDict):
@@ -1983,14 +2215,32 @@ class SearchResult(TypedDict):
 
 
 class SendRequest(TypedDict):
-    content: str
+    content: NotRequired[str]
+    file_ids: NotRequired[list[str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
+    model: NotRequired[str | None]
+
+
+class SentFile(TypedDict):
+    chars: NotRequired[int]
+    file_id: str
+    format: NotRequired[str | None]
+    group: NotRequired[str | None]
+    mode: NotRequired[
+        Literal['text', 'document', 'image', 'ocr_text', 'overview', 'unavailable']
+        | None
+    ]
+    name: str
+    notes: NotRequired[list[str]]
+    size: NotRequired[int]
 
 
 class SettingsIn(TypedDict):
     api_key: NotRequired[str | None]
     architect_budget_usd: NotRequired[float | None]
     architect_max_repairs: NotRequired[int | None]
+    architect_retry_max_tokens: NotRequired[int | None]
+    architect_retry_truncated: NotRequired[bool | None]
     assistant_model: NotRequired[str | None]
     budget_decision_hours: NotRequired[int | None]
     clear_max_run_budget: NotRequired[bool | None]
@@ -2002,11 +2252,18 @@ class SettingsIn(TypedDict):
     local_reasoning: NotRequired[Literal['auto', 'full'] | None]
     max_run_budget_usd: NotRequired[float | str | None]
     ocr_enabled: NotRequired[bool | None]
+    output_limits: NotRequired[dict[str, int | None] | None]
     prefer_european_models: NotRequired[bool | None]
     price_mode: NotRequired[Literal['standard', 'strict'] | None]
     providers: NotRequired[dict[str, ProviderSettingsIn] | None]
+    reasoning_summaries: NotRequired[bool | None]
     sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker'] | None]
     strict_offline: NotRequired[bool | None]
+
+
+class SetupIn(TypedDict):
+    archive: NotRequired[str | None]
+    download: NotRequired[bool]
 
 
 class Snapshot(TypedDict):
@@ -2055,7 +2312,9 @@ class StdioCommand(TypedDict):
 class Step(TypedDict):
     at: NotRequired[str]
     detail: NotRequired[str]
-    kind: Literal['context', 'docs_search', 'docs_read', 'generate', 'handover']
+    kind: Literal[
+        'context', 'files', 'docs_search', 'docs_read', 'generate', 'handover'
+    ]
 
 
 class StepOut(TypedDict):
@@ -2691,6 +2950,7 @@ class AgentTestResult(TypedDict):
     model: str
     output: NotRequired[Any]
     prompt: str
+    reasoning: NotRequired[ReasoningTrace]
     reasoning_reduced: NotRequired[str | None]
     started_at: NotRequired[str]
     status: NotRequired[Literal['succeeded', 'failed']]
@@ -2865,11 +3125,13 @@ class ChatMessage(TypedDict):
     created_at: NotRequired[str]
     error: NotRequired[Problem | None]
     estimated: NotRequired[bool]
+    files: NotRequired[list[SentFile]]
     finished_at: NotRequired[str | None]
     handovers: NotRequired[list[Handover]]
     id: NotRequired[str]
     language: NotRequired[str | None]
     model: NotRequired[str | None]
+    reasoning: NotRequired[ReasoningTrace | None]
     reply_to: NotRequired[str | None]
     role: Literal['user', 'assistant']
     seq: int
@@ -2908,10 +3170,13 @@ class ConversationDetail(TypedDict):
     attachments: NotRequired[list[Attachment]]
     auto_title: NotRequired[bool]
     created_at: NotRequired[str]
+    file_states: NotRequired[list[FileView]]
+    files: NotRequired[list[ConversationFile]]
     history: NotRequired[list[ChatMessage]]
     id: NotRequired[str]
     last_seq: NotRequired[int]
     messages: NotRequired[int]
+    owner: NotRequired[str | None]
     streaming: NotRequired[str | None]
     title: NotRequired[str]
     updated_at: NotRequired[str]
@@ -2948,6 +3213,12 @@ class ExportedDefinition(TypedDict):
     packages: NotRequired[list[LockedPackage]]
     python_version: NotRequired[str]
     requirements: NotRequired[list[NeededRequirement]]
+
+
+class FileUpload(TypedDict):
+    file: NotRequired[FileView | None]
+    name: str
+    problem: NotRequired[Problem | None]
 
 
 class GateCheckIn(TypedDict):
@@ -3009,6 +3280,13 @@ class KnowledgeIndexStatus(TypedDict):
             'off', 'ready', 'incomplete', 'building', 'reindex_required', 'unavailable'
         ]
     ]
+
+
+class LiveAnswer(TypedDict):
+    question_id: str
+    reasoning: NotRequired[ReasoningTrace]
+    run_id: str
+    text: NotRequired[str]
 
 
 class LocalStatus(TypedDict):
@@ -3101,6 +3379,14 @@ class MemorySeed(TypedDict):
     files: list[MemorySeedFile]
 
 
+class ModelCapabilities(TypedDict):
+    capabilities: NotRequired[
+        dict[str, Literal['supported', 'unsupported', 'unknown']] | None
+    ]
+    model: str
+    reasoning: NotRequired[ReasoningStreamInfo | None]
+
+
 class ModelChoice(TypedDict):
     current_model: str
     measurements: NotRequired[list[Measurement]]
@@ -3113,6 +3399,18 @@ class ModelChoice(TypedDict):
     suite_id: str
     warnings: NotRequired[list[str]]
     workflow_id: str
+
+
+class ModelProfile(TypedDict):
+    capabilities: NotRequired[dict[str, Literal['supported', 'unsupported', 'unknown']]]
+    error: NotRequired[str | None]
+    limits: NotRequired[ModelLimitsInfo]
+    max_tokens_limit: int
+    model: str
+    native_tools: NotRequired[list[NativeToolSupport]]
+    options: NotRequired[dict[str, OptionSupport]]
+    provider: NotRequired[str | None]
+    reasons: NotRequired[dict[str, str]]
 
 
 class NodeRun(TypedDict):
@@ -3157,6 +3455,9 @@ class NodeRun(TypedDict):
     ]
     text: NotRequired[str]
     thinking: NotRequired[str]
+    thinking_kind: NotRequired[Literal['thinking', 'summary'] | None]
+    thinking_phases: NotRequired[int]
+    thinking_redacted: NotRequired[bool]
     tool_calls: NotRequired[list[ToolCallRecord]]
     usage: NotRequired[Usage]
 
@@ -3241,6 +3542,7 @@ class ProviderStatus(TypedDict):
     key_source: Literal['environment', 'settings', 'none', 'not_needed']
     key_stored: NotRequired[bool]
     label: str
+    limits: NotRequired[dict[str, int]]
     local_server: NotRequired[bool]
     operator_role: NotRequired[bool | None]
     profile_name: NotRequired[str | None]
@@ -3332,6 +3634,7 @@ class RunMessage(TypedDict):
     kind: Literal['question', 'instruction', 'answer']
     model: NotRequired[str | None]
     node_id: str
+    reasoning: NotRequired[ReasoningTrace | None]
     reply_to: NotRequired[str | None]
     run_id: str
     seq: NotRequired[int]
@@ -3460,11 +3763,15 @@ class ServerToolInfo(TypedDict):
     description: str
     key: str
     label: str
+    providers: NotRequired[list[str]]
+    unpriced_providers: NotRequired[list[str]]
 
 
 class Settings(TypedDict):
     architect_budget_usd: NotRequired[float | None]
     architect_max_repairs: NotRequired[int]
+    architect_retry_max_tokens: NotRequired[int]
+    architect_retry_truncated: NotRequired[bool]
     assistant_model: NotRequired[str]
     budget_decision_hours: NotRequired[int]
     builtin_sandbox: NotRequired[BuiltinSandboxStatus]
@@ -3481,9 +3788,12 @@ class Settings(TypedDict):
     ocr_available: NotRequired[bool]
     ocr_enabled: NotRequired[bool]
     operator_max_run_budget_usd: NotRequired[str | None]
+    output_limit_defaults: NotRequired[dict[str, int]]
+    output_limits: NotRequired[dict[str, int]]
     prefer_european_models: NotRequired[bool]
     price_mode: NotRequired[Literal['standard', 'strict']]
     providers: NotRequired[list[ProviderStatus]]
+    reasoning_summaries: NotRequired[bool]
     sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
     sandbox_backends: NotRequired[list[SandboxBackendStatus]]
     sandbox_selection: NotRequired[SandboxSelection]
@@ -3587,6 +3897,7 @@ class AgentConfig(TypedDict):
     system_prompt: NotRequired[str]
     task_template: NotRequired[str]
     thinking: NotRequired[Literal['adaptive', 'between_tools', 'disabled'] | None]
+    thinking_budget: NotRequired[int | None]
     thinking_display: NotRequired[Literal['summarized', 'omitted', 'updates'] | None]
     tool_choice: NotRequired[ToolChoice]
     tool_policies: NotRequired[dict[str, ToolBinding]]
@@ -3825,6 +4136,7 @@ class Node(TypedDict):
 class RunChatView(TypedDict):
     active: bool
     answer_model: str
+    answering: NotRequired[list[LiveAnswer]]
     limits: ChatLimits
     max_chars: NotRequired[int]
     messages: list[RunMessage]
@@ -3902,6 +4214,7 @@ class ArchitectJob(TypedDict):
     phase: NotRequired[str | None]
     phases: NotRequired[list[str]]
     question: NotRequired[str | None]
+    reasoning: NotRequired[list[ArchitectReasoning]]
     repairs: NotRequired[int]
     result_workflow_id: NotRequired[str | None]
     status: NotRequired[
@@ -3928,6 +4241,7 @@ class ArchitectRequest(TypedDict):
     generate_tools: NotRequired[bool]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
     mode: NotRequired[Literal['create', 'revise']]
+    model: NotRequired[str | None]
     name: NotRequired[str]
     skip_questions: NotRequired[bool]
     workflow: NotRequired[WorkflowIn | None]
