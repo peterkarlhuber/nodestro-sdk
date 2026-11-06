@@ -4,6 +4,28 @@
  */
 
 export interface paths {
+    "/api/access-audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Access Audit Events
+         * @description The access audit trail of this workspace (on a server: of the tenant), newest first (API-004): logins and
+         *     refused logins, tenant switches and logouts, API key changes, and the operator's tenant and member commands.
+         *     Read only; it never holds a secret.
+         */
+        get: operations["access_audit_events_api_access_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents/design": {
         parameters: {
             query?: never;
@@ -4607,6 +4629,43 @@ export interface components {
              */
             name: string;
         };
+        /**
+         * AccessEvent
+         * @description One entry of a tenant's access audit trail.
+         */
+        AccessEvent: {
+            /** Actor */
+            actor: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id?: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked";
+            /**
+             * Outcome
+             * @default success
+             * @enum {string}
+             */
+            outcome: "success" | "denied";
+            /** Target Id */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "user" | "api_key" | "tenant" | "session";
+        };
         /** ActivateIn */
         ActivateIn: {
             /** Number */
@@ -5845,6 +5904,8 @@ export interface components {
              * @enum {string}
              */
             kind: "batch" | "benchmark";
+            /** Lease Until */
+            lease_until?: string | null;
             /** Max Cost Usd */
             max_cost_usd?: number | null;
             /** Max Failures */
@@ -5858,6 +5919,8 @@ export interface components {
              * @default
              */
             name: string;
+            /** Owner */
+            owner?: string | null;
             /** Ref */
             ref?: string | null;
             /**
@@ -6152,10 +6215,14 @@ export interface components {
              */
             judge: boolean;
             judge_usage?: components["schemas"]["Usage"];
+            /** Lease Until */
+            lease_until?: string | null;
             /** Models */
             models?: {
                 [key: string]: string;
             };
+            /** Owner */
+            owner?: string | null;
             /** Results */
             results?: components["schemas"]["CaseResult"][];
             /**
@@ -15131,6 +15198,38 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    access_audit_events_api_access_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessEvent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     design_agent_api_agents_design_post: {
         parameters: {
             query?: never;

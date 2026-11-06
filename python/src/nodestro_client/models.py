@@ -12,6 +12,30 @@ class AcceptRequest(TypedDict):
     name: NotRequired[str]
 
 
+class AccessEvent(TypedDict):
+    actor: str
+    at: NotRequired[str]
+    details: NotRequired[dict[str, Any]]
+    id: NotRequired[str]
+    kind: Literal[
+        'login',
+        'logout',
+        'tenant_switched',
+        'api_key_created',
+        'api_key_revoked',
+        'api_key_rotated',
+        'api_key_deleted',
+        'tenant_created',
+        'tenant_status_changed',
+        'role_changed',
+        'member_removed',
+        'sessions_revoked',
+    ]
+    outcome: NotRequired[Literal['success', 'denied']]
+    target_id: str
+    target_type: Literal['user', 'api_key', 'tenant', 'session']
+
+
 class ActivateIn(TypedDict):
     number: int
 
@@ -3988,10 +4012,12 @@ class Batch(TypedDict):
     id: NotRequired[str]
     items: NotRequired[list[BatchItem]]
     kind: NotRequired[Literal['batch', 'benchmark']]
+    lease_until: NotRequired[str | None]
     max_cost_usd: NotRequired[float | None]
     max_failures: NotRequired[int | None]
     model_overrides: NotRequired[dict[str, str]]
     name: NotRequired[str]
+    owner: NotRequired[str | None]
     ref: NotRequired[str | None]
     status: NotRequired[
         Literal['running', 'paused', 'finished', 'cancelled', 'stopped', 'interrupted']
@@ -4013,7 +4039,9 @@ class BenchmarkRun(TypedDict):
     id: NotRequired[str]
     judge: NotRequired[bool]
     judge_usage: NotRequired[Usage]
+    lease_until: NotRequired[str | None]
     models: NotRequired[dict[str, str]]
+    owner: NotRequired[str | None]
     results: NotRequired[list[CaseResult]]
     status: NotRequired[
         Literal[
