@@ -30,12 +30,9 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
-    # TypeScript 7 breaks openapi-typescript (SDK-009); @types/node follows the lowest supported Node major (SDK-010);
-    # Vitest 5 supports only Node.js ^22.12, ^24 and >=26, while the SDK still supports and tests Node.js 20 (SDK-010).
+    # TypeScript 7 breaks openapi-typescript (SDK-009); @types/node follows the lowest supported Node.js major (22).
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
       - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: vitest
         update-types: ["version-update:semver-major"]
