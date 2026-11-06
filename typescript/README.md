@@ -6,7 +6,7 @@ by Nodestro or by a standalone export). ES modules with type definitions, promis
 `fetch`; no runtime dependencies.
 
 Runs on Node.js 22.12 and later (tested with 22 and 24) and in browsers with `fetch`, `AbortSignal.timeout` and Web
-Streams (tested with Chromium; see [Browsers](#browsers)).
+Streams; Bun and Deno work too (see [Runtimes and browsers](#runtimes-and-browsers)).
 
 ## Installation
 
@@ -224,7 +224,26 @@ formats; any other answer (a proxy page, an empty body) gets code `http_error`, 
 (`npm run generate`); the clients return these types (`Run`, `Workflow`, `RunStatusOut`, `ResultFile`, ...).
 `API_VERSION` names the API version of that contract.
 
-## Browsers
+## Runtimes and browsers
+
+`scripts/check_runtimes.sh node bun deno chromium firefox webkit` (from the repository root) builds the package,
+starts the test server and runs the same smoke checks (`smoke/checks.mjs`: the API version, an API error, a run
+with its event stream and `reconnect`, `downloadFile` and `streamFile`, an aborted wait, a published workflow with
+its events and a streamed file) in each runtime; the browsers load the built package from a page on the API's own
+origin (Playwright). The CI job `runtimes` runs it on Linux; macOS and Windows run there as well but are not
+required yet.
+
+| Runtime | Result | Where |
+| --- | --- | --- |
+| Node.js 22.23 and 24.22 | all tests and smoke checks pass | Linux, 2026-11-06 |
+| Bun 1.4.4 | smoke checks pass | Linux, 2026-11-06 |
+| Deno 2.9.6 | smoke checks pass | Linux, 2026-11-06 |
+| Chromium 153 (Playwright 1.63.0) | smoke checks pass | Linux, 2026-11-06 |
+| Firefox 155 (Playwright 1.63.0) | smoke checks pass | Linux, 2026-11-06 |
+| WebKit (Playwright 1.63.0) | in CI (`runtimes`) only | Linux |
+| Safari, Windows and macOS hosts, a `nodestro-server` deployment | not verified | |
+
+### Browsers
 
 - **Same origin only.** The Nodestro API sends CORS headers only for the studio's development server, so a page
   can call it only when it is served from the same origin as the API (for example behind one reverse proxy).
