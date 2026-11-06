@@ -13,8 +13,8 @@ Streams (tested with Chromium; see [Browsers](#browsers)).
 The package is not published to a registry. Build it from a checkout at the commit you want:
 
 ```bash
-cd typescript && npm ci && npm run build && npm pack    # -> nodestro-client-0.2.0.tgz
-npm install /path/to/nodestro-client-0.2.0.tgz         # in your project
+cd typescript && npm ci && npm run build && npm pack    # -> nodestro-client-0.3.0.tgz
+npm install /path/to/nodestro-client-0.3.0.tgz         # in your project
 ```
 
 ## Quickstart
@@ -97,12 +97,31 @@ Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refuse
   once, also during a pause, with the signal's reason; the run keeps running.
 - `events()` is an async generator of `{ event, data, id }` until the run ends. Leaving the `for await` loop
   (`break`, `return`, an exception) closes the connection; `signal` (an `AbortSignal`) stops it from outside, and
-  the abort error is passed on unchanged. An event the connection broke off in the middle of is dropped.
-  Connections are not re-established automatically: call `events(runId, { lastEventId })` with the id of the last
-  event to receive what was missed.
+  the abort error is passed on unchanged. An event the connection broke off in the middle of is dropped. By
+  default a lost connection throws `NodestroConnectionError`; `events(runId, { lastEventId })` with the id of the
+  last event then receives what was missed.
+- `{ reconnect: true }` (or a `RetryPolicy`) on `events()`, `runChatEvents()` and the published `events()`
+  reconnects by itself after a lost connection, a stream that ends before its `end` event or a 502/503/504, with
+  growing pauses (`DEFAULT_RECONNECT`: 1 s doubling up to 15 s), until `end`. The published stream resumes with
+  `Last-Event-ID`: a new `status` event, then every missed event, none twice. The studio streams have no event ids;
+  each connection starts with a new `snapshot` of the whole run or chat. `attempts` counts connection attempts in a
+  row without progress (no event after the opening one and open for less than a minute); then the last error is
+  thrown. 401/403/404 and other refusals are thrown at once. `signal` ends the stream also during the pause before
+  a reconnect:
+
+  ```ts
+  const controller = new AbortController(); // controller.abort() ends the loop with an AbortError
+  for await (const event of api.events(runId, { reconnect: true, signal: controller.signal })) console.log(event.event);
+  ```
 - `start(values, { waitSeconds })` waits for the result on the server when the publication allows it; the request
   time limit is extended by `waitSeconds`.
-- Downloads (`downloadFile()`, `download()`) return the whole file as a `Uint8Array`.
+- Downloads (`downloadFile()`, `download()`) return the whole file as a `Uint8Array`. For large files,
+  `streamFile(runId, fileId, { signal, timeoutMs })` (both clients) returns a `ReadableStream<Uint8Array>` that
+  reads the body only as it is consumed. A body that breaks off (fewer bytes than announced, a lost connection)
+  errors the stream with `NodestroConnectionError`, a stall of `timeoutMs` (per piece, not for the whole file) with
+  `NodestroTimeoutError`; cancel the stream or abort `signal` to stop early. Failures before the content starts
+  (connection errors, 502/503/504) are retried. In Node.js, write it to a file with
+  `await pipeline(Readable.fromWeb(stream), createWriteStream(path))` (and remove the file if that throws).
 - A run that waits for a person is `paused`, and `waitForRun()` returns it (unless `stopAtApproval: false`). A
   budget wait has `run.budget?.pending_request_id` set; answer it as described under "Run budgets".
 

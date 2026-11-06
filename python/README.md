@@ -104,12 +104,32 @@ Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refuse
 - `events()` yields `Event(event, data, id)` until the run ends. `timeout` there limits the wait for the next line
   (the API sends a keep-alive every 15 seconds). Leaving the loop closes the connection once the generator is
   collected; to close it at once, use `contextlib.closing(nodestro.events(run_id))` or call `.close()`.
-- An event the connection broke off in the middle of is dropped. Connections are not re-established
-  automatically: call `PublishedWorkflow.events(run_id, last_event_id=<id of the last event>)` to receive what
-  was missed.
+- An event the connection broke off in the middle of is dropped. By default a lost connection raises
+  `NodestroConnectionError` (a stall `NodestroTimeoutError`); `PublishedWorkflow.events(run_id,
+  last_event_id=<id of the last event>)` then receives what was missed.
+- `reconnect=True` (or a `RetryPolicy`) on `events()`, `run_chat_events()` and `PublishedWorkflow.events()`
+  reconnects by itself after a lost connection, a stall, a stream that ends before its `end` event or a
+  502/503/504, with growing pauses (`DEFAULT_RECONNECT`: 1 s doubling up to 15 s), until `end`. The published
+  stream resumes with `Last-Event-ID`: a new `status` event, then every missed event, none twice. The studio
+  streams have no event ids; each connection starts with a new `snapshot` of the whole run or chat. `attempts`
+  counts connection attempts in a row without progress (no event after the opening one and open for less than a
+  minute); then the last error is raised. 401/403/404 and other refusals are raised at once.
+  `stop=threading.Event()` ends the loop without an error, also during the pause before a reconnect:
+
+  ```python
+  stop = threading.Event()  # stop.set() from another thread ends the loop
+  for event in api.events(run_id, reconnect=True, timeout=60, stop=stop):
+      print(event.event, event.id)
+  ```
 - `start(values, wait=seconds)` waits for the result on the server when the publication allows it; the request
   timeout is extended by `wait`.
-- Downloads (`download_file()`, `download()`) return the whole file as `bytes`.
+- Downloads (`download_file()`, `download()`) return the whole file as `bytes`. For large files,
+  `stream_file(run_id, file_id, chunk_size=65536)` (both clients) yields the content in chunks as they arrive,
+  and `save_file(run_id, file_id, path_or_binary_file)` writes it to disk without holding it in memory. A
+  download that breaks off (fewer bytes than announced, a lost connection) raises `NodestroConnectionError`, a
+  stall of `timeout` `NodestroTimeoutError`. `save_file` to a path writes a temporary file next to it and
+  replaces the path only when the whole file arrived (no partial file is left behind); a file object keeps the
+  part that arrived. Failures before the content starts (connection errors, 502/503/504) are retried.
 - A run that waits for a person is `paused`, and `wait_for_run()` returns it (unless `stop_at_approval=False`). A
   budget wait has `run["budget"]["pending_request_id"]` set; answer it as described under "Run budgets".
 

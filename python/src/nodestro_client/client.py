@@ -8,15 +8,28 @@ API: :class:`~nodestro_client.published.PublishedWorkflow`.
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
+import contextlib
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Literal, cast
+import os
+import threading
+from typing import IO, Any, Literal, cast
 import uuid
 
 import httpx
 
 from . import models
-from ._http import API_VERSION, Event, RetryPolicy, Transport, path_segment, poll_until
+from ._http import (
+    API_VERSION,
+    DOWNLOAD_CHUNK,
+    Event,
+    RetryPolicy,
+    Transport,
+    path_segment,
+    poll_until,
+    reconnect_policy,
+    save_chunks,
+)
 from .errors import NodestroRunFailed
 
 
@@ -378,22 +391,63 @@ class NodestroClient:
             raise NodestroRunFailed(cast(dict[str, Any], run))
         return run
 
-    def events(self, run_id: str, *, timeout: float | None = None) -> Generator[Event, None, None]:
+    def events(
+        self,
+        run_id: str,
+        *,
+        timeout: float | None = None,
+        reconnect: bool | RetryPolicy = False,
+        stop: threading.Event | None = None,
+    ) -> Generator[Event, None, None]:
         """The live events of a run: ``snapshot`` (the run), ``event`` (one step), ``end``.
 
         The connection stays open until the run ends. Leaving the loop early closes it when the
         generator is collected; ``with contextlib.closing(nodestro.events(run_id)) as events:``
         closes it at once. ``timeout`` limits the wait for the next line in seconds.
+
+        ``reconnect`` (``True`` or a :class:`RetryPolicy`) connects again after a lost connection
+        or a stall, with growing pauses, until ``end``. This stream has no event ids: every
+        connection starts with a new ``snapshot`` (the whole run as it is now), and the steps
+        between the lost connection and that snapshot are not delivered one by one. ``stop`` (a
+        :class:`threading.Event`) ends the iteration, also during the pause before a reconnect.
         """
-        return self._http.events(f"/api/runs/{path_segment(run_id)}/events", timeout=timeout)
+        return self._http.events(
+            f"/api/runs/{path_segment(run_id)}/events",
+            timeout=timeout,
+            reconnect=reconnect_policy(reconnect),
+            stop=stop,
+        )
 
     def run_files(self, run_id: str) -> list[models.ResultFile]:
         """The result files of a run (documents written by its output steps)."""
         return cast(list[models.ResultFile], self._http.json("GET", f"/api/runs/{path_segment(run_id)}/files"))
 
     def download_file(self, run_id: str, file_id: str) -> bytes:
-        """The content of a result file (held in memory as a whole)."""
+        """The content of a result file (held in memory as a whole; see :meth:`stream_file` for large files)."""
         return self._http.request("GET", f"/api/runs/{path_segment(run_id)}/files/{path_segment(file_id)}").content
+
+    def stream_file(
+        self, run_id: str, file_id: str, *, chunk_size: int = DOWNLOAD_CHUNK
+    ) -> Generator[bytes, None, None]:
+        """The content of a result file in chunks, never held in memory as a whole.
+
+        The request is sent at the first ``next()``. A download that breaks off raises
+        :class:`NodestroConnectionError` (or :class:`NodestroTimeoutError` after a stall of the
+        client's ``timeout``). Leaving the loop early closes the connection when the generator is
+        collected; ``contextlib.closing(...)`` closes it at once.
+        """
+        return self._http.download(
+            f"/api/runs/{path_segment(run_id)}/files/{path_segment(file_id)}", chunk_size=chunk_size
+        )
+
+    def save_file(self, run_id: str, file_id: str, target: str | os.PathLike[str] | IO[bytes]) -> int:
+        """Stream a result file to ``target`` (a path or a binary file object); returns the bytes written.
+
+        A path is replaced only when the whole file arrived (a broken download leaves no partial
+        file); a file object holds what arrived before an error.
+        """
+        with contextlib.closing(self.stream_file(run_id, file_id)) as chunks:
+            return save_chunks(chunks, target)
 
     # ---- people in the loop and continued runs -------------------------------------------
 
@@ -535,16 +589,28 @@ class NodestroClient:
             self._http.json("GET", f"/api/runs/{path_segment(run_id)}/chat/messages/{path_segment(message_id)}"),
         )
 
-    def run_chat_events(self, run_id: str, *, timeout: float | None = None) -> Generator[Event, None, None]:
+    def run_chat_events(
+        self,
+        run_id: str,
+        *,
+        timeout: float | None = None,
+        reconnect: bool | RetryPolicy = False,
+        stop: threading.Event | None = None,
+    ) -> Generator[Event, None, None]:
         """The live events of a run's chat: ``snapshot`` (the whole view, on every connect), ``message`` (a new
         or changed message), ``targets`` (what the orchestrators do now), ``end`` (the run ended and no answer is
         pending, or access ended).
 
         A reconnect gets a new snapshot. Leaving the loop early closes the connection when the generator is
         collected; ``with contextlib.closing(...)`` closes it at once. ``timeout`` limits the wait for the next
-        line in seconds.
+        line in seconds. ``reconnect`` and ``stop`` work as in :meth:`events`.
         """
-        return self._http.events(f"/api/runs/{path_segment(run_id)}/chat/events", timeout=timeout)
+        return self._http.events(
+            f"/api/runs/{path_segment(run_id)}/chat/events",
+            timeout=timeout,
+            reconnect=reconnect_policy(reconnect),
+            stop=stop,
+        )
 
     # ---- agents, tools, examples ---------------------------------------------------------
 

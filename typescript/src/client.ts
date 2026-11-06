@@ -8,7 +8,17 @@
 
 import type { components } from "./generated/openapi.js";
 import { type NodestroClientError, NodestroRunFailed } from "./errors.js";
-import { API_VERSION, type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pathSegment, pollUntil } from "./http.js";
+import {
+  API_VERSION,
+  type ClientOptions,
+  type DownloadOptions,
+  type EventStreamOptions,
+  type ServerEvent,
+  Transport,
+  newIdempotencyKey,
+  pathSegment,
+  pollUntil,
+} from "./http.js";
 
 export type Schemas = components["schemas"];
 
@@ -360,8 +370,13 @@ export class NodestroClient {
   /**
    * The live events of a run: `snapshot` (the run), `event` (one step), `end`. Leaving the
    * `for await` loop (or aborting `signal`) closes the connection.
+   *
+   * `reconnect` (`true` or a retry policy) connects again after a lost connection, until `end` (see
+   * {@link EventStreamOptions}). This stream has no event ids: every connection starts with a new `snapshot` (the
+   * whole run as it is now), and the steps between the lost connection and that snapshot are not delivered one by
+   * one. Aborting `signal` also ends the pause before a reconnect.
    */
-  async *events(runId: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<ServerEvent> {
+  async *events(runId: string, options: EventStreamOptions = {}): AsyncGenerator<ServerEvent> {
     yield* this.http.events(`/api/runs/${enc(runId)}/events`, options);
   }
 
@@ -370,9 +385,20 @@ export class NodestroClient {
     return this.http.json("GET", `/api/runs/${enc(runId)}/files`);
   }
 
-  /** The content of a result file (held in memory as a whole). */
+  /** The content of a result file (held in memory as a whole; see {@link streamFile} for large files). */
   async downloadFile(runId: string, fileId: string): Promise<Uint8Array> {
     return this.http.bytes("GET", `/api/runs/${enc(runId)}/files/${enc(fileId)}`);
+  }
+
+  /**
+   * The content of a result file as a `ReadableStream`, never held in memory as a whole. The promise resolves when
+   * the answer arrived (errors such as 404 reject it); a body that breaks off errors the stream with a
+   * {@link NodestroConnectionError} (a stall of `timeoutMs`: {@link NodestroTimeoutError}). Cancel the stream (or
+   * abort `signal`) to stop early. In Node.js, `stream/promises` `pipeline(Readable.fromWeb(stream), file)` writes it
+   * to a file.
+   */
+  async streamFile(runId: string, fileId: string, options: DownloadOptions = {}): Promise<ReadableStream<Uint8Array>> {
+    return this.http.download(`/api/runs/${enc(runId)}/files/${enc(fileId)}`, options);
   }
 
   // ---- people in the loop and continued runs
@@ -488,9 +514,9 @@ export class NodestroClient {
    * The live events of a run's chat: `snapshot` (the whole view, on every connect), `message` (a new or changed
    * message), `targets` (what the orchestrators do now), `end` (the run ended and no answer is pending, or access
    * ended). A reconnect gets a new snapshot. Leaving the `for await` loop (or aborting `signal`) closes the
-   * connection.
+   * connection. `reconnect` works as in {@link events}.
    */
-  async *runChatEvents(runId: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<ServerEvent> {
+  async *runChatEvents(runId: string, options: EventStreamOptions = {}): AsyncGenerator<ServerEvent> {
     yield* this.http.events(`/api/runs/${enc(runId)}/chat/events`, options);
   }
 
