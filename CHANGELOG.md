@@ -6,6 +6,9 @@
 
 All additions; the package version stays 0.3.0 (already raised this round, not released).
 
+- Pins nodestro-api d6f5041 (api #96: members routes, export delete route and quota, reindex jobs) and regenerates
+  the OpenAPI document and the TypeScript types.
+
 - Event streams reconnect when asked (SDK-004): `reconnect=True` or a `RetryPolicy` on `events()`,
   `run_chat_events()` and `PublishedWorkflow.events()` (TypeScript: `{ reconnect: true }`). Bounded exponential
   backoff (`DEFAULT_RECONNECT`: 5 attempts in a row without progress, 1 s up to 15 s); the published stream resumes
