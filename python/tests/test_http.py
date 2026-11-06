@@ -451,6 +451,26 @@ def test_waiting_ends_at_the_timeout_even_with_a_long_poll_interval() -> None:
     assert paused.wait_for_run("run_1", timeout=0)["status"] == "paused"
 
 
+def test_each_status_request_of_a_wait_gets_the_time_that_is_left() -> None:
+    """SDK-004: the whole wait keeps to ``timeout``: a status request is limited to the time left (at least 0.5 s),
+    never the client's longer request timeout; the published client does the same."""
+    limits: list[float] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        limits.append(request.extensions["timeout"]["read"])
+        return httpx.Response(200, json={"id": "run_1", "run_id": "run_1", "status": "running"})
+
+    http = httpx.Client(base_url="http://nodestro.test", transport=httpx.MockTransport(handler))
+    client = NodestroClient("http://nodestro.test", retry=FAST, http_client=http, timeout=60)
+    with pytest.raises(NodestroTimeoutError):
+        client.wait_for_run("run_1", timeout=2, poll=0.6)
+    assert len(limits) >= 2 and limits[0] <= 2 and all(0.5 <= limit < limits[0] for limit in limits[1:])
+    limits.clear()
+    with pytest.raises(NodestroTimeoutError):
+        published_with(handler, timeout=60).wait("run_1", timeout=1, poll=0.4)
+    assert limits and all(0.5 <= limit <= 1 for limit in limits)
+
+
 # ---- event streams ----------------------------------------------------------------------------
 
 

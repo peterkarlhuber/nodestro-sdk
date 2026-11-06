@@ -113,28 +113,51 @@ export async function pollUntil<T extends { status?: string }>(
   fetch: () => Promise<T>,
   done: (found: T) => boolean,
   runId: string,
-  options: { timeoutMs?: number; pollMs?: number },
+  options: { timeoutMs?: number; pollMs?: number; signal?: AbortSignal },
 ): Promise<T> {
   const timeoutMs = options.timeoutMs ?? 300_000;
   const pollMs = checkTimeout("pollMs", options.pollMs ?? 500);
   if (!Number.isFinite(timeoutMs) || timeoutMs < 0) throw new RangeError(`timeoutMs must be a number >= 0, not ${timeoutMs}`);
+  const { signal } = options;
   const deadline = Date.now() + timeoutMs;
   for (;;) {
+    signal?.throwIfAborted();
     const found = await fetch();
+    signal?.throwIfAborted();
     if (done(found)) return found;
     const left = deadline - Date.now();
     if (left <= 0) throw new NodestroTimeoutError(`Run ${runId} is still ${found.status} after ${timeoutMs} ms`);
-    await sleep(Math.min(pollMs, left));
+    await pause(Math.min(pollMs, left), signal);
   }
 }
 
+/** Waits `ms`; an aborted `signal` ends the wait at once with its reason. */
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  if (!signal) return sleep(ms).then(() => undefined);
+  return new Promise((resolve, reject) => {
+    const stop = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", stop);
+      resolve();
+    }, ms);
+    if (signal.aborted) stop();
+    else signal.addEventListener("abort", stop, { once: true });
+  });
+}
+
 /** The version of this package (package.json; a test checks they agree). */
-export const SDK_VERSION = "0.2.0";
+export const SDK_VERSION = "0.3.0";
 /**
  * Sent with every request (API2-14), so the server's logs show which SDK and version called; a `User-Agent` in the
  * client's `headers` wins. (Browsers may keep their own.)
  */
 export const USER_AGENT = `nodestro-sdk-ts/${SDK_VERSION}`;
+
+/** The version of the Nodestro API whose OpenAPI document the types were generated from. */
+export const API_VERSION = "0.2.0";
 
 export class Transport {
   readonly baseUrl: string;

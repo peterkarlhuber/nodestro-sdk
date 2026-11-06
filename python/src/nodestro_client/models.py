@@ -12,6 +12,30 @@ class AcceptRequest(TypedDict):
     name: NotRequired[str]
 
 
+class AccessEvent(TypedDict):
+    actor: str
+    at: NotRequired[str]
+    details: NotRequired[dict[str, Any]]
+    id: NotRequired[str]
+    kind: Literal[
+        'login',
+        'logout',
+        'tenant_switched',
+        'api_key_created',
+        'api_key_revoked',
+        'api_key_rotated',
+        'api_key_deleted',
+        'tenant_created',
+        'tenant_status_changed',
+        'role_changed',
+        'member_removed',
+        'sessions_revoked',
+    ]
+    outcome: NotRequired[Literal['success', 'denied']]
+    target_id: str
+    target_type: Literal['user', 'api_key', 'tenant', 'session']
+
+
 class ActivateIn(TypedDict):
     number: int
 
@@ -38,6 +62,7 @@ class AgentModel(TypedDict):
     name: str
     needs: NotRequired[list[str]]
     part: NotRequired[str | None]
+    part_name: NotRequired[str | None]
     reasons: NotRequired[list[str]]
     suggested: NotRequired[str | None]
     task: str
@@ -141,6 +166,7 @@ class ArchitectReasoning(TypedDict):
     phases: NotRequired[int]
     redacted: NotRequired[bool]
     step: NotRequired[str]
+    subject: NotRequired[str | None]
     text: NotRequired[str]
 
 
@@ -513,6 +539,13 @@ class ContractField(TypedDict):
     name: str
 
 
+class ContractFieldSummary(TypedDict):
+    description: NotRequired[str]
+    name: str
+    required: NotRequired[bool]
+    type: str
+
+
 class ConversationFile(TypedDict):
     added_at: NotRequired[str]
     chars: NotRequired[int]
@@ -650,6 +683,16 @@ class EnvironmentInfo(TypedDict):
     size_bytes: NotRequired[int]
 
 
+class ErrorCode(TypedDict):
+    params: NotRequired[list[str]]
+    source: Literal['runtime', 'api', 'both']
+
+
+class ErrorCodeCatalog(TypedDict):
+    codes: dict[str, ErrorCode]
+    patterns: NotRequired[list[str]]
+
+
 class ErrorOut(TypedDict):
     code: str
     message: str
@@ -679,6 +722,7 @@ class ExportJob(TypedDict):
     created_at: NotRequired[str]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
+    error_params: NotRequired[dict[str, Any]]
     export_id: NotRequired[str | None]
     finished_at: NotRequired[str | None]
     id: NotRequired[str]
@@ -1693,6 +1737,16 @@ class ProviderVerifyIn(TypedDict):
     model: NotRequired[str | None]
 
 
+class PublicationBudget(TypedDict):
+    daily_budget_usd: NotRequired[float | None]
+    exhausted: NotRequired[bool]
+    last_24h_usd: NotRequired[float]
+    name: str
+    publication_id: str
+    run_budget_usd: NotRequired[float | None]
+    slug: str
+
+
 class PublicationEvent(TypedDict):
     at: NotRequired[str]
     details: NotRequired[dict[str, Any]]
@@ -1731,6 +1785,7 @@ class PublicationOverviewItem(TypedDict):
     active_version: NotRequired[int | None]
     created_at: str
     enabled: bool
+    export_jobs: NotRequired[list[ExportJob]]
     exports: NotRequired[list[ExportRecord]]
     id: str
     name: str
@@ -2051,6 +2106,13 @@ class RunBudgetOut(TypedDict):
     unknown_cost: NotRequired[bool]
 
 
+class RunCause(TypedDict):
+    code: str
+    label: str
+    node_id: str
+    params: NotRequired[dict[str, Any]]
+
+
 class RunIn(TypedDict):
     file_ids: NotRequired[list[str]]
     input: NotRequired[str]
@@ -2204,7 +2266,9 @@ class SearchHit(TypedDict):
 class SearchResult(TypedDict):
     favorite: NotRequired[bool]
     id: str
-    kind: Literal['workflow', 'agent', 'template', 'tool', 'knowledge', 'example']
+    kind: Literal[
+        'workflow', 'agent', 'template', 'tool', 'knowledge', 'example', 'run'
+    ]
     node_id: NotRequired[str | None]
     score: NotRequired[float]
     snippet: NotRequired[str]
@@ -2233,6 +2297,28 @@ class SentFile(TypedDict):
     name: str
     notes: NotRequired[list[str]]
     size: NotRequired[int]
+
+
+class SettingsDefaults(TypedDict):
+    architect_budget_usd: NotRequired[float | None]
+    architect_max_repairs: NotRequired[int]
+    architect_retry_max_tokens: NotRequired[int]
+    architect_retry_truncated: NotRequired[bool]
+    assistant_model: str
+    budget_decision_hours: NotRequired[int]
+    default_budget_usd: NotRequired[float | None]
+    default_model: str
+    embedding_model: NotRequired[str | None]
+    knowledge_retrieval: NotRequired[Literal['fts', 'vector', 'hybrid']]
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    local_reasoning: NotRequired[Literal['auto', 'full']]
+    max_run_budget_usd: NotRequired[str | None]
+    ocr_enabled: NotRequired[bool]
+    prefer_european_models: NotRequired[bool]
+    price_mode: NotRequired[Literal['standard', 'strict']]
+    reasoning_summaries: NotRequired[bool]
+    sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
+    strict_offline: NotRequired[bool]
 
 
 class SettingsIn(TypedDict):
@@ -2746,6 +2832,12 @@ class UsageBucket(TypedDict):
     unpriced: NotRequired[int]
 
 
+class UsageBudgets(TypedDict):
+    publications: NotRequired[list[PublicationBudget]]
+    stopped_runs: NotRequired[int]
+    waiting_runs: NotRequired[int]
+
+
 class UsageEntry(TypedDict):
     at: NotRequired[str]
     detail: NotRequired[str | None]
@@ -2778,6 +2870,7 @@ class UsageOut(TypedDict):
 
 
 class UsageReport(TypedDict):
+    budgets: NotRequired[UsageBudgets]
     by_day: list[UsageBucket]
     by_model: list[UsageBucket]
     by_source: list[UsageBucket]
@@ -2836,10 +2929,21 @@ class WorkflowLimits(TypedDict):
     max_steps: NotRequired[int | None]
 
 
+class WorkflowOrigin(TypedDict):
+    connected: NotRequired[list[str]]
+    copied_at: NotRequired[str]
+    example_id: str
+    kind: NotRequired[Literal['example']]
+    language: str
+    offline: NotRequired[list[str]]
+    version: str
+
+
 class WorkflowSummary(TypedDict):
     agents: int
     capabilities: NotRequired[list[str]]
     contract: NotRequired[list[str]]
+    contract_fields: NotRequired[list[ContractFieldSummary]]
     description: str
     id: str
     last_run_status: NotRequired[
@@ -3688,6 +3792,7 @@ class RunStatusOut(TypedDict):
 
 class RunSummary(TypedDict):
     budget: NotRequired[RunBudget | None]
+    cause: NotRequired[RunCause | None]
     created_at: str
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
@@ -3953,10 +4058,12 @@ class Batch(TypedDict):
     id: NotRequired[str]
     items: NotRequired[list[BatchItem]]
     kind: NotRequired[Literal['batch', 'benchmark']]
+    lease_until: NotRequired[str | None]
     max_cost_usd: NotRequired[float | None]
     max_failures: NotRequired[int | None]
     model_overrides: NotRequired[dict[str, str]]
     name: NotRequired[str]
+    owner: NotRequired[str | None]
     ref: NotRequired[str | None]
     status: NotRequired[
         Literal['running', 'paused', 'finished', 'cancelled', 'stopped', 'interrupted']
@@ -3978,7 +4085,9 @@ class BenchmarkRun(TypedDict):
     id: NotRequired[str]
     judge: NotRequired[bool]
     judge_usage: NotRequired[Usage]
+    lease_until: NotRequired[str | None]
     models: NotRequired[dict[str, str]]
+    owner: NotRequired[str | None]
     results: NotRequired[list[CaseResult]]
     status: NotRequired[
         Literal[
@@ -4157,6 +4266,7 @@ class Workflow(TypedDict):
     limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
+    origin: NotRequired[WorkflowOrigin | None]
     updated_at: NotRequired[str]
 
 
@@ -4276,6 +4386,7 @@ class Run(TypedDict):
     budget: NotRequired[RunBudget | None]
     budget_hard_maximum: NotRequired[bool | None]
     budget_usd: NotRequired[float | None]
+    cause: NotRequired[RunCause | None]
     created_at: NotRequired[str]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]

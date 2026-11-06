@@ -623,3 +623,66 @@ def test_local_models_and_the_semantic_index(nodestro: NodestroClient) -> None:
     index = nodestro.knowledge_index()
     assert index["state"] == "off" and index["mode"] == "fts"
     assert nodestro.cancel_knowledge_index()["state"] == "off"
+
+
+def test_a_save_based_on_an_old_revision_is_refused(nodestro: NodestroClient) -> None:
+    """SDK-002: ``revision`` is sent as If-Match; a stale one is a 409 ``workflow.conflict``."""
+    workflow = nodestro.create_workflow(simple())
+    first = nodestro.update_workflow(workflow["id"], {**simple(), "name": "SDK A"}, revision=workflow["updated_at"])
+    assert first["name"] == "SDK A"
+    with pytest.raises(NodestroAPIError) as conflict:
+        nodestro.update_workflow(workflow["id"], {**simple(), "name": "SDK B"}, revision=workflow["updated_at"])
+    assert conflict.value.status == 409 and conflict.value.code == "workflow.conflict"
+    assert conflict.value.params["updated_at"]
+    assert nodestro.get_workflow(workflow["id"])["name"] == "SDK A"
+    noted = nodestro.update_workflow(
+        workflow["id"], {**simple(), "name": "SDK C"}, revision=first["updated_at"], note="renamed"
+    )
+    assert noted["name"] == "SDK C"
+    assert nodestro.workflow_versions(workflow["id"])[0]["description"] == "renamed"
+    # Without a revision the save always applies.
+    assert nodestro.update_workflow(workflow["id"], {**simple(), "name": "SDK D"})["name"] == "SDK D"
+
+
+def test_runs_are_paged_with_the_apis_cursor(nodestro: NodestroClient) -> None:
+    """SDK-002: ``list_runs_page`` returns the ``before`` cursor, ``iter_runs`` reads every page."""
+    workflow = nodestro.create_workflow(simple())
+    started = [nodestro.start_run(workflow["id"], input=f"x{index}")["id"] for index in range(3)]
+    for run_id in started:
+        nodestro.wait_for_run(run_id, timeout=30, poll=0.1)
+    page = nodestro.list_runs_page(workflow_id=workflow["id"], limit=2)
+    assert [run["id"] for run in page.runs] == started[::-1][:2] and page.next_before
+    rest = nodestro.list_runs(workflow_id=workflow["id"], limit=2, before=page.next_before)
+    assert [run["id"] for run in rest] == [started[0]]
+    last = nodestro.list_runs_page(workflow_id=workflow["id"], limit=2, before=page.next_before)
+    assert last.next_before is None
+    assert [run["id"] for run in nodestro.iter_runs(workflow_id=workflow["id"], page_size=1)] == started[::-1]
+    assert len(list(nodestro.iter_runs(page_size=2))) >= 3
+
+
+def test_the_compatibility_with_the_api_version(nodestro: NodestroClient) -> None:
+    """SDK-013: ``check_compatibility`` compares ``/api/meta`` with the version the types came from."""
+    from nodestro_client import API_VERSION
+    from nodestro_client.client import compatibility
+
+    found = nodestro.check_compatibility()
+    assert found.compatible, found
+    assert found.api_version == nodestro.meta()["version"] and found.sdk_api_version == API_VERSION
+    assert compatibility("0.2.7", "0.2.0").compatible
+    assert not compatibility("0.3.0", "0.2.0").compatible
+    assert not compatibility("1.0.0", "0.2.0").compatible
+    assert compatibility("1.4.0", "1.2.0").compatible and not compatibility("1.1.0", "1.2.0").compatible
+    unreadable = compatibility("dev", "0.2.0")
+    assert not unreadable.compatible and "cannot be read" in unreadable.reason
+
+
+def test_a_catalog_model_is_built_from_local_files(nodestro: NodestroClient, tmp_path: Any) -> None:
+    """SDK-014: ``kind="build"`` with ``template``; missing files are refused before a job starts."""
+    with pytest.raises(NodestroAPIError) as partial:
+        nodestro.import_local_model("build", "/no/weights", name="mdenseon:307m")
+    assert partial.value.code == "local.name_missing"
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.import_local_model(
+            "build", str(tmp_path / "weights.safetensors"), name="mdenseon:307m", template=str(tmp_path / "t.gguf")
+        )
+    assert missing.value.status == 400 and missing.value.code == "local.file_missing"

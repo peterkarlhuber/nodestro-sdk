@@ -4,6 +4,28 @@
  */
 
 export interface paths {
+    "/api/access-audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Access Audit Events
+         * @description The access audit trail of this workspace (on a server: of the tenant), newest first (API-004): logins and
+         *     refused logins, tenant switches and logouts, API key changes, and the operator's tenant and member commands.
+         *     Read only; it never holds a secret.
+         */
+        get: operations["access_audit_events_api_access_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents/design": {
         parameters: {
             query?: never;
@@ -1118,6 +1140,27 @@ export interface paths {
          *     in the provider's ``verification`` (rate limit shared with ``POST /api/settings/providers/bedrock/verify``).
          */
         post: operations["diagnostics_connection_api_diagnostics_connection_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/error-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Error Codes
+         * @description Every problem code the API and the runtime answer with (``code`` of an error, an issue or a status), with the
+         *     names of its parameters and where it is raised. A client can check that it has a text for each of them.
+         */
+        get: operations["error_codes_api_error_codes_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3312,6 +3355,9 @@ export interface paths {
         /**
          * Decide Approval
          * @description Approve or reject at an approval node; the run (its top-level run) continues right away.
+         *
+         *     Answers the top-level run as it goes on: ``queued`` (or already ``running``/finished), never the ``paused`` state
+         *     the decision ended (X-01).
          */
         post: operations["decide_approval_api_runs__run_id__approvals__node_id__post"];
         delete?: never;
@@ -3841,6 +3887,26 @@ export interface paths {
         get: operations["get_settings_api_settings_get"];
         /** Put Settings */
         put: operations["put_settings_api_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings Defaults
+         * @description The default of every setting that ``PUT /api/settings`` changes (see :class:`SettingsDefaults`).
+         */
+        get: operations["get_settings_defaults_api_settings_defaults_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -4587,6 +4653,43 @@ export interface components {
              */
             name: string;
         };
+        /**
+         * AccessEvent
+         * @description One entry of a tenant's access audit trail.
+         */
+        AccessEvent: {
+            /** Actor */
+            actor: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id?: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked";
+            /**
+             * Outcome
+             * @default success
+             * @enum {string}
+             */
+            outcome: "success" | "denied";
+            /** Target Id */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "user" | "api_key" | "tenant" | "session";
+        };
         /** ActivateIn */
         ActivateIn: {
             /** Number */
@@ -4884,6 +4987,8 @@ export interface components {
             needs?: string[];
             /** Part */
             part?: string | null;
+            /** Part Name */
+            part_name?: string | null;
             /** Reasons */
             reasons?: string[];
             /** Suggested */
@@ -5468,7 +5573,9 @@ export interface components {
         };
         /**
          * ArchitectReasoning
-         * @description The reasoning of one request of a job: ``step`` is ``analysis``, ``plan``, ``agent_revision`` or ``repair``.
+         * @description The reasoning of one request of a job: ``step`` is ``analysis``, ``plan``, ``agent_revision`` or ``repair``,
+         *     or for the sub-requests ``agent`` (the Agent Architect designs an agent) and ``tool`` (the Coding Agent writes a
+         *     tool), whose ``subject`` names the agent or tool (RT-063).
          */
         ArchitectReasoning: {
             /**
@@ -5493,6 +5600,8 @@ export interface components {
              * @default plan
              */
             step: string;
+            /** Subject */
+            subject?: string | null;
             /**
              * Text
              * @default
@@ -5823,6 +5932,8 @@ export interface components {
              * @enum {string}
              */
             kind: "batch" | "benchmark";
+            /** Lease Until */
+            lease_until?: string | null;
             /** Max Cost Usd */
             max_cost_usd?: number | null;
             /** Max Failures */
@@ -5836,6 +5947,8 @@ export interface components {
              * @default
              */
             name: string;
+            /** Owner */
+            owner?: string | null;
             /** Ref */
             ref?: string | null;
             /**
@@ -6130,10 +6243,14 @@ export interface components {
              */
             judge: boolean;
             judge_usage?: components["schemas"]["Usage"];
+            /** Lease Until */
+            lease_until?: string | null;
             /** Models */
             models?: {
                 [key: string]: string;
             };
+            /** Owner */
+            owner?: string | null;
             /** Results */
             results?: components["schemas"]["CaseResult"][];
             /**
@@ -7149,6 +7266,26 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * ContractFieldSummary
+         * @description One field of a workflow's output contract, as the workflow list shows it.
+         */
+        ContractFieldSummary: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Name */
+            name: string;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /** Type */
+            type: string;
+        };
         /** ConversationDetail */
         ConversationDetail: {
             /** Attachment States */
@@ -7582,6 +7719,28 @@ export interface components {
              */
             size_bytes: number;
         };
+        /** ErrorCode */
+        ErrorCode: {
+            /** Params */
+            params?: string[];
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "runtime" | "api" | "both";
+        };
+        /**
+         * ErrorCodeCatalog
+         * @description Every problem code of the studio API and the runtime, sorted, with its parameters.
+         */
+        ErrorCodeCatalog: {
+            /** Codes */
+            codes: {
+                [key: string]: components["schemas"]["ErrorCode"];
+            };
+            /** Patterns */
+            patterns?: string[];
+        };
         /** ErrorOut */
         ErrorOut: {
             /** Code */
@@ -7681,6 +7840,10 @@ export interface components {
             error?: string | null;
             /** Error Code */
             error_code?: string | null;
+            /** Error Params */
+            error_params?: {
+                [key: string]: unknown;
+            };
             /** Export Id */
             export_id?: string | null;
             /** Finished At */
@@ -11093,6 +11256,32 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
         };
+        /**
+         * PublicationBudget
+         * @description The daily cost limit of one published API and how much of it the last 24 hours used (AD-20).
+         */
+        PublicationBudget: {
+            /** Daily Budget Usd */
+            daily_budget_usd?: number | null;
+            /**
+             * Exhausted
+             * @default false
+             */
+            exhausted: boolean;
+            /**
+             * Last 24H Usd
+             * @default 0
+             */
+            last_24h_usd: number;
+            /** Name */
+            name: string;
+            /** Publication Id */
+            publication_id: string;
+            /** Run Budget Usd */
+            run_budget_usd?: number | null;
+            /** Slug */
+            slug: string;
+        };
         /** PublicationEvent */
         PublicationEvent: {
             /**
@@ -11145,6 +11334,8 @@ export interface components {
             created_at: string;
             /** Enabled */
             enabled: boolean;
+            /** Export Jobs */
+            export_jobs?: components["schemas"]["ExportJob"][];
             /** Exports */
             exports?: components["schemas"]["ExportRecord"][];
             /** Id */
@@ -12038,6 +12229,7 @@ export interface components {
             budget_hard_maximum?: boolean | null;
             /** Budget Usd */
             budget_usd?: number | null;
+            cause?: components["schemas"]["RunCause"] | null;
             /**
              * Created At
              * Format: date-time
@@ -12180,6 +12372,24 @@ export interface components {
              * @default false
              */
             unknown_cost: boolean;
+        };
+        /**
+         * RunCause
+         * @description Why a failed run failed (AD-02): the step that failed first and its problem, so that a run list or a banner
+         *     can say "<step>: <reason>" without reading every step. Set together with ``error_code`` ``run.nodes_failed``;
+         *     ``code``/``params`` are the step's own (``run.budget_exceeded``, ``provider.rate_limited`` ...).
+         */
+        RunCause: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Node Id */
+            node_id: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
         };
         /** RunChatView */
         RunChatView: {
@@ -12364,6 +12574,7 @@ export interface components {
         /** RunSummary */
         RunSummary: {
             budget?: components["schemas"]["RunBudget"] | null;
+            cause?: components["schemas"]["RunCause"] | null;
             /**
              * Created At
              * Format: date-time
@@ -12926,7 +13137,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "workflow" | "agent" | "template" | "tool" | "knowledge" | "example";
+            kind: "workflow" | "agent" | "template" | "tool" | "knowledge" | "example" | "run";
             /** Node Id */
             node_id?: string | null;
             /**
@@ -13157,6 +13368,98 @@ export interface components {
             /** Sandbox Backends */
             sandbox_backends?: components["schemas"]["SandboxBackendStatus"][];
             sandbox_selection?: components["schemas"]["SandboxSelection"];
+            /**
+             * Strict Offline
+             * @default false
+             */
+            strict_offline: boolean;
+        };
+        /**
+         * SettingsDefaults
+         * @description The value each setting of ``GET /api/settings`` has while nobody changed it (API-061), so an interface can mark
+         *     a field as "default" or "changed". The defaults of the output limits are ``output_limit_defaults`` of the
+         *     settings; provider settings have no default.
+         */
+        SettingsDefaults: {
+            /**
+             * Architect Budget Usd
+             * @default 2
+             */
+            architect_budget_usd: number | null;
+            /**
+             * Architect Max Repairs
+             * @default 2
+             */
+            architect_max_repairs: number;
+            /**
+             * Architect Retry Max Tokens
+             * @default 64000
+             */
+            architect_retry_max_tokens: number;
+            /**
+             * Architect Retry Truncated
+             * @default true
+             */
+            architect_retry_truncated: boolean;
+            /** Assistant Model */
+            assistant_model: string;
+            /**
+             * Budget Decision Hours
+             * @default 24
+             */
+            budget_decision_hours: number;
+            /**
+             * Default Budget Usd
+             * @default 2
+             */
+            default_budget_usd: number | null;
+            /** Default Model */
+            default_model: string;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            /**
+             * Knowledge Retrieval
+             * @default fts
+             * @enum {string}
+             */
+            knowledge_retrieval: "fts" | "vector" | "hybrid";
+            /** Language */
+            language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /**
+             * Local Reasoning
+             * @default auto
+             * @enum {string}
+             */
+            local_reasoning: "auto" | "full";
+            /** Max Run Budget Usd */
+            max_run_budget_usd?: string | null;
+            /**
+             * Ocr Enabled
+             * @default false
+             */
+            ocr_enabled: boolean;
+            /**
+             * Prefer European Models
+             * @default false
+             */
+            prefer_european_models: boolean;
+            /**
+             * Price Mode
+             * @default standard
+             * @enum {string}
+             */
+            price_mode: "standard" | "strict";
+            /**
+             * Reasoning Summaries
+             * @default false
+             */
+            reasoning_summaries: boolean;
+            /**
+             * Sandbox
+             * @default auto
+             * @enum {string}
+             */
+            sandbox: "auto" | "subprocess" | "linux" | "docker";
             /**
              * Strict Offline
              * @default false
@@ -14567,6 +14870,24 @@ export interface components {
              */
             unpriced: number;
         };
+        /**
+         * UsageBudgets
+         * @description Budgets in the usage report (AD-20): the daily limits of published APIs and the runs budgets stopped.
+         */
+        UsageBudgets: {
+            /** Publications */
+            publications?: components["schemas"]["PublicationBudget"][];
+            /**
+             * Stopped Runs
+             * @default 0
+             */
+            stopped_runs: number;
+            /**
+             * Waiting Runs
+             * @default 0
+             */
+            waiting_runs: number;
+        };
         /** UsageEntry */
         UsageEntry: {
             /**
@@ -14631,6 +14952,7 @@ export interface components {
         };
         /** UsageReport */
         UsageReport: {
+            budgets?: components["schemas"]["UsageBudgets"];
             /** By Day */
             by_day: components["schemas"]["UsageBucket"][];
             /** By Model */
@@ -14747,6 +15069,7 @@ export interface components {
             name: string;
             /** Nodes */
             nodes?: components["schemas"]["Node"][];
+            origin?: components["schemas"]["WorkflowOrigin"] | null;
             /**
              * Updated At
              * Format: date-time
@@ -14835,7 +15158,41 @@ export interface components {
             /** Max Steps */
             max_steps?: number | null;
         };
-        /** WorkflowSummary */
+        /**
+         * WorkflowOrigin
+         * @description Where a workflow came from when it was made as a copy (RT-055): today a copy of an example.
+         *
+         *     Set once by the code that makes the copy and kept by every later save (:func:`keep_origin`): it is history, not
+         *     something an editor or a client sends (``WorkflowIn`` has no such field). An interface uses it to mark a copy
+         *     whose integrations run on sample data, or to offer the example's newer version.
+         */
+        WorkflowOrigin: {
+            /** Connected */
+            connected?: string[];
+            /**
+             * Copied At
+             * Format: date-time
+             */
+            copied_at?: string;
+            /** Example Id */
+            example_id: string;
+            /**
+             * Kind
+             * @default example
+             * @constant
+             */
+            kind: "example";
+            /** Language */
+            language: string;
+            /** Offline */
+            offline?: string[];
+            /** Version */
+            version: string;
+        };
+        /**
+         * WorkflowSummary
+         * @description A workflow in the list; ``contract`` keeps the field names, ``contract_fields`` describes them (API-053).
+         */
         WorkflowSummary: {
             /** Agents */
             agents: number;
@@ -14843,6 +15200,8 @@ export interface components {
             capabilities?: string[];
             /** Contract */
             contract?: string[];
+            /** Contract Fields */
+            contract_fields?: components["schemas"]["ContractFieldSummary"][];
             /** Description */
             description: string;
             /** Id */
@@ -14986,6 +15345,38 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    access_audit_events_api_access_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessEvent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     design_agent_api_agents_design_post: {
         parameters: {
             query?: never;
@@ -17300,6 +17691,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiagnosticCheck"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    error_codes_api_error_codes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorCodeCatalog"];
                 };
             };
             /** @description Error */
@@ -22724,6 +23144,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Settings"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_settings_defaults_api_settings_defaults_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsDefaults"];
                 };
             };
             /** @description Error */

@@ -5,7 +5,7 @@ the studio REST API of an installation and `PublishedWorkflow` for published, ke
 by Nodestro or by a standalone export). ES modules with type definitions, promises and async iterators, built on
 `fetch`; no runtime dependencies.
 
-Runs on Node.js 20 and later (tested with 20 and 22) and in browsers with `fetch`, `AbortSignal.timeout` and Web
+Runs on Node.js 22.12 and later (tested with 22 and 24) and in browsers with `fetch`, `AbortSignal.timeout` and Web
 Streams (tested with Chromium; see [Browsers](#browsers)).
 
 ## Installation
@@ -76,11 +76,25 @@ takes the workflow document (also an unsaved one), not its id.
 
 Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refused.
 
+## Revisions, paging and the API version
+
+- `updateWorkflow(id, workflow, { revision: workflow.updated_at, note })` sends the revision as `If-Match`: when
+  somebody saved in between, it throws `NodestroAPIError` 409 `workflow.conflict` (`params.updated_at` is the
+  current revision) instead of overwriting their change. Without `revision` the save always applies.
+- `listRuns({ limit, before })` returns one page, newest first; `listRunsPage()` also returns the cursor of the
+  next page (`nextBefore`, `null` at the end), and `for await (const run of nodestro.iterRuns({ pageSize: 100 }))`
+  reads every run, a page at a time, so runs started meanwhile never shift a page.
+- `checkCompatibility()` compares `/api/meta` with `API_VERSION` and returns `{ compatible, apiVersion,
+  sdkApiVersion, reason }`; it never throws for a mismatch. `0.x` versions fit only with the same minor version.
+- `importLocalModel({ kind: "build", path: weights, template, name: "mdenseon:307m" })` builds a catalog model
+  from its upstream files (the catalog's `build_inputs` name them).
+
 ## Waiting, events and cancelling
 
 - `waitForRun()` / `wait()` / `waitForResult()` poll every `pollMs`. `timeoutMs` is the total wait; only the last
   status request may take up to the request time limit longer. On timeout they throw `NodestroTimeoutError` and
-  the run keeps running (cancel it with `cancelRun()` / `cancel()`).
+  the run keeps running (cancel it with `cancelRun()` / `cancel()`). `signal` (an `AbortSignal`) stops waiting at
+  once, also during a pause, with the signal's reason; the run keeps running.
 - `events()` is an async generator of `{ event, data, id }` until the run ends. Leaving the `for await` loop
   (`break`, `return`, an exception) closes the connection; `signal` (an `AbortSignal`) stops it from outside, and
   the abort error is passed on unchanged. An event the connection broke off in the middle of is dropped.

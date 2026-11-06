@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, inject, it } from "vitest";
-import { NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow, type ServerEvent } from "../src/index.js";
+import { API_VERSION, NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow, type ServerEvent, compatibility } from "../src/index.js";
 
 const server = inject("server");
 const nodestro = new NodestroClient(server, { timeoutMs: 10_000 });
@@ -553,5 +553,74 @@ describe("run budgets", () => {
     await nodestro.endRunForBudget(runId, requestId);
     const done = await nodestro.waitForRun(runId, fast);
     expect([done.status, done.error_code]).toEqual(["cancelled", "run.budget_ended"]);
+  });
+});
+
+describe("revisions, paging, compatibility and local builds", () => {
+  it("refuses a save based on an old revision (SDK-002)", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const first = await nodestro.updateWorkflow(workflow.id, { ...simple(), name: "SDK A" }, { revision: workflow.updated_at });
+    expect(first.name).toBe("SDK A");
+    const conflict = await nodestro
+      .updateWorkflow(workflow.id, { ...simple(), name: "SDK B" }, { revision: workflow.updated_at })
+      .catch((error: unknown) => error);
+    expect(conflict).toBeInstanceOf(NodestroAPIError);
+    expect([(conflict as NodestroAPIError).status, (conflict as NodestroAPIError).code]).toEqual([409, "workflow.conflict"]);
+    expect((await nodestro.getWorkflow(workflow.id)).name).toBe("SDK A");
+    const noted = await nodestro.updateWorkflow(workflow.id, { ...simple(), name: "SDK C" }, { revision: first.updated_at, note: "renamed" });
+    expect(noted.name).toBe("SDK C");
+    expect((await nodestro.workflowVersions(workflow.id))[0]?.description).toBe("renamed");
+    expect((await nodestro.updateWorkflow(workflow.id, { ...simple(), name: "SDK D" })).name).toBe("SDK D");
+  });
+
+  it("pages runs with the API's cursor (SDK-002)", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const started: string[] = [];
+    for (const index of [0, 1, 2]) started.push((await nodestro.startRun(workflow.id, { input: `x${index}` })).id);
+    for (const id of started) await nodestro.waitForRun(id, fast);
+    const newest = [...started].reverse();
+    const page = await nodestro.listRunsPage({ workflowId: workflow.id, limit: 2 });
+    expect(page.runs.map((run) => run.id)).toEqual(newest.slice(0, 2));
+    expect(page.nextBefore).toBeTruthy();
+    const rest = await nodestro.listRuns({ workflowId: workflow.id, limit: 2, before: page.nextBefore ?? undefined });
+    expect(rest.map((run) => run.id)).toEqual([started[0]]);
+    const all: string[] = [];
+    for await (const run of nodestro.iterRuns({ workflowId: workflow.id, pageSize: 1 })) all.push(run.id);
+    expect(all).toEqual(newest);
+  });
+
+  it("stops waiting for a run when the signal aborts (SDK-004)", async () => {
+    const workflow = await nodestro.createWorkflow(simple("SLOW"));
+    const run = await nodestro.startRun(workflow.id, { input: "x" });
+    const controller = new AbortController();
+    const waiting = nodestro.waitForRun(run.id, { timeoutMs: 30_000, pollMs: 5_000, signal: controller.signal });
+    setTimeout(() => controller.abort(new Error("stop waiting")), 200);
+    const started = Date.now();
+    await expect(waiting).rejects.toThrow("stop waiting");
+    expect(Date.now() - started).toBeLessThan(4_000);
+    await expect(nodestro.waitForRun(run.id, { ...fast, signal: AbortSignal.abort(new Error("gone")) })).rejects.toThrow("gone");
+    await nodestro.cancelRun(run.id);
+  });
+
+  it("checks the compatibility with the API version (SDK-013)", async () => {
+    const found = await nodestro.checkCompatibility();
+    expect(found.compatible).toBe(true);
+    expect(found.apiVersion).toBe((await nodestro.meta()).version);
+    expect(found.sdkApiVersion).toBe(API_VERSION);
+    expect(compatibility("0.2.9", "0.2.0").compatible).toBe(true);
+    expect(compatibility("0.3.0", "0.2.0").compatible).toBe(false);
+    expect(compatibility("2.0.0", "1.2.0").compatible).toBe(false);
+    expect(compatibility("1.3.0", "1.2.0").compatible).toBe(true);
+    expect(compatibility("1.1.0", "1.2.0").compatible).toBe(false);
+    expect(compatibility("dev", "0.2.0").reason).toMatch(/cannot be read/);
+  });
+
+  it("builds a catalog model from local files (SDK-014)", async () => {
+    const partial = await nodestro.importLocalModel({ kind: "build", path: "/no/weights", name: "mdenseon:307m" }).catch((error: unknown) => error);
+    expect((partial as NodestroAPIError).code).toBe("local.name_missing");
+    const missing = await nodestro
+      .importLocalModel({ kind: "build", path: "/no/weights", template: "/no/template", name: "mdenseon:307m" })
+      .catch((error: unknown) => error);
+    expect([(missing as NodestroAPIError).status, (missing as NodestroAPIError).code]).toEqual([400, "local.file_missing"]);
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@nodestro/client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Nodestro Client - the TypeScript SDK of the Nodestro API (studio API and published workflow APIs).",
   "license": "MIT",
   "type": "module",
@@ -13,7 +13,7 @@
     }
   },
   "files": ["dist", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22.12" },
   "repository": { "type": "git", "url": "git+https://github.com/peterkarlhuber/nodestro-sdk.git", "directory": "typescript" },
   "scripts": {
     "generate": "openapi-typescript ../openapi/nodestro-api.json -o src/generated/openapi.ts",
@@ -25,6 +25,6 @@
     "@types/node": "22.20.5",
     "openapi-typescript": "7.13.0",
     "typescript": "5.9.3",
-    "vitest": "4.1.12"
+    "vitest": "5.0.5"
   }
 }

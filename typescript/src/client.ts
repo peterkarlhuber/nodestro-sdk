@@ -8,9 +8,48 @@
 
 import type { components } from "./generated/openapi.js";
 import { type NodestroClientError, NodestroRunFailed } from "./errors.js";
-import { type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pathSegment, pollUntil } from "./http.js";
+import { API_VERSION, type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pathSegment, pollUntil } from "./http.js";
 
 export type Schemas = components["schemas"];
+
+/** One page of {@link NodestroClient.listRunsPage}: the runs, newest first, and the cursor of the next page. */
+export interface RunPage {
+  runs: RunSummary[];
+  /** The `before` of the next (older) page; `null` when no older run matches. */
+  nextBefore: string | null;
+}
+
+/** The answer of {@link NodestroClient.checkCompatibility}. */
+export interface Compatibility {
+  /** Whether this SDK fits the installation's API. */
+  compatible: boolean;
+  /** The installation's API version. */
+  apiVersion: string;
+  /** The API version this SDK's types were generated from (`API_VERSION`). */
+  sdkApiVersion: string;
+  /** Why not, in English (empty when compatible). */
+  reason: string;
+}
+
+function versionParts(version: string): [number, number] | null {
+  const [major = "", minor = ""] = version.trim().split(".");
+  if (!/^\d+$/.test(major) || !/^\d+$/.test(minor)) return null;
+  return [Number(major), Number(minor)];
+}
+
+/** Whether an API of `apiVersion` fits an SDK generated from `sdkApiVersion` (see `checkCompatibility`). */
+export function compatibility(apiVersion: string, sdkApiVersion: string = API_VERSION): Compatibility {
+  const answer = (reason = ""): Compatibility => ({ compatible: !reason, apiVersion, sdkApiVersion, reason });
+  const found = versionParts(apiVersion);
+  const expected = versionParts(sdkApiVersion);
+  if (!found || !expected) return answer(`The API version ${JSON.stringify(apiVersion)} cannot be read`);
+  if (found[0] !== expected[0]) return answer(`The API has major version ${found[0]}, this SDK was made for ${expected[0]}`);
+  if (expected[0] === 0 && found[1] !== expected[1]) {
+    return answer(`The API is ${apiVersion}; this SDK was made for ${sdkApiVersion} (0.x minors may break)`);
+  }
+  if (found[1] < expected[1]) return answer(`The API is ${apiVersion}, older than the ${sdkApiVersion} this SDK was made for`);
+  return answer();
+}
 export type Meta = Schemas["Meta"];
 export type Settings = Schemas["Settings"];
 export type SettingsIn = Schemas["SettingsIn"];
@@ -114,6 +153,8 @@ export interface WaitOptions {
   stopAtApproval?: boolean;
   /** Throw {@link NodestroRunFailed} for a failed or cancelled run. */
   raiseOnFailure?: boolean;
+  /** Stops waiting (the run keeps running): the wait rejects with the signal's reason, also during a pause. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -136,6 +177,17 @@ export class NodestroClient {
   /** Version, providers, models and server tools of the installation. */
   async meta(): Promise<Meta> {
     return this.http.json("GET", "/api/meta");
+  }
+
+  /**
+   * Compare the installation's API version (`/api/meta`) with the one this SDK was generated from. Never throws for
+   * a mismatch (only for a failed request): the answer says whether the versions fit and why not. They fit when
+   * the major versions are equal and, for `0.x`, the minor versions too (`0.x` minors may break); from `1.0` an
+   * API with a newer minor version fits as well.
+   */
+  async checkCompatibility(): Promise<Compatibility> {
+    const meta = await this.meta();
+    return compatibility(String(meta.version ?? ""));
   }
 
   /** The settings as the interface shows them (API keys are never returned). */
@@ -189,8 +241,19 @@ export class NodestroClient {
     return this.http.json("POST", "/api/workflows", { body: workflow });
   }
 
-  async updateWorkflow(workflowId: string, workflow: WorkflowIn | Record<string, unknown>): Promise<Workflow> {
-    return this.http.json("PUT", `/api/workflows/${enc(workflowId)}`, { body: workflow });
+  /**
+   * Save a workflow; a changed one becomes its next version (`note` describes it). `revision` is the workflow's
+   * `updated_at` as read: it is sent as `If-Match`, so the save applies only when nobody saved in between, and is
+   * otherwise refused with {@link NodestroAPIError} 409 `workflow.conflict` (`params.updated_at` names the current
+   * revision). Without it the save always applies.
+   */
+  async updateWorkflow(
+    workflowId: string,
+    workflow: WorkflowIn | Record<string, unknown>,
+    options: { revision?: string; note?: string } = {},
+  ): Promise<Workflow> {
+    const headers = options.revision !== undefined ? { "If-Match": `"${options.revision}"` } : undefined;
+    return this.http.json("PUT", `/api/workflows/${enc(workflowId)}`, { body: workflow, headers, query: { note: options.note } });
   }
 
   async deleteWorkflow(workflowId: string): Promise<void> {
@@ -234,8 +297,36 @@ export class NodestroClient {
     return this.http.json("GET", `/api/runs/${enc(runId)}`);
   }
 
-  async listRuns(options: { workflowId?: string; limit?: number } = {}): Promise<RunSummary[]> {
-    return this.http.json("GET", "/api/runs", { query: { workflow_id: options.workflowId, limit: options.limit } });
+  /**
+   * One page of stored runs, newest first (at most `limit`, the API's default 100). `before` continues with older
+   * runs: a cursor from {@link listRunsPage} or a time (ISO 8601). {@link iterRuns} pages through all of them.
+   */
+  async listRuns(options: { workflowId?: string; limit?: number; before?: string } = {}): Promise<RunSummary[]> {
+    return (await this.listRunsPage(options)).runs;
+  }
+
+  /** Like {@link listRuns}, with the cursor of the next (older) page (`null` when no older run matches). */
+  async listRunsPage(options: { workflowId?: string; limit?: number; before?: string } = {}): Promise<RunPage> {
+    const query = { workflow_id: options.workflowId, limit: options.limit, before: options.before };
+    return this.http.send("GET", "/api/runs", { query }, async (response) => {
+      const runs = (await response.json()) as RunSummary[];
+      const more = response.headers.get("x-has-more") === "true";
+      return { runs, nextBefore: (more && response.headers.get("x-next-before")) || null };
+    });
+  }
+
+  /**
+   * Every stored run (of one workflow), newest first, read a page of `pageSize` (1 to 500) at a time with the API's
+   * cursor, so runs started meanwhile never shift a page.
+   */
+  async *iterRuns(options: { workflowId?: string; pageSize?: number; before?: string } = {}): AsyncGenerator<RunSummary> {
+    let before = options.before;
+    for (;;) {
+      const page = await this.listRunsPage({ workflowId: options.workflowId, limit: options.pageSize ?? 100, before });
+      yield* page.runs;
+      if (page.nextBefore === null || page.runs.length === 0) return;
+      before = page.nextBefore;
+    }
   }
 
   /** Ask a running run to stop; `false` when it had already ended. */

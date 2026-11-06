@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### TODO abatement round (2026-11-06)
+
+- Pins nodestro-api a3bd875 (the TODO abatement api branch, runtime 3d69702); types regenerated: run `cause`,
+  `GET /api/error-codes`, usage `budgets`, workflow `origin`, `ArchitectReasoning.subject`. Package version 0.3.0.
+- **Breaking (TypeScript):** `@nodestro/client` requires Node.js 22.12 or later (`engines`); Node.js 20 is no
+  longer supported. CI tests Node.js 22 and 24 (SDK-010). Because the package is 0.x, the next version bump through
+  the pin cascade raises the minor version: the package version is 0.3.0 from this round on (no release).
+- Vitest 5.0.5 (checked on Node.js 22 and 24); Dependabot proposes Vitest majors again. `npm audit` reports no
+  advisory.
+- Workflow revisions: `update_workflow(..., revision=, note=)` / `updateWorkflow(..., { revision, note })` send
+  `If-Match`; runs page with `list_runs(before=)`, `list_runs_page`/`listRunsPage` (`RunPage`) and
+  `iter_runs`/`iterRuns` (SDK-002).
+- `check_compatibility()` / `checkCompatibility()` compare the API's version from `/api/meta` with `API_VERSION`
+  (`Compatibility`) (SDK-013).
+- `import_local_model` offers the import kind `build` with `template`, as `importLocalModel` already did (SDK-014).
+- TypeScript waits take an `AbortSignal` (`WaitOptions.signal`, published `wait`/`waitForResult`); Python waits
+  keep one overall timeout across their requests (SDK-004, in part).
+- README: security notes for the desktop and the server profile (SDK-007), revisions, paging and the
+  compatibility check.
+- Types regenerated from nodestro-api: `GET /api/settings/defaults`, `contract_fields` in the workflow list,
+  `part_name` in the library model plan, `export_jobs` in the publication overview, `error_params` on export jobs,
+  the run kind of the global search, `GET /api/access-audit` (`AccessEvent`), and `owner`/`lease_until` on
+  batches and test runs. The nodestro-api test pin moves with the pin cascade.
+
 ### Settings, attachments and providers (2026-11-06)
 
 - Types regenerated from nodestro-api: `GET /api/models/profile`, `POST /api/local-models/readiness`,
