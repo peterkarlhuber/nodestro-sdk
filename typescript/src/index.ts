@@ -9,9 +9,6 @@
 
 export * from "./client.js";
 export * from "./errors.js";
-export { DEFAULT_RETRY, EventParser, SDK_VERSION, USER_AGENT, type ClientOptions, type RequestOptions, type RetryPolicy, type ServerEvent } from "./http.js";
+export { API_VERSION, DEFAULT_RETRY, EventParser, SDK_VERSION, USER_AGENT, type ClientOptions, type RequestOptions, type RetryPolicy, type ServerEvent } from "./http.js";
 export * from "./published.js";
 export type { components, paths } from "./generated/openapi.js";
-
-/** The version of the Nodestro API whose OpenAPI document the types were generated from. */
-export const API_VERSION = "0.2.0";

@@ -23,6 +23,8 @@ except PackageNotFoundError:  # pragma: no cover - running from a source checkou
 #: Sent with every request (API2-14), so the server's logs show which SDK and version called; a ``User-Agent`` of the
 #: caller's own (``headers`` or a shared ``httpx.Client``) wins.
 USER_AGENT = f"nodestro-sdk-python/{SDK_VERSION}"
+#: The version of the Nodestro API whose OpenAPI document the models were generated from.
+API_VERSION = "0.2.0"
 
 #: Answers worth retrying: the server is starting, overloaded or a proxy failed.
 RETRY_STATUS = frozenset({502, 503, 504})
@@ -89,15 +91,22 @@ class RetryPolicy:
 T = TypeVar("T")
 
 
-def poll_until(fetch: Callable[[], T], done: Callable[[T], bool], *, run_id: str, timeout: float, poll: float) -> T:
-    """Call ``fetch`` every ``poll`` seconds until ``done``; at most ``timeout`` seconds in total."""
+#: The shortest time limit a status request of a wait gets near its deadline (seconds).
+MIN_REQUEST_TIMEOUT = 0.5
+
+
+def poll_until(
+    fetch: Callable[[float], T], done: Callable[[T], bool], *, run_id: str, timeout: float, poll: float
+) -> T:
+    """Call ``fetch(left)`` every ``poll`` seconds until ``done``; at most ``timeout`` seconds in total. ``left`` is
+    the time left (at least :data:`MIN_REQUEST_TIMEOUT`), the time limit of that status request."""
     if isinstance(poll, bool) or not math.isfinite(poll) or poll <= 0:
         raise ValueError(f"poll must be a positive number of seconds, not {poll!r}")
     if isinstance(timeout, bool) or not math.isfinite(timeout) or timeout < 0:
         raise ValueError(f"timeout must be a number of seconds >= 0, not {timeout!r}")
     deadline = time.monotonic() + timeout
     while True:
-        found = fetch()
+        found = fetch(max(deadline - time.monotonic(), MIN_REQUEST_TIMEOUT))
         if done(found):
             return found
         left = deadline - time.monotonic()

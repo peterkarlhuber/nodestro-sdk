@@ -8,6 +8,7 @@ API: :class:`~nodestro_client.published.PublishedWorkflow`.
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Literal, cast
 import uuid
@@ -15,8 +16,57 @@ import uuid
 import httpx
 
 from . import models
-from ._http import Event, RetryPolicy, Transport, path_segment, poll_until
+from ._http import API_VERSION, Event, RetryPolicy, Transport, path_segment, poll_until
 from .errors import NodestroRunFailed
+
+
+@dataclass(frozen=True)
+class Compatibility:
+    """The answer of :meth:`NodestroClient.check_compatibility`."""
+
+    #: Whether this SDK fits the installation's API.
+    compatible: bool
+    #: The installation's API version and the one this SDK's types were generated from (``API_VERSION``).
+    api_version: str
+    sdk_api_version: str
+    #: Why not, in English (empty when compatible).
+    reason: str = ""
+
+
+def _parts(version: str) -> tuple[int, int] | None:
+    pieces = version.strip().split(".")
+    if len(pieces) < 2 or not all(piece.isdigit() for piece in pieces[:2]):
+        return None
+    return int(pieces[0]), int(pieces[1])
+
+
+def compatibility(api_version: str, sdk_api_version: str = API_VERSION) -> Compatibility:
+    """Whether an API of ``api_version`` fits an SDK generated from ``sdk_api_version`` (see
+    :meth:`NodestroClient.check_compatibility`)."""
+    found, expected = _parts(api_version), _parts(sdk_api_version)
+
+    def answer(reason: str = "") -> Compatibility:
+        return Compatibility(not reason, api_version, sdk_api_version, reason)
+
+    if found is None or expected is None:
+        return answer(f"The API version {api_version!r} cannot be read")
+    if found[0] != expected[0]:
+        return answer(f"The API has major version {found[0]}, this SDK was made for {expected[0]}")
+    if expected[0] == 0 and found[1] != expected[1]:
+        return answer(f"The API is {api_version}; this SDK was made for {sdk_api_version} (0.x minors may break)")
+    if found[1] < expected[1]:
+        return answer(f"The API is {api_version}, older than the {sdk_api_version} this SDK was made for")
+    return answer()
+
+
+@dataclass(frozen=True)
+class RunPage:
+    """One page of :meth:`NodestroClient.list_runs_page`: the runs, newest first, and the ``before`` cursor of the
+    next (older) page (``None``: no older run matches)."""
+
+    runs: list[models.RunSummary]
+    next_before: str | None = None
+
 
 #: Run states that end a run, and the state of a run waiting for a person.
 FINISHED = frozenset({"succeeded", "failed", "cancelled"})
@@ -67,6 +117,15 @@ class NodestroClient:
     def meta(self) -> models.Meta:
         """Version, providers, models and server tools of the installation."""
         return cast(models.Meta, self._http.json("GET", "/api/meta"))
+
+    def check_compatibility(self) -> Compatibility:
+        """Compare the installation's API version (``/api/meta``) with the one this SDK was generated from.
+
+        Never raises for a mismatch (only for a failed request): the answer says whether the versions fit and why
+        not. They fit when the major versions are equal and, for ``0.x``, the minor versions too (``0.x`` minors
+        may break); from ``1.0`` an API with a newer minor version fits as well."""
+        found = str(self.meta().get("version", ""))
+        return compatibility(found, API_VERSION)
 
     def settings(self) -> models.Settings:
         """The settings as the interface shows them (API keys are never returned)."""
@@ -163,10 +222,30 @@ class NodestroClient:
     def create_workflow(self, workflow: models.WorkflowIn | Mapping[str, Any]) -> models.Workflow:
         return cast(models.Workflow, self._http.json("POST", "/api/workflows", json_body=dict(workflow)))
 
-    def update_workflow(self, workflow_id: str, workflow: models.WorkflowIn | Mapping[str, Any]) -> models.Workflow:
+    def update_workflow(
+        self,
+        workflow_id: str,
+        workflow: models.WorkflowIn | Mapping[str, Any],
+        *,
+        revision: str | None = None,
+        note: str | None = None,
+    ) -> models.Workflow:
+        """Save a workflow; a changed one becomes its next version (``note`` describes it).
+
+        ``revision`` is the workflow's ``updated_at`` as read (``get_workflow(id)["updated_at"]``): it is sent as
+        ``If-Match``, so the save applies only when nobody saved in between, and is otherwise refused with
+        :class:`NodestroAPIError` 409 ``workflow.conflict`` (``params["updated_at"]`` names the current revision).
+        Without it the save always applies."""
+        headers = {"If-Match": f'"{revision}"'} if revision is not None else None
         return cast(
             models.Workflow,
-            self._http.json("PUT", f"/api/workflows/{path_segment(workflow_id)}", json_body=dict(workflow)),
+            self._http.json(
+                "PUT",
+                f"/api/workflows/{path_segment(workflow_id)}",
+                json_body=dict(workflow),
+                params={"note": note},
+                headers=headers,
+            ),
         )
 
     def delete_workflow(self, workflow_id: str) -> None:
@@ -230,11 +309,37 @@ class NodestroClient:
     def get_run(self, run_id: str) -> models.Run:
         return cast(models.Run, self._http.json("GET", f"/api/runs/{path_segment(run_id)}"))
 
-    def list_runs(self, *, workflow_id: str | None = None, limit: int | None = None) -> list[models.RunSummary]:
-        return cast(
-            list[models.RunSummary],
-            self._http.json("GET", "/api/runs", params={"workflow_id": workflow_id, "limit": limit}),
+    def list_runs(
+        self, *, workflow_id: str | None = None, limit: int | None = None, before: str | None = None
+    ) -> list[models.RunSummary]:
+        """One page of stored runs, newest first (at most ``limit``, the API's default 100). ``before`` continues
+        with older runs: a cursor from :meth:`list_runs_page` or a time (ISO 8601). :meth:`iter_runs` pages
+        through all of them."""
+        return self.list_runs_page(workflow_id=workflow_id, limit=limit, before=before).runs
+
+    def list_runs_page(
+        self, *, workflow_id: str | None = None, limit: int | None = None, before: str | None = None
+    ) -> RunPage:
+        """Like :meth:`list_runs`, with the cursor of the next (older) page (``None`` when no older run matches)."""
+        response = self._http.request(
+            "GET", "/api/runs", params={"workflow_id": workflow_id, "limit": limit, "before": before}
         )
+        more = response.headers.get("x-has-more") == "true"
+        cursor = response.headers.get("x-next-before") if more else None
+        return RunPage(runs=cast(list[models.RunSummary], response.json()), next_before=cursor or None)
+
+    def iter_runs(
+        self, *, workflow_id: str | None = None, page_size: int = 100, before: str | None = None
+    ) -> Generator[models.RunSummary, None, None]:
+        """Every stored run (of one workflow), newest first, read a page of ``page_size`` (1 to 500) at a time with
+        the API's cursor, so runs started meanwhile never shift a page."""
+        cursor = before
+        while True:
+            page = self.list_runs_page(workflow_id=workflow_id, limit=page_size, before=cursor)
+            yield from page.runs
+            if page.next_before is None or not page.runs:
+                return
+            cursor = page.next_before
 
     def cancel_run(self, run_id: str) -> bool:
         """Ask a running run to stop; ``False`` when it had already ended."""
@@ -255,13 +360,15 @@ class NodestroClient:
         budget wait has ``run["budget"]["pending_request_id"]`` set; answer it with
         :meth:`raise_run_budget` or :meth:`end_run_for_budget` (see :meth:`get_run_budget`).
 
-        Polls the run every ``poll`` seconds. ``timeout`` is the total wait in seconds; the last
-        status request may still take up to the client's request timeout. Raises
+        Polls the run every ``poll`` seconds. ``timeout`` is the total wait in seconds: each status request
+        gets the time that is left as its limit (at least half a second; a retry after a lost connection may add
+        its pause). Raises
         :class:`NodestroTimeoutError` when the run has not ended by then (the run keeps running),
         and :class:`NodestroRunFailed` for a failed or cancelled run if ``raise_on_failure``.
         """
+        path = f"/api/runs/{path_segment(run_id)}"
         run = poll_until(
-            lambda: self.get_run(run_id),
+            lambda left: cast(models.Run, self._http.json("GET", path, timeout=min(left, self._http.timeout))),
             lambda found: found.get("status") in FINISHED or (stop_at_approval and found.get("status") == WAITING),
             run_id=run_id,
             timeout=timeout,
@@ -587,17 +694,22 @@ class NodestroClient:
 
     def import_local_model(
         self,
-        kind: Literal["package", "gguf"],
+        kind: Literal["package", "gguf", "build"],
         path: str,
         *,
         name: str | None = None,
         select: Sequence[str] | None = None,
         projector: str | None = None,
+        template: str | None = None,
     ) -> models.LocalJob:
-        """Import offline: an offline model package (checked by SHA-256; ``select`` picks some of its models) or a GGUF
-        file (``name`` the model to create, ``projector`` an optional vision projector). Paths name files on the
-        computer that runs Nodestro."""
+        """Import offline: an offline model package (checked by SHA-256; ``select`` picks some of its models), a GGUF
+        file (``name`` the model to create, ``projector`` an optional vision projector), or ``build`` a catalog model
+        that is built from files (``name`` the catalog model, e.g. ``mdenseon:307m``; ``path`` its upstream weights
+        file and ``template`` the template GGUF file of its recipe, see ``build_inputs`` of :meth:`local_models`).
+        Paths name files on the computer that runs Nodestro."""
         body: dict[str, Any] = {"kind": kind, "path": path, "name": name, "projector": projector}
+        if template is not None:
+            body["template"] = template
         if select is not None:
             body["models"] = list(select)
         return cast(models.LocalJob, self._http.json("POST", "/api/local-models/import", json_body=body))

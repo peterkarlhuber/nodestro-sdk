@@ -52,9 +52,22 @@ types match the pinned API exactly.
 
 ## Security
 
-- **The studio API has no login.** Nodestro listens on `127.0.0.1` by default and answers only this computer (and
-  host names it was told about). Anyone who can reach it can change everything; `NodestroClient` adds no
-  protection of its own. Do not expose it to a network.
+- **Two profiles.** A desktop installation (and Nodestro Local Docker) serves one person; a `nodestro-server`
+  installation serves the members of an organization with logins. What the SDK supports differs:
+
+  | | Desktop / Local Docker | `nodestro-server` |
+  | --- | --- | --- |
+  | `NodestroClient` (studio API `/api`) | yes, on this computer (Local Docker: pass its access key as `Authorization: Bearer` in `headers`) | no: the studio API needs a browser login (OpenID Connect session), which a script cannot obtain (SDK-005) |
+  | `PublishedWorkflow` (`/api/published/{slug}`) | yes, with an API key | not yet: the server does not serve published workflow APIs (nodestro-api API-010) |
+  | A standalone export of a published workflow | yes, with an API key | yes, with an API key |
+
+- **The desktop studio API has no login.** Nodestro listens on `127.0.0.1` by default and answers only this
+  computer (and host names it was told about). Anyone who can reach it can change everything; `NodestroClient`
+  adds no protection of its own. Do not expose it to a network. Nodestro Local Docker requires its access key for
+  every studio request: browsers exchange it for a session, scripts send it as `Authorization: Bearer <key>`
+  (`headers=` / `headers:`); keep it as secret as an API key.
+- **A server's studio API** answers `401 access.login_required` (`NodestroAPIError`) to every SDK request without
+  a session; the SDK never asks for or stores login credentials.
 - **Published APIs are protected by API keys** with the scopes `run`, `read` and `approve`. The server decides
   what a key may do; the SDK does not check scopes and a missing permission is a 403 `NodestroAPIError`.
 - **API keys are secrets.** Use them in server-side code or local tools. Never put a long-lived key into a web page

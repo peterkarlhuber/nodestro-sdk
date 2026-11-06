@@ -99,9 +99,12 @@ export class PublishedWorkflow {
 
   /**
    * The status once the run finished (or waits for an approval, unless `stopAtApproval` is off);
-   * `timeoutMs` (total) and `pollMs` work as in {@link NodestroClient.waitForRun}.
+   * `timeoutMs` (total), `pollMs` and `signal` work as in {@link NodestroClient.waitForRun}.
    */
-  async wait(runId: string, options: { timeoutMs?: number; pollMs?: number; stopAtApproval?: boolean } = {}): Promise<RunStatusOut> {
+  async wait(
+    runId: string,
+    options: { timeoutMs?: number; pollMs?: number; stopAtApproval?: boolean; signal?: AbortSignal } = {},
+  ): Promise<RunStatusOut> {
     const stopAtApproval = options.stopAtApproval ?? true;
     return pollUntil(
       () => this.status(runId),
@@ -112,7 +115,10 @@ export class PublishedWorkflow {
   }
 
   /** Wait until the run succeeded and return its result; throws {@link NodestroRunFailed} otherwise. */
-  async waitForResult(runId: string, options: { timeoutMs?: number; pollMs?: number } = {}): Promise<RunResultOut> {
+  async waitForResult(
+    runId: string,
+    options: { timeoutMs?: number; pollMs?: number; signal?: AbortSignal } = {},
+  ): Promise<RunResultOut> {
     const found = await this.wait(runId, { ...options, stopAtApproval: false });
     if (found.status !== "succeeded") throw new NodestroRunFailed(found as { status?: string; run_id?: string; error?: unknown });
     return this.result(runId);

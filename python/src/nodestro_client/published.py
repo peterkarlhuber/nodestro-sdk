@@ -129,8 +129,9 @@ class PublishedWorkflow:
 
         ``timeout`` (total seconds) and ``poll`` work as in :meth:`NodestroClient.wait_for_run`.
         """
+        path = f"{self._base}/runs/{path_segment(run_id)}"
         return poll_until(
-            lambda: self.status(run_id),
+            lambda left: cast(models.RunStatusOut, self._http.json("GET", path, timeout=min(left, self._http.timeout))),
             lambda found: found.get("status") in FINISHED or (stop_at_approval and found.get("status") == WAITING),
             run_id=run_id,
             timeout=timeout,

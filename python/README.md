@@ -81,11 +81,26 @@ Use the clients as context managers, or call `close()`; closing twice is harmles
 
 Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refused with `ValueError`.
 
+## Revisions, paging and the API version
+
+- `update_workflow(id, workflow, revision=workflow["updated_at"], note="...")` sends the revision as `If-Match`:
+  when somebody saved in between, it raises `NodestroAPIError` 409 `workflow.conflict` (`params["updated_at"]` is
+  the current revision) instead of overwriting their change. Without `revision` the save always applies.
+- `list_runs(limit=..., before=...)` returns one page, newest first; `list_runs_page()` also returns the cursor of
+  the next page (`RunPage.next_before`, `None` at the end), and `iter_runs(workflow_id=..., page_size=100)`
+  yields every run, a page at a time, so runs started meanwhile never shift a page.
+- `check_compatibility()` compares `/api/meta` with `API_VERSION` and returns `Compatibility(compatible,
+  api_version, sdk_api_version, reason)`; it never raises for a mismatch. `0.x` versions fit only with the same
+  minor version.
+- `import_local_model("build", weights_path, name="mdenseon:307m", template=template_path)` builds a catalog model
+  from its upstream files (the catalog's `build_inputs` name them).
+
 ## Waiting, events and cancelling
 
 - `wait_for_run()` / `PublishedWorkflow.wait()` / `wait_for_result()` poll every `poll` seconds. `timeout` is the
-  total wait; only the last status request may take up to the request timeout longer. On timeout they raise
-  `NodestroTimeoutError` and the run keeps running (cancel it with `cancel_run()` / `cancel()`).
+  total wait: each status request gets the time that is left as its limit (at least half a second; a retry after
+  a lost connection may add its pause). On timeout they raise `NodestroTimeoutError` and the run keeps running
+  (cancel it with `cancel_run()` / `cancel()`).
 - `events()` yields `Event(event, data, id)` until the run ends. `timeout` there limits the wait for the next line
   (the API sends a keep-alive every 15 seconds). Leaving the loop closes the connection once the generator is
   collected; to close it at once, use `contextlib.closing(nodestro.events(run_id))` or call `.close()`.

@@ -11,8 +11,8 @@ and response types (:mod:`nodestro_client.models`) are generated from the API's 
 
 from __future__ import annotations
 
-from ._http import SDK_VERSION, Event, RetryPolicy
-from .client import NodestroClient
+from ._http import API_VERSION, SDK_VERSION, Event, RetryPolicy
+from .client import Compatibility, NodestroClient, RunPage
 from .errors import (
     NodestroAPIError,
     NodestroClientError,
@@ -24,11 +24,9 @@ from .published import PublishedWorkflow
 
 __version__ = SDK_VERSION
 
-#: The version of the Nodestro API whose OpenAPI document the models were generated from.
-API_VERSION = "0.2.0"
-
 __all__ = [
     "API_VERSION",
+    "Compatibility",
     "Event",
     "NodestroAPIError",
     "NodestroClient",
@@ -38,5 +36,6 @@ __all__ = [
     "NodestroTimeoutError",
     "PublishedWorkflow",
     "RetryPolicy",
+    "RunPage",
     "__version__",
 ]
