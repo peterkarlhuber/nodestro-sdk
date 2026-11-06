@@ -4,6 +4,9 @@
 
 ### TODO abatement round (2026-11-06)
 
+- Pins nodestro-api 56fa762 (TODO abatement round 2); types regenerated: tool version history
+  (`GET /api/tools/{name}/versions`), assistant file retention, library copy `memory_space`, documented error
+  responses of published routes, operation tags.
 - Pins nodestro-api a3bd875 (the TODO abatement api branch, runtime 3d69702); types regenerated: run `cause`,
   `GET /api/error-codes`, usage `budgets`, workflow `origin`, `ArchitectReasoning.subject`. Package version 0.3.0.
 - **Breaking (TypeScript):** `@nodestro/client` requires Node.js 22.12 or later (`engines`); Node.js 20 is no
