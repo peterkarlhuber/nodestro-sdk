@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Settings, attachments and providers (2026-11-06)
+
+- Types regenerated from nodestro-api: `GET /api/models/profile`, `POST /api/local-models/readiness`,
+  `GET /api/publication-overview`, assistant file attachments, reasoning settings and run events, output limits,
+  the per-request `model` on architect and assistant requests, and the error bodies `model.local_unavailable` and
+  `model.choice_invalid`. The `nodestro-api` test pin moves to the matching commit.
+
 - Pin nodestro-api f796916 (api #90: no price check in the strict offline mode, `pricing.offline_sync`; server batches
   and test series follow their runs; runtime 57b40d2, examples f015a4d). The OpenAPI document is unchanged.
 - Pin nodestro-api 5ee13f7 (api #87: backend audit round 3; runtime 40c8c06, examples 64e534a) and regenerate the types:

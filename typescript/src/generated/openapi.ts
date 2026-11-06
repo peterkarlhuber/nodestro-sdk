@@ -238,6 +238,10 @@ export interface paths {
         /**
          * Start Architect
          * @description Start designing (``create``) or revising (``revise``) a workflow; returns at once.
+         *
+         *     A local assistant model that is not ready (not downloaded, no server) is refused before anything starts or
+         *     costs (``409 model.local_unavailable`` with what can be done); ``model`` uses another ready model for this job
+         *     only (one of the check's alternatives, ``model.choice_invalid`` otherwise).
          */
         post: operations["start_architect_api_architect_jobs_post"];
         delete?: never;
@@ -369,7 +373,10 @@ export interface paths {
         get: operations["get_conversation_api_assistant_conversations__conversation_id__get"];
         put?: never;
         post?: never;
-        /** Delete Conversation */
+        /**
+         * Delete Conversation
+         * @description Delete the conversation with its messages, snapshots and files.
+         */
         delete: operations["delete_conversation_api_assistant_conversations__conversation_id__delete"];
         options?: never;
         head?: never;
@@ -425,6 +432,87 @@ export interface paths {
         put?: never;
         /** Refresh Attachment */
         post: operations["refresh_attachment_api_assistant_conversations__conversation_id__attachments__attachment_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/conversations/{conversation_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Files
+         * @description Check, read and attach files to the conversation (they wait for the next message); refused files are
+         *     reported with the reason and never stored.
+         */
+        post: operations["upload_files_api_assistant_conversations__conversation_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/conversations/{conversation_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove File
+         * @description Remove a file from the conversation and delete it (sent messages keep only its name).
+         */
+        delete: operations["remove_file_api_assistant_conversations__conversation_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/conversations/{conversation_id}/files/{file_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File Content
+         * @description The file as uploaded: always a download (never shown inline in the studio's origin).
+         */
+        get: operations["file_content_api_assistant_conversations__conversation_id__files__file_id__content_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/conversations/{conversation_id}/files/{file_id}/text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File Text
+         * @description What Nodestro read from the file (the text a model without native support gets).
+         */
+        get: operations["file_text_api_assistant_conversations__conversation_id__files__file_id__text_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -537,6 +625,26 @@ export interface paths {
          * @description The documentation search the assistant uses (free, no AI request).
          */
         get: operations["search_docs_api_assistant_docs_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/files/support": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File Support
+         * @description The formats and limits of files, and whether the assistant's current model reads images and PDFs natively.
+         */
+        get: operations["file_support_api_assistant_files_support_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1313,7 +1421,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Knowledge Reindex */
+        /**
+         * Knowledge Reindex
+         * @description Build the semantic index; an embedding model the local model server does not have is refused first
+         *     (``409 model.local_unavailable``, with what can be done), instead of a job that fails at its first chunk.
+         */
         post: operations["knowledge_reindex_api_knowledge_index_rebuild_post"];
         delete?: never;
         options?: never;
@@ -1672,6 +1784,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/local-models/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Local Readiness
+         * @description Whether a local model can be used for an action now; if not, why (``problem.cause``: not installed, no
+         *     runtime, server not started or unreachable, invalid name, too little space, missing capability, hardware) and
+         *     what this person may do (``problem.actions``, from their permission, the operating mode and the strict offline
+         *     mode), plus the ready models that can do the same (``alternatives``). Interactive actions refuse such a model
+         *     with ``409 model.local_unavailable`` carrying the same answer; the studio checks again here after a download.
+         *     May start the managed server of the desktop (as the action would); never downloads anything.
+         */
+        post: operations["local_readiness_api_local_models_readiness_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/local-models/recommend": {
         parameters: {
             query?: never;
@@ -1706,6 +1843,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/local-models/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Local Setup
+         * @description Set up the local model server as one job with steps (see the module documentation); one at a time
+         *     (``local.job_running``). For Local Docker and the user's own server it only checks the server and the hardware:
+         *     such a server is never started, stopped or changed.
+         */
+        post: operations["local_setup_api_local_models_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/local-models/start": {
         parameters: {
             query?: never;
@@ -1732,7 +1891,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Local Stop */
+        /**
+         * Local Stop
+         * @description Stop the server Nodestro started (desktop). Local Docker's container and a server the user runs are never
+         *     stopped from here (``local.not_managed``).
+         */
         post: operations["local_stop_api_local_models_stop_post"];
         delete?: never;
         options?: never;
@@ -2091,6 +2254,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Model Profile
+         * @description Capabilities, limits (context window, maximum output, efforts, thinking modes) and agent options of a model.
+         */
+        get: operations["get_model_profile_api_models_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organize": {
         parameters: {
             query?: never;
@@ -2339,6 +2522,27 @@ export interface paths {
          * @description Check the prices against their sources now (desktop; a server syncs in its worker).
          */
         post: operations["sync_prices_api_pricing_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publication-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Publication Overview
+         * @description All publications of this installation (on a server: of the tenant) with their workflow, active release and
+         *     exports, for the studio's *Publications* page (one request instead of one per publication).
+         */
+        get: operations["publication_overview_api_publication_overview_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4528,9 +4732,13 @@ export interface components {
          * @description Everything about one agent node; mirrors the arguments of ``orkexa.Agent``.
          *
          *     ``model`` names the provider and the model (``provider:model``). ``thinking``,
-         *     ``thinking_display``, ``cache_control``, ``cache_ttl``, ``fallbacks`` and ``server_tools``
-         *     are options of the Anthropic API (``orkexa.AnthropicOptions``); for other providers
-         *     they must keep their defaults (see :mod:`nodestro_runtime.agent_builder`).
+         *     ``thinking_display``, ``thinking_budget``, ``cache_control``, ``cache_ttl``, ``fallbacks`` and
+         *     ``server_tools`` depend on what the model supports (:mod:`nodestro_runtime.model_profile`); a model that
+         *     cannot use one refuses a value other than its default (see :mod:`nodestro_runtime.agent_builder`).
+         *
+         *     ``max_tokens`` is the most output tokens per model response (reasoning counts against it); it may not exceed
+         *     the model's documented or declared maximum (``GET /api/models/profile``). The upper bound here only catches
+         *     typos: no model accepts more.
          */
         AgentConfig: {
             /**
@@ -4622,6 +4830,8 @@ export interface components {
             task_template: string;
             /** Thinking */
             thinking?: ("adaptive" | "between_tools" | "disabled") | null;
+            /** Thinking Budget */
+            thinking_budget?: number | null;
             /** Thinking Display */
             thinking_display?: ("summarized" | "omitted" | "updates") | null;
             tool_choice?: components["schemas"]["ToolChoice"];
@@ -4760,6 +4970,7 @@ export interface components {
             output?: unknown;
             /** Prompt */
             prompt: string;
+            reasoning?: components["schemas"]["ReasoningTrace"];
             /** Reasoning Reduced */
             reasoning_reduced?: string | null;
             /**
@@ -5229,6 +5440,8 @@ export interface components {
             phases?: string[];
             /** Question */
             question?: string | null;
+            /** Reasoning */
+            reasoning?: components["schemas"]["ArchitectReasoning"][];
             /**
              * Repairs
              * @default 0
@@ -5252,6 +5465,39 @@ export interface components {
             usage?: components["schemas"]["Usage"];
             /** Workflow Id */
             workflow_id?: string | null;
+        };
+        /**
+         * ArchitectReasoning
+         * @description The reasoning of one request of a job: ``step`` is ``analysis``, ``plan``, ``agent_revision`` or ``repair``.
+         */
+        ArchitectReasoning: {
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /** Kind */
+            kind?: ("thinking" | "summary") | null;
+            /**
+             * Phases
+             * @default 0
+             */
+            phases: number;
+            /**
+             * Redacted
+             * @default false
+             */
+            redacted: boolean;
+            /**
+             * Step
+             * @default plan
+             */
+            step: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
         };
         /** ArchitectRequest */
         ArchitectRequest: {
@@ -5278,6 +5524,8 @@ export interface components {
              * @enum {string}
              */
             mode: "create" | "revise";
+            /** Model */
+            model?: string | null;
             /**
              * Name
              * @default
@@ -6071,6 +6319,11 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
         };
+        /** Body_upload_files_api_assistant_conversations__conversation_id__files_post */
+        Body_upload_files_api_assistant_conversations__conversation_id__files_post: {
+            /** Files */
+            files: string[];
+        };
         /** Body_upload_inputs_api_inputs_post */
         Body_upload_inputs_api_inputs_post: {
             /**
@@ -6537,6 +6790,8 @@ export interface components {
              * @default false
              */
             estimated: boolean;
+            /** Files */
+            files?: components["schemas"]["SentFile"][];
             /** Finished At */
             finished_at?: string | null;
             /** Handovers */
@@ -6547,6 +6802,7 @@ export interface components {
             language?: string | null;
             /** Model */
             model?: string | null;
+            reasoning?: components["schemas"]["ReasoningTrace"] | null;
             /** Reply To */
             reply_to?: string | null;
             /**
@@ -6909,6 +7165,10 @@ export interface components {
              * Format: date-time
              */
             created_at?: string;
+            /** File States */
+            file_states?: components["schemas"]["FileView"][];
+            /** Files */
+            files?: components["schemas"]["ConversationFile"][];
             /** History */
             history?: components["schemas"]["ChatMessage"][];
             /** Id */
@@ -6923,6 +7183,8 @@ export interface components {
              * @default 0
              */
             messages: number;
+            /** Owner */
+            owner?: string | null;
             /** Streaming */
             streaming?: string | null;
             /**
@@ -6937,6 +7199,47 @@ export interface components {
             updated_at?: string;
             usage?: components["schemas"]["Usage"];
         };
+        /**
+         * ConversationFile
+         * @description A file attached to a conversation (an input file of origin ``assistant``).
+         */
+        ConversationFile: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at?: string;
+            /**
+             * Chars
+             * @default 0
+             */
+            chars: number;
+            /** Format */
+            format: string;
+            /** Group */
+            group: string;
+            /** Id */
+            id: string;
+            /** Info */
+            info?: {
+                [key: string]: unknown;
+            };
+            /** Media Type */
+            media_type: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Outline
+             * @default
+             */
+            outline: string;
+            /** Sent At */
+            sent_at?: string | null;
+            /** Size */
+            size: number;
+        };
         /** ConversationSummary */
         ConversationSummary: {
             /** Attachments */
@@ -6948,6 +7251,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Files
+             * @default 0
+             */
+            files: number;
             /** Id */
             id: string;
             /** Messages */
@@ -7599,6 +7907,37 @@ export interface components {
              */
             sanitize: boolean;
         };
+        /**
+         * FileSupport
+         * @description What the assistant accepts, and what its current model reads natively.
+         */
+        FileSupport: {
+            /** Formats */
+            formats: {
+                [key: string]: unknown;
+            }[];
+            /** Images */
+            images: boolean;
+            /**
+             * Max File Mb
+             * @default 50
+             */
+            max_file_mb: number;
+            /**
+             * Max Files Per Conversation
+             * @default 50
+             */
+            max_files_per_conversation: number;
+            /**
+             * Max Files Per Message
+             * @default 10
+             */
+            max_files_per_message: number;
+            /** Model */
+            model: string;
+            /** Pdfs */
+            pdfs: boolean;
+        };
         /** FileText */
         FileText: {
             /** Format */
@@ -7616,6 +7955,67 @@ export interface components {
              * @default false
              */
             truncated: boolean;
+        };
+        /**
+         * FileUpload
+         * @description One uploaded file: attached (``file``) or refused (``problem``, nothing is stored then).
+         */
+        FileUpload: {
+            file?: components["schemas"]["FileView"] | null;
+            /** Name */
+            name: string;
+            problem?: components["schemas"]["Problem"] | null;
+        };
+        /**
+         * FileView
+         * @description A conversation file with how the assistant's current model would receive it.
+         */
+        FileView: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at?: string;
+            /**
+             * Chars
+             * @default 0
+             */
+            chars: number;
+            /** Format */
+            format: string;
+            /** Group */
+            group: string;
+            /** Id */
+            id: string;
+            /** Info */
+            info?: {
+                [key: string]: unknown;
+            };
+            /** Knowledge Ids */
+            knowledge_ids?: string[];
+            /** Media Type */
+            media_type: string;
+            /**
+             * Mode
+             * @default text
+             * @enum {string}
+             */
+            mode: "text" | "document" | "image" | "ocr_text" | "overview" | "unavailable";
+            /** Mode Notes */
+            mode_notes?: string[];
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Outline
+             * @default
+             */
+            outline: string;
+            /** Sent At */
+            sent_at?: string | null;
+            /** Size */
+            size: number;
         };
         /** FormatsInfo */
         FormatsInfo: {
@@ -8022,10 +8422,47 @@ export interface components {
              */
             verified: boolean;
         };
+        /**
+         * JobLayer
+         * @description One file (layer) of a model download, as Ollama reports it.
+         */
+        JobLayer: {
+            /**
+             * Completed
+             * @default 0
+             */
+            completed: number;
+            /** Digest */
+            digest: string;
+            /** Total */
+            total?: number | null;
+        };
         /** JobRequest */
         JobRequest: {
             /** Requirement */
             requirement: string;
+        };
+        /**
+         * JobStep
+         * @description One step of a job, as the code runs it.
+         */
+        JobStep: {
+            /** Detail */
+            detail?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Note */
+            note?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * State
+             * @default pending
+             * @enum {string}
+             */
+            state: "pending" | "running" | "done" | "skipped" | "failed";
         };
         /**
          * JudgeVerdict
@@ -8382,6 +8819,22 @@ export interface components {
             local: boolean;
         };
         /**
+         * LiveAnswer
+         * @description An answer being written in this process: what has arrived so far (shown live, never stored as such).
+         */
+        LiveAnswer: {
+            /** Question Id */
+            question_id: string;
+            reasoning?: components["schemas"]["ReasoningTrace"];
+            /** Run Id */
+            run_id: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+        };
+        /**
          * LocalAdvice
          * @description A hint about the local models of this computer; the interface shows its own text for the ``code``.
          *
@@ -8427,6 +8880,10 @@ export interface components {
             error?: string | null;
             /** Error Code */
             error_code?: string | null;
+            /** Eta Scope */
+            eta_scope?: ("job" | "file") | null;
+            /** Eta Seconds */
+            eta_seconds?: number | null;
             /** Finished At */
             finished_at?: string | null;
             /** Id */
@@ -8435,12 +8892,34 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "pull" | "build" | "install_runtime" | "import_package" | "import_gguf" | "move_models" | "benchmark";
+            kind: "pull" | "build" | "setup" | "install_runtime" | "import_package" | "import_gguf" | "move_models" | "benchmark";
+            /** Layers */
+            layers?: components["schemas"]["JobLayer"][];
+            /** Log */
+            log?: string[];
             /**
              * Message
              * @default
              */
             message: string;
+            /** Phase */
+            phase?: string | null;
+            /** Progress Step */
+            progress_step?: string | null;
+            /** Rate */
+            rate?: number | null;
+            /**
+             * Resumed Bytes
+             * @default 0
+             */
+            resumed_bytes: number;
+            /**
+             * Retryable
+             * @default false
+             */
+            retryable: boolean;
+            /** Stalled Seconds */
+            stalled_seconds?: number | null;
             /**
              * Started At
              * Format: date-time
@@ -8452,10 +8931,19 @@ export interface components {
              * @enum {string}
              */
             state: "running" | "done" | "failed" | "cancelled";
+            /** Steps */
+            steps?: components["schemas"]["JobStep"][];
             /** Target */
             target: string;
             /** Total */
             total?: number | null;
+            /**
+             * Total Final
+             * @default true
+             */
+            total_final: boolean;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /**
          * LocalModelInfo
@@ -9103,6 +9591,27 @@ export interface components {
             version: string;
         };
         /**
+         * ModelAlternative
+         * @description A model that is ready now and can do what the action needs.
+         */
+        ModelAlternative: {
+            /** Context Window */
+            context_window?: number | null;
+            /**
+             * Limited
+             * @default false
+             */
+            limited: boolean;
+            /** Local */
+            local: boolean;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
+        };
+        /**
          * ModelCapabilities
          * @description What a model supports according to Orkexa, for a model id typed in the editor (not only catalog entries).
          */
@@ -9113,6 +9622,7 @@ export interface components {
             } | null;
             /** Model */
             model: string;
+            reasoning?: components["schemas"]["ReasoningStreamInfo"] | null;
         };
         /** ModelChoice */
         ModelChoice: {
@@ -9193,6 +9703,27 @@ export interface components {
             tier: string;
         };
         /**
+         * ModelLimitsInfo
+         * @description :class:`orkexa.ModelLimits` for the interface (``None``: unknown).
+         */
+        ModelLimitsInfo: {
+            /** Context Window */
+            context_window?: number | null;
+            /** Efforts */
+            efforts?: string[] | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
+            /**
+             * Source
+             * @default unknown
+             */
+            source: string;
+            /** Thinking Budget */
+            thinking_budget?: boolean | null;
+            /** Thinking Modes */
+            thinking_modes?: string[] | null;
+        };
+        /**
          * ModelPolicy
          * @description How a model is chosen from measurements; nothing in it is a quality value of its own.
          */
@@ -9210,6 +9741,92 @@ export interface components {
              * @enum {string}
              */
             objective: "cost" | "duration" | "quality";
+        };
+        /**
+         * ModelProblem
+         * @description Why a local model cannot be used for an action now, and what may be done about it.
+         */
+        ModelProblem: {
+            /** Action */
+            action: string;
+            /** Actions */
+            actions?: ("download" | "setup_server" | "retry" | "choose_model" | "ask_admin" | "open_settings")[];
+            /** Blocked */
+            blocked?: ("permission" | "operator" | "offline") | null;
+            /**
+             * Catalog
+             * @default false
+             */
+            catalog: boolean;
+            /**
+             * Cause
+             * @enum {string}
+             */
+            cause: "model_missing" | "runtime_missing" | "server_stopped" | "server_unreachable" | "server_missing" | "model_name_invalid" | "disk_full" | "capability_missing" | "hardware_insufficient";
+            /** Download Bytes */
+            download_bytes?: number | null;
+            /** Fits */
+            fits?: boolean | null;
+            /** Free Bytes */
+            free_bytes?: number | null;
+            /** Host */
+            host?: string | null;
+            job?: components["schemas"]["LocalJob"] | null;
+            /**
+             * Location
+             * @enum {string}
+             */
+            location: "this_computer" | "container" | "remote" | "server";
+            /** Memory Bytes */
+            memory_bytes?: number | null;
+            /** Missing Capabilities */
+            missing_capabilities?: string[];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "managed" | "container" | "external" | "unavailable";
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
+            /** Partial Bytes */
+            partial_bytes?: number | null;
+            previous_job?: components["schemas"]["LocalJob"] | null;
+        };
+        /**
+         * ModelProfile
+         * @description Capabilities, limits and agent options of one model as the workspace runs it.
+         */
+        ModelProfile: {
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: "supported" | "unsupported" | "unknown";
+            };
+            /** Error */
+            error?: string | null;
+            limits?: components["schemas"]["ModelLimitsInfo"];
+            /** Max Tokens Limit */
+            max_tokens_limit: number;
+            /** Model */
+            model: string;
+            /** Native Tools */
+            native_tools?: components["schemas"]["NativeToolSupport"][];
+            /** Options */
+            options?: {
+                [key: string]: components["schemas"]["OptionSupport"];
+            };
+            /** Provider */
+            provider?: string | null;
+            /** Reasons */
+            reasons?: {
+                [key: string]: string;
+            };
         };
         /**
          * ModelSpeed
@@ -9245,6 +9862,18 @@ export interface components {
             roles?: ("agent" | "fallback" | "judge" | "orchestrator" | "embedding")[];
             /** Used By */
             used_by?: string[];
+        };
+        /**
+         * NativeToolSupport
+         * @description A provider-native tool (run by the provider, never by Nodestro) and whether this model can use it.
+         */
+        NativeToolSupport: {
+            /** Available */
+            available: boolean;
+            /** Key */
+            key: string;
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * NeededRequirement
@@ -9464,9 +10093,38 @@ export interface components {
              * @default
              */
             thinking: string;
+            /** Thinking Kind */
+            thinking_kind?: ("thinking" | "summary") | null;
+            /**
+             * Thinking Phases
+             * @default 0
+             */
+            thinking_phases: number;
+            /**
+             * Thinking Redacted
+             * @default false
+             */
+            thinking_redacted: boolean;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCallRecord"][];
             usage?: components["schemas"]["Usage"];
+        };
+        /**
+         * OptionSupport
+         * @description Whether an agent option can be used with a model; ``reason`` says why not (a code the editor translates).
+         *
+         *     Reasons: ``provider`` (the provider's API has no such setting), ``model`` (the model does not accept it),
+         *     ``automatic`` (the provider does it by itself, e.g. prompt caching at OpenAI and Gemini), ``not_mapped`` (the
+         *     provider has a similar feature that Nodestro does not offer as this option), ``unknown`` (not documented for this
+         *     model).
+         */
+        OptionSupport: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Values */
+            values?: string[] | null;
         };
         /**
          * OrchestratorConfig
@@ -10296,6 +10954,10 @@ export interface components {
             } | null;
             /** Data Residency */
             data_residency?: string | null;
+            /** Limits */
+            limits?: {
+                [key: string]: number;
+            } | null;
             /** Profile Name */
             profile_name?: string | null;
             /** Region */
@@ -10342,6 +11004,10 @@ export interface components {
             key_stored: boolean;
             /** Label */
             label: string;
+            /** Limits */
+            limits?: {
+                [key: string]: number;
+            };
             /**
              * Local Server
              * @default false
@@ -10461,6 +11127,46 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
         };
+        /**
+         * PublicationOverviewItem
+         * @description One publication on the studio's *Publications* page: the stored publication, its workflow, the active
+         *     release and the export history. Read only; everything comes from the stored publications, releases and
+         *     export records (nothing is stored for the page).
+         */
+        PublicationOverviewItem: {
+            /** Active Release */
+            active_release: number | null;
+            /** Active Version */
+            active_version?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Exports */
+            exports?: components["schemas"]["ExportRecord"][];
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Network */
+            network: boolean;
+            /** Published At */
+            published_at?: string | null;
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Workflow Name */
+            workflow_name?: string | null;
+        };
         /** PublicationPatch */
         PublicationPatch: {
             /** Description */
@@ -10499,6 +11205,11 @@ export interface components {
         };
         /** PullIn */
         PullIn: {
+            /**
+             * Attach
+             * @default false
+             */
+            attach: boolean;
             /** Model */
             model: string;
         };
@@ -10628,6 +11339,86 @@ export interface components {
              * @default true
              */
             required: boolean;
+        };
+        /**
+         * Readiness
+         * @description The answer of a readiness check: ``problem`` is ``None`` when the model can be used now.
+         */
+        Readiness: {
+            /** Alternatives */
+            alternatives?: components["schemas"]["ModelAlternative"][];
+            /** Model */
+            model: string;
+            problem?: components["schemas"]["ModelProblem"] | null;
+            /** Ready */
+            ready: boolean;
+        };
+        /** ReadinessIn */
+        ReadinessIn: {
+            /**
+             * Action
+             * @default check
+             * @enum {string}
+             */
+            action: "architect" | "assistant" | "agent_design" | "agent_test" | "run" | "knowledge_index" | "check";
+            /** Capabilities */
+            capabilities?: ("tools" | "forced_tool_choice" | "parallel_tool_calls" | "strict_tool_schemas" | "structured_output" | "streaming" | "image_input" | "document_input" | "reasoning" | "caching" | "server_tools" | "native_memory_tool" | "token_counting" | "batch" | "system_messages")[];
+            /** Model */
+            model: string;
+        };
+        /**
+         * ReasoningStreamInfo
+         * @description What a model's stream transmits of its reasoning, for the interface (``orkexa.ReasoningStream``).
+         */
+        ReasoningStreamInfo: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** Request Option */
+            request_option?: string | null;
+            /** Requested */
+            requested?: boolean | null;
+            /**
+             * Status
+             * @default false
+             */
+            status: boolean;
+            /**
+             * Text
+             * @default unknown
+             * @enum {string}
+             */
+            text: "thinking" | "summary" | "none" | "unknown";
+        };
+        /**
+         * ReasoningTrace
+         * @description The reasoning of one model call sequence as it arrived (a run step, an agent test, a chat answer).
+         */
+        ReasoningTrace: {
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /** Kind */
+            kind?: ("thinking" | "summary") | null;
+            /**
+             * Phases
+             * @default 0
+             */
+            phases: number;
+            /**
+             * Redacted
+             * @default false
+             */
+            redacted: boolean;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
         };
         /**
          * Recommendation
@@ -11200,6 +11991,8 @@ export interface components {
              * @enum {string}
              */
             language: "de" | "en" | "es" | "fr" | "pt-BR" | "it";
+            /** Model */
+            model?: string | null;
         };
         /** ReviewDecision */
         ReviewDecision: {
@@ -11394,6 +12187,8 @@ export interface components {
             active: boolean;
             /** Answer Model */
             answer_model: string;
+            /** Answering */
+            answering?: components["schemas"]["LiveAnswer"][];
             limits: components["schemas"]["ChatLimits"];
             /**
              * Max Chars
@@ -11481,6 +12276,7 @@ export interface components {
             model?: string | null;
             /** Node Id */
             node_id: string;
+            reasoning?: components["schemas"]["ReasoningTrace"] | null;
             /** Reply To */
             reply_to?: string | null;
             /** Run Id */
@@ -12160,14 +12956,49 @@ export interface components {
         };
         /** SendRequest */
         SendRequest: {
-            /** Content */
+            /**
+             * Content
+             * @default
+             */
             content: string;
+            /** File Ids */
+            file_ids?: string[];
             /**
              * Language
              * @default en
              * @enum {string}
              */
             language: "de" | "en" | "es" | "fr" | "pt-BR" | "it";
+            /** Model */
+            model?: string | null;
+        };
+        /**
+         * SentFile
+         * @description A file a message was sent with, and how the model received it.
+         */
+        SentFile: {
+            /**
+             * Chars
+             * @default 0
+             */
+            chars: number;
+            /** File Id */
+            file_id: string;
+            /** Format */
+            format?: string | null;
+            /** Group */
+            group?: string | null;
+            /** Mode */
+            mode?: ("text" | "document" | "image" | "ocr_text" | "overview" | "unavailable") | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Size
+             * @default 0
+             */
+            size: number;
         };
         /** SentMessage */
         SentMessage: {
@@ -12197,6 +13028,10 @@ export interface components {
             key: string;
             /** Label */
             label: string;
+            /** Providers */
+            providers?: string[];
+            /** Unpriced Providers */
+            unpriced_providers?: string[];
         };
         /** Settings */
         Settings: {
@@ -12210,6 +13045,16 @@ export interface components {
              * @default 2
              */
             architect_max_repairs: number;
+            /**
+             * Architect Retry Max Tokens
+             * @default 64000
+             */
+            architect_retry_max_tokens: number;
+            /**
+             * Architect Retry Truncated
+             * @default true
+             */
+            architect_retry_truncated: boolean;
             /**
              * Assistant Model
              * @default anthropic:claude-opus-5-5
@@ -12277,6 +13122,14 @@ export interface components {
             ocr_enabled: boolean;
             /** Operator Max Run Budget Usd */
             operator_max_run_budget_usd?: string | null;
+            /** Output Limit Defaults */
+            output_limit_defaults?: {
+                [key: string]: number;
+            };
+            /** Output Limits */
+            output_limits?: {
+                [key: string]: number;
+            };
             /**
              * Prefer European Models
              * @default false
@@ -12290,6 +13143,11 @@ export interface components {
             price_mode: "standard" | "strict";
             /** Providers */
             providers?: components["schemas"]["ProviderStatus"][];
+            /**
+             * Reasoning Summaries
+             * @default false
+             */
+            reasoning_summaries: boolean;
             /**
              * Sandbox
              * @default auto
@@ -12313,6 +13171,10 @@ export interface components {
             architect_budget_usd?: number | null;
             /** Architect Max Repairs */
             architect_max_repairs?: number | null;
+            /** Architect Retry Max Tokens */
+            architect_retry_max_tokens?: number | null;
+            /** Architect Retry Truncated */
+            architect_retry_truncated?: boolean | null;
             /** Assistant Model */
             assistant_model?: string | null;
             /** Budget Decision Hours */
@@ -12335,6 +13197,10 @@ export interface components {
             max_run_budget_usd?: number | string | null;
             /** Ocr Enabled */
             ocr_enabled?: boolean | null;
+            /** Output Limits */
+            output_limits?: {
+                [key: string]: number | null;
+            } | null;
             /** Prefer European Models */
             prefer_european_models?: boolean | null;
             /** Price Mode */
@@ -12343,10 +13209,22 @@ export interface components {
             providers?: {
                 [key: string]: components["schemas"]["ProviderSettingsIn"];
             } | null;
+            /** Reasoning Summaries */
+            reasoning_summaries?: boolean | null;
             /** Sandbox */
             sandbox?: ("auto" | "subprocess" | "linux" | "docker") | null;
             /** Strict Offline */
             strict_offline?: boolean | null;
+        };
+        /** SetupIn */
+        SetupIn: {
+            /** Archive */
+            archive?: string | null;
+            /**
+             * Download
+             * @default false
+             */
+            download: boolean;
         };
         /**
          * Snapshot
@@ -12492,7 +13370,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "context" | "docs_search" | "docs_read" | "generate" | "handover";
+            kind: "context" | "files" | "docs_search" | "docs_read" | "generate" | "handover";
         };
         /** StepOut */
         StepOut: {
@@ -15064,6 +15942,139 @@ export interface operations {
             };
         };
     };
+    upload_files_api_assistant_conversations__conversation_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_files_api_assistant_conversations__conversation_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUpload"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_file_api_assistant_conversations__conversation_id__files__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    file_content_api_assistant_conversations__conversation_id__files__file_id__content_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    file_text_api_assistant_conversations__conversation_id__files__file_id__text_get: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path: {
+                conversation_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileText"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     send_message_api_assistant_conversations__conversation_id__messages_post: {
         parameters: {
             query?: never;
@@ -15250,6 +16261,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocHitOut"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    file_support_api_assistant_files_support_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSupport"];
                 };
             };
             /** @description Error */
@@ -17531,6 +18571,39 @@ export interface operations {
             };
         };
     };
+    local_readiness_api_local_models_readiness_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadinessIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Readiness"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     local_recommend_api_local_models_recommend_get: {
         parameters: {
             query: {
@@ -17572,6 +18645,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RuntimeInstallIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalJob"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    local_setup_api_local_models_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupIn"];
             };
         };
         responses: {
@@ -18435,6 +19541,37 @@ export interface operations {
             };
         };
     };
+    get_model_profile_api_models_profile_get: {
+        parameters: {
+            query: {
+                model: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelProfile"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     organize_state_api_organize_get: {
         parameters: {
             query?: never;
@@ -18926,6 +20063,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncReport"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    publication_overview_api_publication_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationOverviewItem"][];
                 };
             };
             /** @description Error */
