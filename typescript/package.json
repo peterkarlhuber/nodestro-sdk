@@ -1,6 +1,6 @@
 {
   "name": "@nodestro/client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Nodestro Client - the TypeScript SDK of the Nodestro API (studio API and published workflow APIs).",
   "license": "MIT",
   "type": "module",

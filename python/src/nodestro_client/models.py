@@ -166,6 +166,7 @@ class ArchitectReasoning(TypedDict):
     phases: NotRequired[int]
     redacted: NotRequired[bool]
     step: NotRequired[str]
+    subject: NotRequired[str | None]
     text: NotRequired[str]
 
 
@@ -680,6 +681,16 @@ class EnvironmentInfo(TypedDict):
     ref: NotRequired[str]
     scope: str
     size_bytes: NotRequired[int]
+
+
+class ErrorCode(TypedDict):
+    params: NotRequired[list[str]]
+    source: Literal['runtime', 'api', 'both']
+
+
+class ErrorCodeCatalog(TypedDict):
+    codes: dict[str, ErrorCode]
+    patterns: NotRequired[list[str]]
 
 
 class ErrorOut(TypedDict):
@@ -1726,6 +1737,16 @@ class ProviderVerifyIn(TypedDict):
     model: NotRequired[str | None]
 
 
+class PublicationBudget(TypedDict):
+    daily_budget_usd: NotRequired[float | None]
+    exhausted: NotRequired[bool]
+    last_24h_usd: NotRequired[float]
+    name: str
+    publication_id: str
+    run_budget_usd: NotRequired[float | None]
+    slug: str
+
+
 class PublicationEvent(TypedDict):
     at: NotRequired[str]
     details: NotRequired[dict[str, Any]]
@@ -2083,6 +2104,13 @@ class RunBudgetOut(TypedDict):
     spent_usd: str
     status: Literal['queued', 'running', 'paused', 'succeeded', 'failed', 'cancelled']
     unknown_cost: NotRequired[bool]
+
+
+class RunCause(TypedDict):
+    code: str
+    label: str
+    node_id: str
+    params: NotRequired[dict[str, Any]]
 
 
 class RunIn(TypedDict):
@@ -2804,6 +2832,12 @@ class UsageBucket(TypedDict):
     unpriced: NotRequired[int]
 
 
+class UsageBudgets(TypedDict):
+    publications: NotRequired[list[PublicationBudget]]
+    stopped_runs: NotRequired[int]
+    waiting_runs: NotRequired[int]
+
+
 class UsageEntry(TypedDict):
     at: NotRequired[str]
     detail: NotRequired[str | None]
@@ -2836,6 +2870,7 @@ class UsageOut(TypedDict):
 
 
 class UsageReport(TypedDict):
+    budgets: NotRequired[UsageBudgets]
     by_day: list[UsageBucket]
     by_model: list[UsageBucket]
     by_source: list[UsageBucket]
@@ -2892,6 +2927,16 @@ class WorkflowLimits(TypedDict):
     max_duration_s: NotRequired[float | None]
     max_parallel: NotRequired[int | None]
     max_steps: NotRequired[int | None]
+
+
+class WorkflowOrigin(TypedDict):
+    connected: NotRequired[list[str]]
+    copied_at: NotRequired[str]
+    example_id: str
+    kind: NotRequired[Literal['example']]
+    language: str
+    offline: NotRequired[list[str]]
+    version: str
 
 
 class WorkflowSummary(TypedDict):
@@ -3747,6 +3792,7 @@ class RunStatusOut(TypedDict):
 
 class RunSummary(TypedDict):
     budget: NotRequired[RunBudget | None]
+    cause: NotRequired[RunCause | None]
     created_at: str
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
@@ -4220,6 +4266,7 @@ class Workflow(TypedDict):
     limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
+    origin: NotRequired[WorkflowOrigin | None]
     updated_at: NotRequired[str]
 
 
@@ -4339,6 +4386,7 @@ class Run(TypedDict):
     budget: NotRequired[RunBudget | None]
     budget_hard_maximum: NotRequired[bool | None]
     budget_usd: NotRequired[float | None]
+    cause: NotRequired[RunCause | None]
     created_at: NotRequired[str]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]

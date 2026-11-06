@@ -4,9 +4,11 @@
 
 ### TODO abatement round (2026-11-06)
 
+- Pins nodestro-api 452bac9 (the TODO abatement api branch, runtime 3d69702); types regenerated: run `cause`,
+  `GET /api/error-codes`, usage `budgets`, workflow `origin`, `ArchitectReasoning.subject`. Package version 0.3.0.
 - **Breaking (TypeScript):** `@nodestro/client` requires Node.js 22.12 or later (`engines`); Node.js 20 is no
   longer supported. CI tests Node.js 22 and 24 (SDK-010). Because the package is 0.x, the next version bump through
-  the pin cascade raises the minor version: 0.2.0 → 0.3.0 (no release in this change).
+  the pin cascade raises the minor version: the package version is 0.3.0 from this round on (no release).
 - Vitest 5.0.5 (checked on Node.js 22 and 24); Dependabot proposes Vitest majors again. `npm audit` reports no
   advisory.
 - Workflow revisions: `update_workflow(..., revision=, note=)` / `updateWorkflow(..., { revision, note })` send

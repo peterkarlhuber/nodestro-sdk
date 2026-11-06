@@ -1146,6 +1146,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/error-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Error Codes
+         * @description Every problem code the API and the runtime answer with (``code`` of an error, an issue or a status), with the
+         *     names of its parameters and where it is raised. A client can check that it has a text for each of them.
+         */
+        get: operations["error_codes_api_error_codes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/export-jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -3334,6 +3355,9 @@ export interface paths {
         /**
          * Decide Approval
          * @description Approve or reject at an approval node; the run (its top-level run) continues right away.
+         *
+         *     Answers the top-level run as it goes on: ``queued`` (or already ``running``/finished), never the ``paused`` state
+         *     the decision ended (X-01).
          */
         post: operations["decide_approval_api_runs__run_id__approvals__node_id__post"];
         delete?: never;
@@ -5549,7 +5573,9 @@ export interface components {
         };
         /**
          * ArchitectReasoning
-         * @description The reasoning of one request of a job: ``step`` is ``analysis``, ``plan``, ``agent_revision`` or ``repair``.
+         * @description The reasoning of one request of a job: ``step`` is ``analysis``, ``plan``, ``agent_revision`` or ``repair``,
+         *     or for the sub-requests ``agent`` (the Agent Architect designs an agent) and ``tool`` (the Coding Agent writes a
+         *     tool), whose ``subject`` names the agent or tool (RT-063).
          */
         ArchitectReasoning: {
             /**
@@ -5574,6 +5600,8 @@ export interface components {
              * @default plan
              */
             step: string;
+            /** Subject */
+            subject?: string | null;
             /**
              * Text
              * @default
@@ -7690,6 +7718,28 @@ export interface components {
              * @default 0
              */
             size_bytes: number;
+        };
+        /** ErrorCode */
+        ErrorCode: {
+            /** Params */
+            params?: string[];
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "runtime" | "api" | "both";
+        };
+        /**
+         * ErrorCodeCatalog
+         * @description Every problem code of the studio API and the runtime, sorted, with its parameters.
+         */
+        ErrorCodeCatalog: {
+            /** Codes */
+            codes: {
+                [key: string]: components["schemas"]["ErrorCode"];
+            };
+            /** Patterns */
+            patterns?: string[];
         };
         /** ErrorOut */
         ErrorOut: {
@@ -11206,6 +11256,32 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
         };
+        /**
+         * PublicationBudget
+         * @description The daily cost limit of one published API and how much of it the last 24 hours used (AD-20).
+         */
+        PublicationBudget: {
+            /** Daily Budget Usd */
+            daily_budget_usd?: number | null;
+            /**
+             * Exhausted
+             * @default false
+             */
+            exhausted: boolean;
+            /**
+             * Last 24H Usd
+             * @default 0
+             */
+            last_24h_usd: number;
+            /** Name */
+            name: string;
+            /** Publication Id */
+            publication_id: string;
+            /** Run Budget Usd */
+            run_budget_usd?: number | null;
+            /** Slug */
+            slug: string;
+        };
         /** PublicationEvent */
         PublicationEvent: {
             /**
@@ -12153,6 +12229,7 @@ export interface components {
             budget_hard_maximum?: boolean | null;
             /** Budget Usd */
             budget_usd?: number | null;
+            cause?: components["schemas"]["RunCause"] | null;
             /**
              * Created At
              * Format: date-time
@@ -12295,6 +12372,24 @@ export interface components {
              * @default false
              */
             unknown_cost: boolean;
+        };
+        /**
+         * RunCause
+         * @description Why a failed run failed (AD-02): the step that failed first and its problem, so that a run list or a banner
+         *     can say "<step>: <reason>" without reading every step. Set together with ``error_code`` ``run.nodes_failed``;
+         *     ``code``/``params`` are the step's own (``run.budget_exceeded``, ``provider.rate_limited`` ...).
+         */
+        RunCause: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Node Id */
+            node_id: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
         };
         /** RunChatView */
         RunChatView: {
@@ -12479,6 +12574,7 @@ export interface components {
         /** RunSummary */
         RunSummary: {
             budget?: components["schemas"]["RunBudget"] | null;
+            cause?: components["schemas"]["RunCause"] | null;
             /**
              * Created At
              * Format: date-time
@@ -14774,6 +14870,24 @@ export interface components {
              */
             unpriced: number;
         };
+        /**
+         * UsageBudgets
+         * @description Budgets in the usage report (AD-20): the daily limits of published APIs and the runs budgets stopped.
+         */
+        UsageBudgets: {
+            /** Publications */
+            publications?: components["schemas"]["PublicationBudget"][];
+            /**
+             * Stopped Runs
+             * @default 0
+             */
+            stopped_runs: number;
+            /**
+             * Waiting Runs
+             * @default 0
+             */
+            waiting_runs: number;
+        };
         /** UsageEntry */
         UsageEntry: {
             /**
@@ -14838,6 +14952,7 @@ export interface components {
         };
         /** UsageReport */
         UsageReport: {
+            budgets?: components["schemas"]["UsageBudgets"];
             /** By Day */
             by_day: components["schemas"]["UsageBucket"][];
             /** By Model */
@@ -14954,6 +15069,7 @@ export interface components {
             name: string;
             /** Nodes */
             nodes?: components["schemas"]["Node"][];
+            origin?: components["schemas"]["WorkflowOrigin"] | null;
             /**
              * Updated At
              * Format: date-time
@@ -15041,6 +15157,37 @@ export interface components {
             max_parallel?: number | null;
             /** Max Steps */
             max_steps?: number | null;
+        };
+        /**
+         * WorkflowOrigin
+         * @description Where a workflow came from when it was made as a copy (RT-055): today a copy of an example.
+         *
+         *     Set once by the code that makes the copy and kept by every later save (:func:`keep_origin`): it is history, not
+         *     something an editor or a client sends (``WorkflowIn`` has no such field). An interface uses it to mark a copy
+         *     whose integrations run on sample data, or to offer the example's newer version.
+         */
+        WorkflowOrigin: {
+            /** Connected */
+            connected?: string[];
+            /**
+             * Copied At
+             * Format: date-time
+             */
+            copied_at?: string;
+            /** Example Id */
+            example_id: string;
+            /**
+             * Kind
+             * @default example
+             * @constant
+             */
+            kind: "example";
+            /** Language */
+            language: string;
+            /** Offline */
+            offline?: string[];
+            /** Version */
+            version: string;
         };
         /**
          * WorkflowSummary
@@ -17544,6 +17691,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiagnosticCheck"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    error_codes_api_error_codes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorCodeCatalog"];
                 };
             };
             /** @description Error */

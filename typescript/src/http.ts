@@ -149,7 +149,7 @@ function pause(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 /** The version of this package (package.json; a test checks they agree). */
-export const SDK_VERSION = "0.2.0";
+export const SDK_VERSION = "0.3.0";
 /**
  * Sent with every request (API2-14), so the server's logs show which SDK and version called; a `User-Agent` in the
  * client's `headers` wins. (Browsers may keep their own.)
