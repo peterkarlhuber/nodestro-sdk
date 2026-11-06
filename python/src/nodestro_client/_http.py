@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Iterator, Mapping
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
+import contextlib
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 import json
 import math
+import os
+from pathlib import Path
 import random
+import tempfile
+import threading
 import time
-from typing import Any, TypeVar
+from typing import IO, Any, TypeVar
 from urllib.parse import quote, urlsplit
 
 import httpx
@@ -86,6 +91,26 @@ class RetryPolicy:
         exponent = min(attempt - 1, 64)
         base: float = min(self.max_backoff, self.backoff * (2**exponent))
         return base * (0.75 + random.random() / 2)
+
+
+#: The policy of ``reconnect=True``: up to 5 connection attempts in a row without progress, pauses from 1 s up to 15 s.
+DEFAULT_RECONNECT = RetryPolicy(attempts=5, backoff=1.0, max_backoff=15.0)
+#: A connection that stayed open this long (seconds) counts as progress, even if it delivered no new event (the
+#: API sends keep-alive comments every 15 s, so a quiet run that a proxy cuts off now and then is not given up).
+STABLE_CONNECTION = 60.0
+#: Chunk size of streamed downloads (bytes).
+DOWNLOAD_CHUNK = 64 * 1024
+
+
+def reconnect_policy(value: bool | RetryPolicy | None) -> RetryPolicy | None:
+    """``reconnect`` of the event methods: ``False``/``None`` (off), ``True`` (:data:`DEFAULT_RECONNECT`), a policy."""
+    if value is None or value is False:
+        return None
+    if value is True:
+        return DEFAULT_RECONNECT
+    if isinstance(value, RetryPolicy):
+        return value
+    raise TypeError(f"reconnect must be True, False or a RetryPolicy, not {value!r}")
 
 
 T = TypeVar("T")
@@ -179,6 +204,33 @@ class Transport:
         A request that may change something is only retried when ``retry_unsafe`` says it is safe
         (it carries an idempotency key, or the server refuses duplicates by itself).
         """
+        return self._send(
+            method,
+            path,
+            json_body=json_body,
+            params=params,
+            headers=headers,
+            files=files,
+            data=data,
+            timeout=timeout,
+            retry_unsafe=retry_unsafe,
+        )
+
+    def _send(
+        self,
+        method: str,
+        path: str,
+        *,
+        json_body: Any = None,
+        params: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+        files: Any = None,
+        data: Any = None,
+        timeout: float | None = None,
+        retry_unsafe: bool = False,
+        stream: bool = False,
+    ) -> httpx.Response:
+        """:meth:`request`; with ``stream`` the body of a successful answer is not read yet (the caller closes it)."""
         retryable = method.upper() in SAFE_METHODS or retry_unsafe
         attempts = self.retry.attempts if retryable else 1
         query = {key: value for key, value in (params or {}).items() if value is not None}
@@ -187,7 +239,7 @@ class Transport:
         error: NodestroClientError = NodestroConnectionError(f"{method} {path}: no answer")
         for attempt in range(1, attempts + 1):
             try:
-                response = self.client.request(
+                built = self.client.build_request(
                     method,
                     url,
                     json=json_body,
@@ -197,6 +249,13 @@ class Transport:
                     data=data,
                     timeout=timeout if timeout is not None else self.timeout,
                 )
+                response = self.client.send(built, stream=stream)
+                if stream and (response.status_code >= 300 or response.status_code in RETRY_STATUS):
+                    # An error answer is short: read it for its message, which also frees the connection.
+                    try:
+                        response.read()
+                    finally:
+                        response.close()
             except httpx.TimeoutException as exc:
                 error = NodestroTimeoutError(f"{method} {path}: no answer within the time limit")
                 error.__cause__ = exc
@@ -205,7 +264,11 @@ class Transport:
                 error.__cause__ = exc
             else:
                 if response.status_code not in RETRY_STATUS or attempt == attempts:
-                    return self._checked(response)
+                    try:
+                        return self._checked(response)
+                    except BaseException:
+                        response.close()
+                        raise
                 error = NodestroAPIError.from_response(response.status_code, None, response.text)
             if attempt < attempts:
                 time.sleep(self.retry.delay(attempt))
@@ -243,19 +306,87 @@ class Transport:
             ) from exc
 
     def events(
-        self, path: str, *, headers: Mapping[str, str] | None = None, timeout: float | None = None
+        self,
+        path: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        timeout: float | None = None,
+        reconnect: RetryPolicy | None = None,
+        last_event_id: str | None = None,
+        stop: threading.Event | None = None,
     ) -> Generator[Event, None, None]:
         """Server-Sent Events of ``path`` until the server ends the stream (keep-alive comments skipped).
 
         ``timeout`` limits the wait for the next line (the API sends a keep-alive every 15 s);
-        ``None`` waits as long as the stream stays open.
+        ``None`` waits as long as the stream stays open. ``last_event_id`` is sent as
+        ``Last-Event-ID``.
+
+        With a ``reconnect`` policy a lost connection, a stalled stream (``timeout``), a stream that
+        ends before its ``end`` event and a 502/503/504 answer are followed by a new connection
+        after a pause of the policy (each one carries the id of the last event received as
+        ``Last-Event-ID``). ``reconnect.attempts`` counts the connection attempts in a row that bring
+        no progress (no event after the opening one, open for less than :data:`STABLE_CONNECTION`);
+        after that many the last error is raised. Other errors (401, 403, 404 ...) are raised at once.
+        The stream then ends after the ``end`` event.
+
+        ``stop`` (a :class:`threading.Event`, set from any thread) ends the iteration without an error:
+        before each connection, during the pause before a reconnect and after each event.
         """
         _positive("timeout", timeout)
+        last_id = last_event_id
+        failures = 0
+        while True:
+            if stop is not None and stop.is_set():
+                return
+            extra = dict(headers or {})
+            if last_id:
+                extra["Last-Event-ID"] = last_id
+            opened = time.monotonic()
+            delivered = 0
+            try:
+                for event in self._event_stream(path, extra, timeout):
+                    delivered += 1
+                    if delivered > 1:
+                        failures = 0
+                    if event.id:
+                        last_id = event.id
+                    yield event
+                    if stop is not None and stop.is_set():
+                        return
+                    if reconnect is not None and event.event == "end":
+                        return
+            except (NodestroConnectionError, NodestroTimeoutError) as exc:
+                if reconnect is None:
+                    raise
+                error: NodestroClientError = exc
+            except NodestroAPIError as exc:
+                if reconnect is None or exc.status not in RETRY_STATUS:
+                    raise
+                error = exc
+            else:
+                if reconnect is None:
+                    return
+                error = NodestroConnectionError(f"GET {path}: the event stream ended before its end event")
+            if time.monotonic() - opened >= STABLE_CONNECTION:
+                failures = 0
+            failures += 1
+            if failures >= reconnect.attempts:
+                raise error
+            pause = reconnect.delay(failures)
+            if stop is None:
+                time.sleep(pause)
+            elif stop.wait(pause):
+                return
+
+    def _event_stream(
+        self, path: str, headers: Mapping[str, str], timeout: float | None
+    ) -> Generator[Event, None, None]:
+        """One connection of :meth:`events`."""
         try:
             with self.client.stream(
                 "GET",
                 self.base_url + path,
-                headers=self._headers({"Accept": "text/event-stream", **dict(headers or {})}),
+                headers=self._headers({"Accept": "text/event-stream", **dict(headers)}),
                 timeout=httpx.Timeout(self.timeout, read=timeout),
             ) as response:
                 if response.status_code >= 300:
@@ -266,6 +397,61 @@ class Transport:
             raise NodestroTimeoutError(f"GET {path}: the event stream stalled") from exc
         except httpx.TransportError as exc:
             raise NodestroConnectionError(f"GET {path}: {exc}") from exc
+
+    def download(self, path: str, *, chunk_size: int = DOWNLOAD_CHUNK) -> Generator[bytes, None, None]:
+        """The body of ``GET path`` in chunks of up to ``chunk_size`` bytes, never held in memory as a whole.
+
+        Connection errors and 502/503/504 before the body starts are retried as for any read; the
+        time limit applies to each read, not to the whole download. A body that breaks off (fewer
+        bytes than its ``Content-Length``, a lost connection, a stall) raises
+        :class:`NodestroConnectionError` or :class:`NodestroTimeoutError`; the chunks before are
+        delivered. Leaving the loop early closes the connection.
+        """
+        if isinstance(chunk_size, bool) or not isinstance(chunk_size, int) or chunk_size < 1:
+            raise ValueError(f"chunk_size must be a positive number of bytes, not {chunk_size!r}")
+        response = self._send("GET", path, headers={"Accept": "*/*"}, stream=True)
+        received = 0
+        try:
+            # As they arrive (iter_bytes(chunk_size) would hold small pieces back until chunk_size is reached).
+            for piece in response.iter_bytes():
+                for start in range(0, len(piece), chunk_size):
+                    chunk = piece[start : start + chunk_size]
+                    received += len(chunk)
+                    yield chunk
+        except httpx.TimeoutException as exc:
+            raise NodestroTimeoutError(f"GET {path}: the download stalled after {received} bytes") from exc
+        except httpx.TransportError as exc:
+            raise NodestroConnectionError(f"GET {path}: the download broke off after {received} bytes: {exc}") from exc
+        finally:
+            response.close()
+
+
+def save_chunks(chunks: Iterable[bytes], target: str | os.PathLike[str] | IO[bytes]) -> int:
+    """Write ``chunks`` to ``target`` and return the number of bytes written.
+
+    A path is written to a temporary file in the same directory, which replaces ``target`` only
+    when every chunk arrived: a download that breaks off leaves no partial file and keeps an older
+    file of that name (a new file is readable and writable by its owner only). A file object
+    (opened in binary mode) is written as the chunks arrive and is not closed; after an error it
+    holds the part that arrived.
+    """
+    if not isinstance(target, (str, os.PathLike)):
+        written = 0
+        for chunk in chunks:
+            target.write(chunk)
+            written += len(chunk)
+        return written
+    final = Path(target)
+    handle, temporary = tempfile.mkstemp(prefix=f".{final.name}.", suffix=".part", dir=final.parent)
+    try:
+        with os.fdopen(handle, "wb") as output:
+            written = save_chunks(chunks, output)
+        os.replace(temporary, final)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(temporary)
+        raise
+    return written
 
 
 def parse_events(lines: Iterator[str]) -> Generator[Event, None, None]:

@@ -7,7 +7,15 @@
 
 import { enc, type Schemas } from "./client.js";
 import { type NodestroAPIError, NodestroRunFailed } from "./errors.js";
-import { type ClientOptions, type ServerEvent, Transport, newIdempotencyKey, pollUntil } from "./http.js";
+import {
+  type ClientOptions,
+  type DownloadOptions,
+  type EventStreamOptions,
+  type ServerEvent,
+  Transport,
+  newIdempotencyKey,
+  pollUntil,
+} from "./http.js";
 
 export { newIdempotencyKey };
 
@@ -126,16 +134,21 @@ export class PublishedWorkflow {
 
   /**
    * Live events of a run: `status`, the steps (`node_started` ...), finally `end`. `text` adds the
-   * agents' text as it is written. Not reconnected automatically: after a lost connection pass the
-   * `id` of the last event received as `lastEventId` to get what was missed.
+   * agents' text as it is written. `lastEventId` (the `id` of the last event received) gets what was missed since
+   * that event.
+   *
+   * `reconnect` (`true` or a retry policy, see {@link EventStreamOptions}) does that by itself: after a lost
+   * connection or a 502/503/504 it connects again with growing pauses and `Last-Event-ID`, so the server sends a new
+   * `status` and then every event that was missed, none twice, until `end`. Aborting `signal` ends the stream, also
+   * during the pause before a reconnect.
    */
-  async *events(
-    runId: string,
-    options: { text?: boolean; lastEventId?: string; signal?: AbortSignal } = {},
-  ): AsyncGenerator<ServerEvent> {
+  async *events(runId: string, options: { text?: boolean; lastEventId?: string } & EventStreamOptions = {}): AsyncGenerator<ServerEvent> {
     const query = options.text ? "?text=true" : "";
-    const headers: Record<string, string> = options.lastEventId ? { "Last-Event-ID": options.lastEventId } : {};
-    yield* this.http.events(`${this.base}/runs/${enc(runId)}/events${query}`, { headers, signal: options.signal });
+    yield* this.http.events(`${this.base}/runs/${enc(runId)}/events${query}`, {
+      lastEventId: options.lastEventId,
+      signal: options.signal,
+      reconnect: options.reconnect,
+    });
   }
 
   async cancel(runId: string): Promise<RunStatusOut> {
@@ -171,9 +184,14 @@ export class PublishedWorkflow {
     return this.http.json("GET", `${this.base}/runs/${enc(runId)}/files`);
   }
 
-  /** The content of a result file (held in memory as a whole). */
+  /** The content of a result file (held in memory as a whole; see {@link streamFile} for large files). */
   async download(runId: string, fileId: string): Promise<Uint8Array> {
     return this.http.bytes("GET", `${this.base}/runs/${enc(runId)}/files/${enc(fileId)}`);
+  }
+
+  /** The content of a result file as a `ReadableStream`; works as {@link NodestroClient.streamFile}. */
+  async streamFile(runId: string, fileId: string, options: DownloadOptions = {}): Promise<ReadableStream<Uint8Array>> {
+    return this.http.download(`${this.base}/runs/${enc(runId)}/files/${enc(fileId)}`, options);
   }
 
   /** Runs, tokens and cost of this API over the last `days` (1 to 365). */

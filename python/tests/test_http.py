@@ -648,3 +648,28 @@ def test_requests_name_the_sdk_and_its_version() -> None:
     shared = httpx.Client(transport=httpx.MockTransport(handler), headers={"User-Agent": "shared/2"})
     NodestroClient("http://nodestro.test", http_client=shared).meta()
     assert agents == ["my-tool/1", "shared/2"]
+
+
+def test_batch_files_are_sent_as_multipart_and_batches_are_never_started_twice() -> None:
+    """SDK-003: parse_batch_file takes a path, bytes or a file object; create_batch is not retried."""
+    import io
+
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path == "/api/batches":
+            return httpx.Response(503)
+        return httpx.Response(200, json={"columns": ["a"], "rows": [{"a": "1"}], "mapping": {}})
+
+    client = client_with(handler)
+    upload = io.BytesIO(b"a\n1\n")
+    upload.name = "/tmp/rows.xlsx"
+    client.parse_batch_file("wf 1", upload)
+    body = seen[-1].read()
+    assert b'filename="rows.xlsx"' in body and b"wf 1" in body and b"a\n1\n" in body
+    client.parse_batch_file("wf_1", b"a\n1\n")
+    assert b'filename="rows.csv"' in seen[-1].read()
+    with pytest.raises(NodestroAPIError):
+        client.create_batch({"workflow_id": "wf_1", "rows": [{"input": "x"}]})
+    assert [request.url.path for request in seen].count("/api/batches") == 1

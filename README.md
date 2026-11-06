@@ -13,7 +13,7 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 ## Two clients
 
 - **`NodestroClient`** talks to the studio REST API of an installation (`/api`): workflows and their versions,
-  pre-checks, runs, live events, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
+  pre-checks, runs, live events, batches, schedules, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
   tools, the example library, publishing (publish, list, change, delete publications), API keys (create, list,
   rotate, revoke, delete), connected MCP services, model prices and usage, the tool sandbox status, local models
   (Ollama runtime, downloads, offline imports, recommendations) and the semantic knowledge index.
@@ -35,6 +35,11 @@ Both clients offer the same operations under language-typical names (`wait_for_r
 - **One error class for both API error formats.** `NodestroAPIError` with `status`, `code` (for example
   `auth.missing`, `run.agents_invalid`) and `params`; `NodestroConnectionError`, `NodestroTimeoutError` and
   `NodestroRunFailed` for the rest. All derive from `NodestroClientError`.
+- **Event streams and downloads.** Event streams reconnect by themselves when asked (`reconnect=True` /
+  `{ reconnect: true }`): bounded exponential backoff, `Last-Event-ID` on the published stream (nothing missed,
+  nothing twice), a new snapshot on the studio streams, and a stop (`threading.Event` / `AbortSignal`) that also
+  ends the pause before a reconnect. `stream_file`/`save_file` and `streamFile` read result files piece by piece
+  instead of holding them in memory; a download that breaks off is an error, never a silently short file.
 - **No redirects.** A redirect is reported as `NodestroAPIError` with code `http_redirect`, so a key is never sent
   to another address; use the final address as the base URL.
 
@@ -42,7 +47,7 @@ Both clients offer the same operations under language-typical names (`wait_for_r
 
 | | |
 | --- | --- |
-| SDK version | 0.2.0 (both packages) |
+| SDK version | 0.3.0 (both packages, not released yet) |
 | API contract | Nodestro API 0.2.0 (`API_VERSION`; `openapi/nodestro-api.json`) |
 | Tested against | `nodestro-api` at the commit pinned in [`python/pyproject.toml`](python/pyproject.toml) (`test` extra) |
 | Platform | the tested combination of all components is recorded in `nodestro-studio/platform/versions.json` |

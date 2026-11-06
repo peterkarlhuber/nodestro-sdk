@@ -595,3 +595,23 @@ describe("run budgets", () => {
     expect([paused.status, paused.budget?.pending_request_id]).toEqual(["paused", "bud_1"]);
   });
 });
+
+describe("batch uploads (SDK-003)", () => {
+  it("sends a batch file as multipart and never starts a batch twice", async () => {
+    const { calls, fetcher } = recording((url) =>
+      url.endsWith("/api/batches") ? new Response("busy", { status: 503 }) : json(200, { columns: ["a"], rows: [], mapping: {} }),
+    );
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher, retry: { backoffMs: 1 } });
+    await client.parseBatchFile("wf 1", new Uint8Array([97, 10, 49]));
+    const form = calls[0]!.init.body as FormData;
+    expect(form).toBeInstanceOf(FormData);
+    expect(form.get("workflow_id")).toBe("wf 1");
+    expect((form.get("file") as File).name).toBe("rows.csv");
+    expect(await (form.get("file") as File).text()).toBe("a\n1");
+    expect(calls[0]!.headers.get("content-type")).toBeNull(); // fetch adds the multipart boundary itself
+    await client.parseBatchFile("wf_1", new File(["a"], "rows.xlsx"));
+    expect(((calls[1]!.init.body as FormData).get("file") as File).name).toBe("rows.xlsx");
+    await expect(client.createBatch({ workflow_id: "wf_1", rows: [{ input: "x" }] })).rejects.toMatchObject({ status: 503 });
+    expect(calls.filter((call) => call.url.endsWith("/api/batches"))).toHaveLength(1);
+  });
+});

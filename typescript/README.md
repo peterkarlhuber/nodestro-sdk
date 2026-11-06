@@ -6,15 +6,15 @@ by Nodestro or by a standalone export). ES modules with type definitions, promis
 `fetch`; no runtime dependencies.
 
 Runs on Node.js 22.12 and later (tested with 22 and 24) and in browsers with `fetch`, `AbortSignal.timeout` and Web
-Streams (tested with Chromium; see [Browsers](#browsers)).
+Streams; Bun and Deno work too (see [Runtimes and browsers](#runtimes-and-browsers)).
 
 ## Installation
 
 The package is not published to a registry. Build it from a checkout at the commit you want:
 
 ```bash
-cd typescript && npm ci && npm run build && npm pack    # -> nodestro-client-0.2.0.tgz
-npm install /path/to/nodestro-client-0.2.0.tgz         # in your project
+cd typescript && npm ci && npm run build && npm pack    # -> nodestro-client-0.3.0.tgz
+npm install /path/to/nodestro-client-0.3.0.tgz         # in your project
 ```
 
 ## Quickstart
@@ -97,12 +97,31 @@ Ids and slugs are encoded as single path segments; `""`, `.` and `..` are refuse
   once, also during a pause, with the signal's reason; the run keeps running.
 - `events()` is an async generator of `{ event, data, id }` until the run ends. Leaving the `for await` loop
   (`break`, `return`, an exception) closes the connection; `signal` (an `AbortSignal`) stops it from outside, and
-  the abort error is passed on unchanged. An event the connection broke off in the middle of is dropped.
-  Connections are not re-established automatically: call `events(runId, { lastEventId })` with the id of the last
-  event to receive what was missed.
+  the abort error is passed on unchanged. An event the connection broke off in the middle of is dropped. By
+  default a lost connection throws `NodestroConnectionError`; `events(runId, { lastEventId })` with the id of the
+  last event then receives what was missed.
+- `{ reconnect: true }` (or a `RetryPolicy`) on `events()`, `runChatEvents()` and the published `events()`
+  reconnects by itself after a lost connection, a stream that ends before its `end` event or a 502/503/504, with
+  growing pauses (`DEFAULT_RECONNECT`: 1 s doubling up to 15 s), until `end`. The published stream resumes with
+  `Last-Event-ID`: a new `status` event, then every missed event, none twice. The studio streams have no event ids;
+  each connection starts with a new `snapshot` of the whole run or chat. `attempts` counts connection attempts in a
+  row without progress (no event after the opening one and open for less than a minute); then the last error is
+  thrown. 401/403/404 and other refusals are thrown at once. `signal` ends the stream also during the pause before
+  a reconnect:
+
+  ```ts
+  const controller = new AbortController(); // controller.abort() ends the loop with an AbortError
+  for await (const event of api.events(runId, { reconnect: true, signal: controller.signal })) console.log(event.event);
+  ```
 - `start(values, { waitSeconds })` waits for the result on the server when the publication allows it; the request
   time limit is extended by `waitSeconds`.
-- Downloads (`downloadFile()`, `download()`) return the whole file as a `Uint8Array`.
+- Downloads (`downloadFile()`, `download()`) return the whole file as a `Uint8Array`. For large files,
+  `streamFile(runId, fileId, { signal, timeoutMs })` (both clients) returns a `ReadableStream<Uint8Array>` that
+  reads the body only as it is consumed. A body that breaks off (fewer bytes than announced, a lost connection)
+  errors the stream with `NodestroConnectionError`, a stall of `timeoutMs` (per piece, not for the whole file) with
+  `NodestroTimeoutError`; cancel the stream or abort `signal` to stop early. Failures before the content starts
+  (connection errors, 502/503/504) are retried. In Node.js, write it to a file with
+  `await pipeline(Readable.fromWeb(stream), createWriteStream(path))` (and remove the file if that throws).
 - A run that waits for a person is `paused`, and `waitForRun()` returns it (unless `stopAtApproval: false`). A
   budget wait has `run.budget?.pending_request_id` set; answer it as described under "Run budgets".
 
@@ -159,6 +178,23 @@ or cancelled; `params.request_status`, `params.decided_by`), 422 `budget.limit_n
 (`params.current_limit_usd`) and `budget.limit_invalid`, 403 `budget.over_policy` (above `params.max_limit_usd`) and
 `access.forbidden` (only the person who started the run or an administrator decides; `params.reason`).
 
+## Batches and schedules
+
+```ts
+const { rows } = await nodestro.parseBatchFile(workflowId, fileFromAnInput); // a File/Blob, bytes or CSV text
+const batchIn = { workflow_id: workflowId, rows: rows.map((values) => ({ values })), max_cost_usd: 2 };
+console.log((await nodestro.planBatch(batchIn)).estimate); // valid/invalid rows and the expected cost
+const batch = await nodestro.createBatch(batchIn);          // follow it with getBatch(); pause/resume/cancelBatch()
+const csv = await nodestro.exportBatch(batch.id);           // or "json"
+
+const schedule = await nodestro.createSchedule({ workflow_id: workflowId, kind: "daily", at: "07:00", time_zone: "Europe/Vienna" });
+await nodestro.enableSchedule(schedule.id);                 // created disabled; previewSchedule() checks first
+```
+
+`createBatch` is never retried automatically (a retry would start the rows twice). Schedules: `listSchedules`,
+`getSchedule`, `updateSchedule`, `disableSchedule`, `deleteSchedule`, `scheduleTimeZones`. Test series, knowledge
+files and search, input files, per-call tool approvals and exports have no methods yet (SDK-003).
+
 ## Local models and the knowledge index
 
 On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as
@@ -205,7 +241,26 @@ formats; any other answer (a proxy page, an empty body) gets code `http_error`, 
 (`npm run generate`); the clients return these types (`Run`, `Workflow`, `RunStatusOut`, `ResultFile`, ...).
 `API_VERSION` names the API version of that contract.
 
-## Browsers
+## Runtimes and browsers
+
+`scripts/check_runtimes.sh node bun deno chromium firefox webkit` (from the repository root) builds the package,
+starts the test server and runs the same smoke checks (`smoke/checks.mjs`: the API version, an API error, a run
+with its event stream and `reconnect`, `downloadFile` and `streamFile`, an aborted wait, a published workflow with
+its events and a streamed file) in each runtime; the browsers load the built package from a page on the API's own
+origin (Playwright). The CI job `runtimes` runs it on Linux; macOS and Windows run there as well but are not
+required yet.
+
+| Runtime | Result | Where |
+| --- | --- | --- |
+| Node.js 22.23 and 24.22 | all tests and smoke checks pass | Linux, 2026-11-06 |
+| Bun 1.4.4 | smoke checks pass | Linux, 2026-11-06 |
+| Deno 2.9.6 | smoke checks pass | Linux, 2026-11-06 |
+| Chromium 153 (Playwright 1.63.0) | smoke checks pass | Linux, 2026-11-06 |
+| Firefox 155 (Playwright 1.63.0) | smoke checks pass | Linux, 2026-11-06 |
+| WebKit (Playwright 1.63.0) | in CI (`runtimes`) only | Linux |
+| Safari, Windows and macOS hosts, a `nodestro-server` deployment | not verified | |
+
+### Browsers
 
 - **Same origin only.** The Nodestro API sends CORS headers only for the studio's development server, so a page
   can call it only when it is served from the same origin as the API (for example behind one reverse proxy).

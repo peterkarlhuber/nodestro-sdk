@@ -11,7 +11,7 @@ and response types (:mod:`nodestro_client.models`) are generated from the API's 
 
 from __future__ import annotations
 
-from ._http import API_VERSION, SDK_VERSION, Event, RetryPolicy
+from ._http import API_VERSION, DEFAULT_RECONNECT, SDK_VERSION, Event, RetryPolicy
 from .client import Compatibility, NodestroClient, RunPage
 from .errors import (
     NodestroAPIError,
@@ -26,6 +26,7 @@ __version__ = SDK_VERSION
 
 __all__ = [
     "API_VERSION",
+    "DEFAULT_RECONNECT",
     "Compatibility",
     "Event",
     "NodestroAPIError",

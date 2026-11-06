@@ -7,14 +7,26 @@ workflow exported as a standalone FastAPI project, so this client works with bot
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping
+import contextlib
 import math
-from typing import Any, Literal, cast
+import os
+import threading
+from typing import IO, Any, Literal, cast
 import uuid
 
 import httpx
 
 from . import models
-from ._http import Event, RetryPolicy, Transport, path_segment, poll_until
+from ._http import (
+    DOWNLOAD_CHUNK,
+    Event,
+    RetryPolicy,
+    Transport,
+    path_segment,
+    poll_until,
+    reconnect_policy,
+    save_chunks,
+)
 from .errors import NodestroRunFailed
 
 PREFIX = "/api/published"
@@ -146,18 +158,35 @@ class PublishedWorkflow:
         return self.result(run_id)
 
     def events(
-        self, run_id: str, *, text: bool = False, last_event_id: str | None = None, timeout: float | None = None
+        self,
+        run_id: str,
+        *,
+        text: bool = False,
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+        reconnect: bool | RetryPolicy = False,
+        stop: threading.Event | None = None,
     ) -> Generator[Event, None, None]:
         """Live events of a run: ``status``, the steps (``node_started`` ...), finally ``end``.
 
-        ``text`` adds the agents' text as it is written. Not reconnected automatically: after a
-        lost connection pass the ``id`` of the last event received as ``last_event_id`` to get what
-        was missed. ``timeout`` limits the wait for the next line in seconds.
+        ``text`` adds the agents' text as it is written. ``timeout`` limits the wait for the next
+        line in seconds. ``last_event_id`` (the ``id`` of the last event received) gets what was
+        missed since that event.
+
+        ``reconnect`` (``True`` or a :class:`RetryPolicy`) does that by itself: after a lost
+        connection, a stall (``timeout``) or a 502/503/504 it connects again with growing pauses
+        and ``Last-Event-ID``, so the server sends a new ``status`` and then every event that was
+        missed, none twice, until ``end``. ``attempts`` of the policy counts the attempts in a row
+        that bring no progress; then the last error is raised. ``stop`` (a
+        :class:`threading.Event`) ends the iteration, also during the pause before a reconnect.
         """
         query = "?text=true" if text else ""
-        headers = {"Last-Event-ID": last_event_id} if last_event_id else None
         return self._http.events(
-            f"{self._base}/runs/{path_segment(run_id)}/events{query}", headers=headers, timeout=timeout
+            f"{self._base}/runs/{path_segment(run_id)}/events{query}",
+            last_event_id=last_event_id,
+            timeout=timeout,
+            reconnect=reconnect_policy(reconnect),
+            stop=stop,
         )
 
     def cancel(self, run_id: str) -> models.RunStatusOut:
@@ -198,10 +227,25 @@ class PublishedWorkflow:
         return cast(list[dict[str, Any]], self._http.json("GET", f"{self._base}/runs/{path_segment(run_id)}/files"))
 
     def download(self, run_id: str, file_id: str) -> bytes:
-        """The content of a result file (held in memory as a whole)."""
+        """The content of a result file (held in memory as a whole; see :meth:`stream_file` for large files)."""
         return self._http.request(
             "GET", f"{self._base}/runs/{path_segment(run_id)}/files/{path_segment(file_id)}"
         ).content
+
+    def stream_file(
+        self, run_id: str, file_id: str, *, chunk_size: int = DOWNLOAD_CHUNK
+    ) -> Generator[bytes, None, None]:
+        """The content of a result file in chunks, never held in memory as a whole; works as
+        :meth:`NodestroClient.stream_file`."""
+        return self._http.download(
+            f"{self._base}/runs/{path_segment(run_id)}/files/{path_segment(file_id)}", chunk_size=chunk_size
+        )
+
+    def save_file(self, run_id: str, file_id: str, target: str | os.PathLike[str] | IO[bytes]) -> int:
+        """Stream a result file to ``target`` (a path or a binary file object); works as
+        :meth:`NodestroClient.save_file`."""
+        with contextlib.closing(self.stream_file(run_id, file_id)) as chunks:
+            return save_chunks(chunks, target)
 
     def usage(self, *, days: int = 30) -> models.UsageSummaryOut:
         """Runs, tokens and cost of this API over the last ``days`` (1 to 365)."""

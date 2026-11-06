@@ -17,6 +17,40 @@ export interface RetryPolicy {
 
 export const DEFAULT_RETRY: RetryPolicy = { attempts: 3, backoffMs: 500, maxBackoffMs: 8000 };
 
+/**
+ * The policy of `reconnect: true` on event streams: up to 5 connection attempts in a row without progress, pauses
+ * from 1 s up to 15 s.
+ */
+export const DEFAULT_RECONNECT: RetryPolicy = { attempts: 5, backoffMs: 1000, maxBackoffMs: 15_000 };
+
+/**
+ * A connection that stayed open this long (milliseconds) counts as progress, even if it delivered no new event (the
+ * API sends keep-alive comments every 15 s, so a quiet run that a proxy cuts off now and then is not given up).
+ */
+export const STABLE_CONNECTION_MS = 60_000;
+
+/** Options of the event streams. */
+export interface EventStreamOptions {
+  /** Ends the stream, also during the pause before a reconnect; its abort reason is thrown unchanged. */
+  signal?: AbortSignal;
+  /**
+   * Connect again after a lost connection, a stream that ends before its `end` event or a 502/503/504, with growing
+   * pauses (`true`: {@link DEFAULT_RECONNECT}; or your own policy). `attempts` counts the connection attempts in a
+   * row that bring no progress (no event after the opening one, open less than a minute); then the last error is
+   * thrown. Other errors (401, 403, 404 ...) are thrown at once. Each reconnect sends the id of the last event
+   * received as `Last-Event-ID`. The stream then ends after the `end` event.
+   */
+  reconnect?: boolean | Partial<RetryPolicy>;
+}
+
+/** Options of the streamed downloads. */
+export interface DownloadOptions {
+  /** Stops the download; its abort reason is thrown (or errors the stream) unchanged. */
+  signal?: AbortSignal;
+  /** Longest wait for the answer and then for each piece of the body, in milliseconds (default: the client's). */
+  timeoutMs?: number;
+}
+
 export interface ClientOptions {
   /** Time limit of one request in milliseconds, from sending it to the end of its body (default 30 000). */
   timeoutMs?: number;
@@ -30,6 +64,8 @@ export interface ClientOptions {
 
 export interface RequestOptions {
   body?: unknown;
+  /** A multipart body (file uploads); replaces `body`. */
+  form?: FormData;
   query?: Record<string, string | number | boolean | undefined | null>;
   headers?: Record<string, string>;
   /** Retry also a request that changes something (it carries an idempotency key). */
@@ -75,8 +111,8 @@ export function pathSegment(value: string | number): string {
   return encodeURIComponent(text);
 }
 
-function retryPolicy(given: Partial<RetryPolicy> | undefined): RetryPolicy {
-  const policy = { ...DEFAULT_RETRY, ...given };
+function retryPolicy(given: Partial<RetryPolicy> | undefined, defaults: RetryPolicy = DEFAULT_RETRY): RetryPolicy {
+  const policy = { ...defaults, ...given };
   if (!Number.isInteger(policy.attempts) || policy.attempts < 1) {
     throw new RangeError(`retry.attempts must be an integer of at least 1, not ${policy.attempts}`);
   }
@@ -106,6 +142,26 @@ function mergeHeaders(...sources: Array<Record<string, string> | undefined>): He
 /** Ends a body that is not read (a discarded retry or an error), so its connection is free again. */
 async function discard(response: Response): Promise<void> {
   await response.body?.cancel().catch(() => undefined);
+}
+
+/** The reconnect policy of `reconnect` (`undefined` when off). */
+export function reconnectPolicy(value: boolean | Partial<RetryPolicy> | undefined): RetryPolicy | undefined {
+  if (value === undefined || value === false) return undefined;
+  if (value === true) return DEFAULT_RECONNECT;
+  if (typeof value !== "object" || value === null) throw new TypeError(`reconnect must be true, false or a retry policy, not ${String(value)}`);
+  return retryPolicy(value, DEFAULT_RECONNECT);
+}
+
+/** The pause before try `attempt + 1`: doubled from `backoffMs` per try, at most `maxBackoffMs`, varied by ±25 %. */
+function backoff(policy: RetryPolicy, attempt: number): number {
+  const base = Math.min(policy.maxBackoffMs, policy.backoffMs * 2 ** Math.min(attempt - 1, 64));
+  return base * (0.75 + Math.random() / 2);
+}
+
+/** Errors after which an event stream may connect again: a lost or stalled connection, a 502/503/504. */
+function reconnectable(error: unknown): boolean {
+  if (error instanceof NodestroAPIError) return RETRY_STATUS.has(error.status);
+  return error instanceof NodestroConnectionError || error instanceof NodestroTimeoutError;
 }
 
 /** Calls `fetch` every `pollMs` until `done`; at most `timeoutMs` in total. */
@@ -193,8 +249,10 @@ export class Transport {
     const attempts = retryable ? this.retry.attempts : 1;
     const timeoutMs = checkTimeout("timeoutMs", options.timeoutMs ?? this.timeoutMs);
     const headers = mergeHeaders({ Accept: "application/json", "User-Agent": USER_AGENT }, this.headers, options.headers);
-    let body: string | undefined;
-    if (options.body !== undefined) {
+    let body: string | FormData | undefined;
+    if (options.form !== undefined) {
+      body = options.form; // fetch sets the multipart Content-Type with its boundary
+    } else if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(options.body);
     }
@@ -219,10 +277,7 @@ export class Transport {
             ? new NodestroTimeoutError(`${method} ${path}: no answer within the time limit`, { cause: error })
             : new NodestroConnectionError(`${method} ${path}: ${(error as Error).message}`, { cause: error });
       }
-      if (attempt < attempts) {
-        const base = Math.min(this.retry.maxBackoffMs, this.retry.backoffMs * 2 ** Math.min(attempt - 1, 64));
-        await sleep(base * (0.75 + Math.random() / 2));
-      }
+      if (attempt < attempts) await sleep(backoff(this.retry, attempt));
     }
     throw last;
   }
@@ -230,6 +285,45 @@ export class Transport {
   /** A request whose answer has no body of interest (it is read to the end). */
   async request(method: string, path: string, options: RequestOptions = {}): Promise<void> {
     await this.send(method, path, options, async (response) => void (await response.arrayBuffer()));
+  }
+
+  /**
+   * The body of `GET path` as a stream, never held in memory as a whole. Connection errors and 502/503/504 before
+   * the body starts are retried as for any read; `timeoutMs` limits the wait for the answer and then for each piece
+   * of the body (not the whole download). A body that breaks off errors the stream with a
+   * {@link NodestroConnectionError} (a stall: {@link NodestroTimeoutError}) after the pieces that arrived; an abort
+   * of `signal` with its reason. Cancelling the stream ends the connection.
+   */
+  async download(path: string, options: DownloadOptions = {}): Promise<ReadableStream<Uint8Array>> {
+    const { signal } = options;
+    const idleMs = checkTimeout("timeoutMs", options.timeoutMs ?? this.timeoutMs);
+    const headers = mergeHeaders({ Accept: "*/*", "User-Agent": USER_AGENT }, this.headers);
+    const url = this.url(path);
+    let last: Error = new NodestroConnectionError(`GET ${path}: no answer`);
+    for (let attempt = 1; attempt <= this.retry.attempts; attempt++) {
+      signal?.throwIfAborted();
+      const watch = new Watchdog(idleMs, signal);
+      try {
+        const response = await this.fetcher(url, { headers, signal: watch.signal, redirect: "manual" });
+        if (RETRY_STATUS.has(response.status) && attempt < this.retry.attempts) {
+          await discard(response);
+          watch.close();
+          last = new NodestroAPIError(response.status, "http_error", `HTTP ${response.status}`);
+        } else {
+          await checked(response);
+          return bodyStream(response, path, watch);
+        }
+      } catch (error) {
+        watch.close();
+        if (signal?.aborted) throw signal.reason;
+        if (error instanceof NodestroClientError) throw error;
+        last = watch.timedOut
+          ? new NodestroTimeoutError(`GET ${path}: no answer within the time limit`, { cause: error })
+          : new NodestroConnectionError(`GET ${path}: ${(error as Error).message}`, { cause: error });
+      }
+      if (attempt < this.retry.attempts) await pause(backoff(this.retry, attempt), signal);
+    }
+    throw last;
   }
 
   /** The body of the answer as bytes (held in memory as a whole). */
@@ -254,10 +348,50 @@ export class Transport {
 
   /**
    * Server-Sent Events of `path` until the server ends the stream (keep-alive comments skipped).
-   * `signal` stops the stream; its abort error is passed on unchanged.
+   * `signal` stops the stream; its abort error is passed on unchanged. With `reconnect` (see
+   * {@link EventStreamOptions}) a lost connection is followed by a new one.
    */
-  async *events(path: string, options: { headers?: Record<string, string>; signal?: AbortSignal } = {}): AsyncGenerator<ServerEvent> {
+  async *events(
+    path: string,
+    options: { headers?: Record<string, string>; lastEventId?: string } & EventStreamOptions = {},
+  ): AsyncGenerator<ServerEvent> {
     const { signal } = options;
+    const policy = reconnectPolicy(options.reconnect);
+    let lastId = options.lastEventId;
+    let failures = 0;
+    for (;;) {
+      signal?.throwIfAborted();
+      const headers: Record<string, string> = { ...options.headers };
+      if (lastId) headers["Last-Event-ID"] = lastId;
+      if (!policy) {
+        yield* this.connection(path, headers, signal);
+        return;
+      }
+      const opened = Date.now();
+      let delivered = 0;
+      let error: unknown;
+      try {
+        for await (const event of this.connection(path, headers, signal)) {
+          delivered++;
+          if (delivered > 1) failures = 0;
+          if (event.id) lastId = event.id;
+          yield event;
+          if (event.event === "end") return;
+        }
+        error = new NodestroConnectionError(`GET ${path}: the event stream ended before its end event`);
+      } catch (caught) {
+        if (signal?.aborted || !reconnectable(caught)) throw caught;
+        error = caught;
+      }
+      if (Date.now() - opened >= STABLE_CONNECTION_MS) failures = 0;
+      failures++;
+      if (failures >= policy.attempts) throw error;
+      await pause(backoff(policy, failures), signal);
+    }
+  }
+
+  /** One connection of {@link events}. */
+  private async *connection(path: string, extraHeaders: Record<string, string>, signal?: AbortSignal): AsyncGenerator<ServerEvent> {
     const failed = (error: unknown): unknown =>
       error instanceof NodestroClientError || signal?.aborted
         ? error
@@ -265,7 +399,7 @@ export class Transport {
     let response: Response;
     try {
       response = await this.fetcher(this.url(path), {
-        headers: mergeHeaders({ "User-Agent": USER_AGENT }, this.headers, { Accept: "text/event-stream" }, options.headers),
+        headers: mergeHeaders({ "User-Agent": USER_AGENT }, this.headers, { Accept: "text/event-stream" }, extraHeaders),
         signal,
         redirect: "manual",
       });
@@ -301,6 +435,94 @@ export class Transport {
     // in the middle of, and it is dropped (WHATWG: "the incomplete event is not dispatched").
     yield* parser.push(decoder.decode());
   }
+}
+
+/**
+ * The signal of one download: aborted by the caller's `signal`, or when nothing arrives for `idleMs` (`timedOut`).
+ * `arm()` restarts the time limit before each wait, `rest()` stops it while the consumer holds the stream.
+ */
+class Watchdog {
+  private readonly controller = new AbortController();
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private readonly stop: () => void;
+  timedOut = false;
+
+  constructor(
+    private readonly idleMs: number,
+    private readonly outer?: AbortSignal,
+  ) {
+    this.stop = () => this.controller.abort(outer?.reason);
+    if (outer?.aborted) this.stop();
+    else outer?.addEventListener("abort", this.stop, { once: true });
+    this.arm();
+  }
+
+  get signal(): AbortSignal {
+    return this.controller.signal;
+  }
+
+  arm(): void {
+    this.rest();
+    this.timer = setTimeout(() => {
+      this.timedOut = true;
+      this.controller.abort(new DOMException("The download stalled", "TimeoutError"));
+    }, this.idleMs);
+  }
+
+  rest(): void {
+    if (this.timer !== undefined) clearTimeout(this.timer);
+    this.timer = undefined;
+  }
+
+  close(): void {
+    this.rest();
+    this.outer?.removeEventListener("abort", this.stop);
+  }
+}
+
+/** The body of a download, read piece by piece under the watchdog, with errors mapped to client errors. */
+function bodyStream(response: Response, path: string, watch: Watchdog): ReadableStream<Uint8Array> {
+  if (!response.body) {
+    watch.close();
+    return new ReadableStream({ start: (controller) => controller.close() });
+  }
+  const reader = response.body.getReader();
+  let received = 0;
+  watch.rest();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      watch.arm();
+      let chunk: ReadableStreamReadResult<Uint8Array>;
+      try {
+        chunk = await reader.read();
+      } catch (error) {
+        watch.close();
+        if (watch.signal.aborted && !watch.timedOut) controller.error(watch.signal.reason);
+        else if (watch.timedOut) {
+          controller.error(new NodestroTimeoutError(`GET ${path}: the download stalled after ${received} bytes`, { cause: error }));
+        } else {
+          controller.error(
+            new NodestroConnectionError(`GET ${path}: the download broke off after ${received} bytes: ${(error as Error).message}`, {
+              cause: error,
+            }),
+          );
+        }
+        return;
+      }
+      watch.rest();
+      if (chunk.done) {
+        watch.close();
+        controller.close();
+        return;
+      }
+      received += chunk.value.byteLength;
+      controller.enqueue(chunk.value);
+    },
+    async cancel(reason) {
+      watch.close();
+      await reader.cancel(reason).catch(() => undefined);
+    },
+  }, { highWaterMark: 0 }); // nothing is read before the consumer asks for it
 }
 
 async function checked(response: Response): Promise<Response> {

@@ -6,13 +6,19 @@ Nodestro is multilingual, and the assertions look for them.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+import contextlib
 from decimal import Decimal
+from pathlib import Path
+import socket
+import threading
 import time
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 
-from nodestro_client import NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow
+from nodestro_client import NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow, RetryPolicy
 
 
 def agent(node_id: str, prompt: str) -> dict[str, Any]:
@@ -280,7 +286,7 @@ def test_workflows_are_checked_versioned_updated_and_deleted(nodestro: NodestroC
     assert gone.value.status == 404
 
 
-def test_result_files_of_a_run_can_be_downloaded(nodestro: NodestroClient) -> None:
+def test_result_files_of_a_run_can_be_downloaded(nodestro: NodestroClient, tmp_path: Path) -> None:
     body = simple()
     body["nodes"][2]["output"] = {"files": [{"format": "md", "name": "angebot"}]}
     workflow = nodestro.create_workflow(body)
@@ -289,6 +295,9 @@ def test_result_files_of_a_run_can_be_downloaded(nodestro: NodestroClient) -> No
     assert [item["format"] for item in files] == ["md"]
     content = nodestro.download_file(done["id"], files[0]["id"])
     assert b"Wir liefern" in content
+    assert b"".join(nodestro.stream_file(done["id"], files[0]["id"], chunk_size=7)) == content
+    assert nodestro.save_file(done["id"], files[0]["id"], tmp_path / "angebot.md") == len(content)
+    assert (tmp_path / "angebot.md").read_bytes() == content
     with pytest.raises(NodestroAPIError) as missing:
         nodestro.download_file(done["id"], "file_missing")
     assert missing.value.status == 404
@@ -334,6 +343,9 @@ def test_published_approvals_files_and_permissions(nodestro: NodestroClient, ser
         assert result["status"] == "succeeded"
         files = api.files(run["run_id"])
         assert len(files) == 1 and b"Wir liefern" in api.download(run["run_id"], str(files[0]["id"]))
+        assert b"".join(api.stream_file(run["run_id"], str(files[0]["id"]))) == api.download(
+            run["run_id"], str(files[0]["id"])
+        )
         with pytest.raises(NodestroAPIError) as missing:
             api.download(run["run_id"], "file_missing")
         assert (missing.value.status, missing.value.code) == (404, "file.not_found")
@@ -370,6 +382,76 @@ def test_published_cancel_resume_versions_and_reconnect(nodestro: NodestroClient
         assert no_version.value.status == 404
         assert api.usage(days=1)["runs"] >= 2
         assert [item["run_id"] for item in api.runs(status="cancelled")] == [run["run_id"]]
+
+
+@contextlib.contextmanager
+def cutting_proxy(server: str, marker: bytes) -> Iterator[tuple[str, list[bytes]]]:
+    """A TCP proxy to ``server`` that cuts its first connection right after the first event that contains
+    ``marker`` reached the client (like a proxy or network that drops a stream); the others pass through.
+    Yields its URL and the request heads it forwarded."""
+    target = urlsplit(server)
+    listener = socket.create_server(("127.0.0.1", 0))
+    heads: list[bytes] = []
+
+    def relay(client: socket.socket) -> None:
+        with client, socket.create_connection((target.hostname, target.port or 80), timeout=60) as upstream:
+            head = b""
+            while b"\r\n\r\n" not in head:
+                part = client.recv(65536)
+                if not part:
+                    return
+                head += part
+            heads.append(head)
+            first = len(heads) == 1
+            upstream.sendall(head)
+            sent = b""
+            while part := upstream.recv(65536):
+                client.sendall(part)
+                sent += part
+                found = sent.find(marker)
+                if first and found >= 0 and b"\n\n" in sent[found:]:
+                    client.shutdown(socket.SHUT_RDWR)
+                    return
+
+    def accept() -> None:
+        while True:
+            try:
+                connection, _ = listener.accept()
+            except OSError:
+                return
+            threading.Thread(target=relay, args=(connection,), daemon=True).start()
+
+    threading.Thread(target=accept, daemon=True).start()
+    try:
+        yield f"http://127.0.0.1:{listener.getsockname()[1]}", heads
+    finally:
+        listener.close()
+
+
+def test_a_published_stream_cut_by_the_network_reconnects_and_misses_nothing(
+    nodestro: NodestroClient, server: str
+) -> None:
+    """SDK-004: a real API behind a proxy that drops the stream; the client resumes with ``Last-Event-ID``."""
+    body = simple("SLOW")
+    body["nodes"].insert(2, agent("second", "SLOW"))
+    body["edges"] = [edge("start", "writer"), edge("writer", "second"), edge("second", "out")]
+    slug, token, _ = published_api(nodestro, body, "sdk-reconnect", ["run", "read"])
+    with PublishedWorkflow(server, slug, api_key=token) as api:
+        run = api.start({"input": "x"})
+    with (
+        cutting_proxy(server, b"event: node_started") as (url, heads),
+        PublishedWorkflow(url, slug, api_key=token) as through,
+    ):
+        events = list(through.events(run["run_id"], timeout=30, reconnect=RetryPolicy(attempts=5, backoff=0.2)))
+    names = [event.event for event in events]
+    assert names[-1] == "end" and events[-1].data == {"status": "succeeded"}
+    assert len(heads) >= 2 and b"last-event-id:" in heads[1].lower()
+    # The stream broke right after a step start; still every event arrives exactly once, in order. (A step that
+    # started before the first connection is only in the opening status, as the API intends.)
+    steps = [f"{event.event}:{event.data['node_id']}" for event in events if event.event.startswith("node_")]
+    assert len(set(steps)) == len(steps) and {"node_started:second", "node_finished:second"} <= set(steps)
+    ids = [int(event.id or 0) for event in events if event.event.startswith("node_")]
+    assert ids == sorted(set(ids))
 
 
 def test_model_prices_usage_and_reconciliation(nodestro: NodestroClient) -> None:
@@ -686,3 +768,59 @@ def test_a_catalog_model_is_built_from_local_files(nodestro: NodestroClient, tmp
             "build", str(tmp_path / "weights.safetensors"), name="mdenseon:307m", template=str(tmp_path / "t.gguf")
         )
     assert missing.value.status == 400 and missing.value.code == "local.file_missing"
+
+
+def test_batches_are_planned_run_exported_and_deleted(nodestro: NodestroClient, tmp_path: Path) -> None:
+    """SDK-003: one workflow over many inputs."""
+    workflow = nodestro.create_workflow(simple())
+    (tmp_path / "rows.csv").write_text("input\nACME\nBeta\n", encoding="utf-8")
+    parsed = nodestro.parse_batch_file(workflow["id"], tmp_path / "rows.csv")
+    assert parsed["columns"] == ["input"] and len(parsed["rows"]) == 2
+    assert nodestro.parse_batch_file(workflow["id"], b"input\nGamma\n", filename="more.csv")["rows"] == [
+        {"input": "Gamma"}
+    ]
+    rows = [{"input": row["input"]} for row in parsed["rows"]]
+    plan = nodestro.plan_batch({"workflow_id": workflow["id"], "rows": rows})
+    assert (plan["total"], plan["valid"], plan["invalid"]) == (2, 2, 0)
+    batch = nodestro.create_batch({"workflow_id": workflow["id"], "rows": rows, "name": "SDK batch"})
+    deadline = time.monotonic() + 60
+    while (found := nodestro.get_batch(batch["id"]))["status"] == "running" and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert found["status"] == "finished" and [item["status"] for item in found["items"]] == ["succeeded"] * 2
+    assert batch["id"] in [item["id"] for item in nodestro.list_batches()]
+    assert b"ACME" in nodestro.export_batch(batch["id"])
+    exported = nodestro.export_batch(batch["id"], format="json")
+    assert exported.lstrip().startswith(b"[")
+    with pytest.raises(ValueError, match="format"):
+        nodestro.export_batch(batch["id"], format="xml")  # type: ignore[arg-type]
+    with pytest.raises(NodestroAPIError) as finished:
+        nodestro.pause_batch(batch["id"])
+    assert (finished.value.status, finished.value.code) == (400, "batch.not_running")
+    nodestro.delete_batch(batch["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.get_batch(batch["id"])
+    assert gone.value.status == 404
+
+
+def test_schedules_are_previewed_created_changed_and_deleted(nodestro: NodestroClient) -> None:
+    """SDK-003: runs at set times (created disabled; this test never lets one run)."""
+    workflow = nodestro.create_workflow(simple())
+    assert "Europe/Vienna" in nodestro.schedule_time_zones()
+    body = {"workflow_id": workflow["id"], "name": "SDK daily", "kind": "daily", "at": "06:30", "time_zone": "UTC"}
+    preview = nodestro.preview_schedule(body)
+    assert isinstance(preview["ok"], bool) and preview["next_runs"]
+    schedule = nodestro.create_schedule(body)
+    assert schedule["enabled"] is False and schedule["at"] == "06:30"
+    assert nodestro.get_schedule(schedule["id"])["name"] == "SDK daily"
+    assert schedule["id"] in [item["id"] for item in nodestro.list_schedules()]
+    changed = nodestro.update_schedule(schedule["id"], {**body, "kind": "weekly", "weekdays": [0]})
+    assert changed["kind"] == "weekly"
+    assert nodestro.preview_schedule({**body, "kind": "weekly", "weekdays": [0]}, schedule_id=schedule["id"])
+    assert nodestro.disable_schedule(schedule["id"])["schedule"]["enabled"] is False
+    with pytest.raises(NodestroAPIError) as bad:
+        nodestro.create_schedule({**body, "time_zone": "Mars/Base"})
+    assert 400 <= bad.value.status < 500
+    nodestro.delete_schedule(schedule["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.get_schedule(schedule["id"])
+    assert gone.value.status == 404

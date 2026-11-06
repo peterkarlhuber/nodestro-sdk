@@ -8,15 +8,28 @@ API: :class:`~nodestro_client.published.PublishedWorkflow`.
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
+import contextlib
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Literal, cast
+import os
+import threading
+from typing import IO, Any, Literal, cast
 import uuid
 
 import httpx
 
 from . import models
-from ._http import API_VERSION, Event, RetryPolicy, Transport, path_segment, poll_until
+from ._http import (
+    API_VERSION,
+    DOWNLOAD_CHUNK,
+    Event,
+    RetryPolicy,
+    Transport,
+    path_segment,
+    poll_until,
+    reconnect_policy,
+    save_chunks,
+)
 from .errors import NodestroRunFailed
 
 
@@ -378,22 +391,63 @@ class NodestroClient:
             raise NodestroRunFailed(cast(dict[str, Any], run))
         return run
 
-    def events(self, run_id: str, *, timeout: float | None = None) -> Generator[Event, None, None]:
+    def events(
+        self,
+        run_id: str,
+        *,
+        timeout: float | None = None,
+        reconnect: bool | RetryPolicy = False,
+        stop: threading.Event | None = None,
+    ) -> Generator[Event, None, None]:
         """The live events of a run: ``snapshot`` (the run), ``event`` (one step), ``end``.
 
         The connection stays open until the run ends. Leaving the loop early closes it when the
         generator is collected; ``with contextlib.closing(nodestro.events(run_id)) as events:``
         closes it at once. ``timeout`` limits the wait for the next line in seconds.
+
+        ``reconnect`` (``True`` or a :class:`RetryPolicy`) connects again after a lost connection
+        or a stall, with growing pauses, until ``end``. This stream has no event ids: every
+        connection starts with a new ``snapshot`` (the whole run as it is now), and the steps
+        between the lost connection and that snapshot are not delivered one by one. ``stop`` (a
+        :class:`threading.Event`) ends the iteration, also during the pause before a reconnect.
         """
-        return self._http.events(f"/api/runs/{path_segment(run_id)}/events", timeout=timeout)
+        return self._http.events(
+            f"/api/runs/{path_segment(run_id)}/events",
+            timeout=timeout,
+            reconnect=reconnect_policy(reconnect),
+            stop=stop,
+        )
 
     def run_files(self, run_id: str) -> list[models.ResultFile]:
         """The result files of a run (documents written by its output steps)."""
         return cast(list[models.ResultFile], self._http.json("GET", f"/api/runs/{path_segment(run_id)}/files"))
 
     def download_file(self, run_id: str, file_id: str) -> bytes:
-        """The content of a result file (held in memory as a whole)."""
+        """The content of a result file (held in memory as a whole; see :meth:`stream_file` for large files)."""
         return self._http.request("GET", f"/api/runs/{path_segment(run_id)}/files/{path_segment(file_id)}").content
+
+    def stream_file(
+        self, run_id: str, file_id: str, *, chunk_size: int = DOWNLOAD_CHUNK
+    ) -> Generator[bytes, None, None]:
+        """The content of a result file in chunks, never held in memory as a whole.
+
+        The request is sent at the first ``next()``. A download that breaks off raises
+        :class:`NodestroConnectionError` (or :class:`NodestroTimeoutError` after a stall of the
+        client's ``timeout``). Leaving the loop early closes the connection when the generator is
+        collected; ``contextlib.closing(...)`` closes it at once.
+        """
+        return self._http.download(
+            f"/api/runs/{path_segment(run_id)}/files/{path_segment(file_id)}", chunk_size=chunk_size
+        )
+
+    def save_file(self, run_id: str, file_id: str, target: str | os.PathLike[str] | IO[bytes]) -> int:
+        """Stream a result file to ``target`` (a path or a binary file object); returns the bytes written.
+
+        A path is replaced only when the whole file arrived (a broken download leaves no partial
+        file); a file object holds what arrived before an error.
+        """
+        with contextlib.closing(self.stream_file(run_id, file_id)) as chunks:
+            return save_chunks(chunks, target)
 
     # ---- people in the loop and continued runs -------------------------------------------
 
@@ -535,16 +589,28 @@ class NodestroClient:
             self._http.json("GET", f"/api/runs/{path_segment(run_id)}/chat/messages/{path_segment(message_id)}"),
         )
 
-    def run_chat_events(self, run_id: str, *, timeout: float | None = None) -> Generator[Event, None, None]:
+    def run_chat_events(
+        self,
+        run_id: str,
+        *,
+        timeout: float | None = None,
+        reconnect: bool | RetryPolicy = False,
+        stop: threading.Event | None = None,
+    ) -> Generator[Event, None, None]:
         """The live events of a run's chat: ``snapshot`` (the whole view, on every connect), ``message`` (a new
         or changed message), ``targets`` (what the orchestrators do now), ``end`` (the run ended and no answer is
         pending, or access ended).
 
         A reconnect gets a new snapshot. Leaving the loop early closes the connection when the generator is
         collected; ``with contextlib.closing(...)`` closes it at once. ``timeout`` limits the wait for the next
-        line in seconds.
+        line in seconds. ``reconnect`` and ``stop`` work as in :meth:`events`.
         """
-        return self._http.events(f"/api/runs/{path_segment(run_id)}/chat/events", timeout=timeout)
+        return self._http.events(
+            f"/api/runs/{path_segment(run_id)}/chat/events",
+            timeout=timeout,
+            reconnect=reconnect_policy(reconnect),
+            stop=stop,
+        )
 
     # ---- agents, tools, examples ---------------------------------------------------------
 
@@ -663,6 +729,116 @@ class NodestroClient:
     def mcp_events(self, *, limit: int = 100) -> list[models.McpEvent]:
         """The audit log of the MCP configuration (never tokens or tool arguments)."""
         return cast(list[models.McpEvent], self._http.json("GET", "/api/mcp/events", params={"limit": limit}))
+
+    # ---- batches (one workflow over many inputs) -------------------------------------------
+
+    def list_batches(self) -> list[models.BatchSummary]:
+        """The batches, newest first."""
+        return cast(list[models.BatchSummary], self._http.json("GET", "/api/batches"))
+
+    def get_batch(self, batch_id: str) -> models.Batch:
+        """One batch with its items (one per row: status, run id, error)."""
+        return cast(models.Batch, self._http.json("GET", f"/api/batches/{path_segment(batch_id)}"))
+
+    def parse_batch_file(
+        self, workflow_id: str, file: str | os.PathLike[str] | bytes | IO[bytes], *, filename: str | None = None
+    ) -> models.ParsedRows:
+        """The rows of a CSV, XLSX or JSON file (at most 10 MB, 1000 rows) and a suggested mapping of its columns
+        to the workflow's form; nothing starts. ``file`` is a path, the content or a binary file object;
+        ``filename`` (its extension tells the format) defaults to the path's name or ``rows.csv``."""
+        if isinstance(file, (str, os.PathLike)):
+            name = filename or os.path.basename(os.fspath(file))
+            with open(file, "rb") as handle:
+                content = handle.read()
+        elif isinstance(file, bytes):
+            name, content = filename or "rows.csv", file
+        else:
+            name, content = filename or os.path.basename(str(getattr(file, "name", ""))) or "rows.csv", file.read()
+        return cast(
+            models.ParsedRows,
+            self._http.json(
+                "POST", "/api/batches/parse", files={"file": (name, content)}, data={"workflow_id": workflow_id}
+            ),
+        )
+
+    def plan_batch(self, batch: models.BatchIn | Mapping[str, Any]) -> models.BatchPlan:
+        """Count the valid and invalid rows and estimate the cost; nothing starts."""
+        return cast(models.BatchPlan, self._http.json("POST", "/api/batches/plan", json_body=dict(batch)))
+
+    def create_batch(self, batch: models.BatchIn | Mapping[str, Any]) -> models.Batch:
+        """Start a batch: ``{"workflow_id": ..., "rows": [{"values": {...}} or {"input": "..."}, ...]}`` with
+        ``concurrency``, ``max_cost_usd``, ``max_failures``. A workflow with external tools needs
+        ``confirm_external``. Not retried automatically (it would start the rows twice)."""
+        return cast(models.Batch, self._http.json("POST", "/api/batches", json_body=dict(batch)))
+
+    def pause_batch(self, batch_id: str) -> models.Batch:
+        """Start no further rows (running ones finish)."""
+        return cast(models.Batch, self._http.json("POST", f"/api/batches/{path_segment(batch_id)}/pause"))
+
+    def resume_batch(self, batch_id: str) -> models.Batch:
+        return cast(models.Batch, self._http.json("POST", f"/api/batches/{path_segment(batch_id)}/resume"))
+
+    def cancel_batch(self, batch_id: str) -> models.Batch:
+        """Cancel the batch and its running rows."""
+        return cast(models.Batch, self._http.json("POST", f"/api/batches/{path_segment(batch_id)}/cancel"))
+
+    def delete_batch(self, batch_id: str) -> None:
+        self._http.request("DELETE", f"/api/batches/{path_segment(batch_id)}")
+
+    def export_batch(self, batch_id: str, *, format: Literal["csv", "json"] = "csv") -> bytes:
+        """The results of all rows as a CSV (default) or JSON file."""
+        if format not in ("csv", "json"):
+            raise ValueError(f"format must be 'csv' or 'json', not {format!r}")
+        path = f"/api/batches/{path_segment(batch_id)}/export"
+        return self._http.request("GET", path, params={"format": format}).content
+
+    # ---- schedules (runs at set times) ----------------------------------------------------
+
+    def list_schedules(self) -> list[models.Schedule]:
+        return cast(list[models.Schedule], self._http.json("GET", "/api/schedules"))
+
+    def get_schedule(self, schedule_id: str) -> models.Schedule:
+        return cast(models.Schedule, self._http.json("GET", f"/api/schedules/{path_segment(schedule_id)}"))
+
+    def schedule_time_zones(self) -> list[str]:
+        """The IANA time zones a schedule can use."""
+        return cast(list[str], self._http.json("GET", "/api/schedules/time-zones"))
+
+    def preview_schedule(
+        self, schedule: models.ScheduleIn | Mapping[str, Any], *, schedule_id: str | None = None
+    ) -> models.Activation:
+        """Whether the schedule could be enabled (``ok``, ``problems``, ``notes``) and its next run times;
+        ``schedule_id`` checks a change of an existing schedule. Nothing is stored."""
+        return cast(
+            models.Activation,
+            self._http.json(
+                "POST", "/api/schedules/preview", json_body=dict(schedule), params={"schedule_id": schedule_id}
+            ),
+        )
+
+    def create_schedule(self, schedule: models.ScheduleIn | Mapping[str, Any]) -> models.Schedule:
+        """Store a schedule (``kind`` ``once``/``hourly``/``daily``/``weekly``/``monthly``, ``at``, ``time_zone``
+        ...). It is created disabled: :meth:`enable_schedule` starts it."""
+        return cast(models.Schedule, self._http.json("POST", "/api/schedules", json_body=dict(schedule)))
+
+    def update_schedule(self, schedule_id: str, schedule: models.ScheduleIn | Mapping[str, Any]) -> models.Schedule:
+        """Replace a schedule's settings (the whole ``ScheduleIn``)."""
+        return cast(
+            models.Schedule,
+            self._http.json("PUT", f"/api/schedules/{path_segment(schedule_id)}", json_body=dict(schedule)),
+        )
+
+    def enable_schedule(self, schedule_id: str) -> models.ScheduleState:
+        """Enable a schedule; refused (``activation.problems``) when its workflow cannot run unattended."""
+        path = f"/api/schedules/{path_segment(schedule_id)}/enable"
+        return cast(models.ScheduleState, self._http.json("POST", path))
+
+    def disable_schedule(self, schedule_id: str) -> models.ScheduleState:
+        path = f"/api/schedules/{path_segment(schedule_id)}/disable"
+        return cast(models.ScheduleState, self._http.json("POST", path))
+
+    def delete_schedule(self, schedule_id: str) -> None:
+        self._http.request("DELETE", f"/api/schedules/{path_segment(schedule_id)}")
 
     # ---- local models (Ollama) and the semantic knowledge index ---------------------------
 

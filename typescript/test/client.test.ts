@@ -4,6 +4,7 @@
  * multilingual, and the assertions look for them.
  */
 
+import { type AddressInfo, type Socket, connect, createServer as createNetServer } from "node:net";
 import { describe, expect, inject, it } from "vitest";
 import { API_VERSION, NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow, type ServerEvent, compatibility } from "../src/index.js";
 
@@ -278,6 +279,10 @@ describe("studio API, further operations", () => {
     const content = new TextDecoder().decode(await nodestro.downloadFile(done.id, files[0]!.id));
     expect(content).toContain("Wir liefern");
     expect((await failure(nodestro.downloadFile(done.id, "file_missing")))?.status).toBe(404);
+    // Streamed (SDK-004): the same bytes, read piece by piece.
+    const streamed = await new Response(await nodestro.streamFile(done.id, files[0]!.id)).text();
+    expect(streamed).toBe(content);
+    expect((await failure(nodestro.streamFile(done.id, "file_missing")))?.status).toBe(404);
   });
 
   it("updates agent templates and lists the examples in all six languages", async () => {
@@ -314,7 +319,36 @@ describe("published workflow API, further operations", () => {
     expect(new TextDecoder().decode(await approver.download(run.run_id, String(files[0]!.id)))).toContain("Wir liefern");
     const missing = await failure(approver.download(run.run_id, "file_missing"));
     expect([missing?.status, missing?.code]).toEqual([404, "file.not_found"]);
+    const streamed = await new Response(await approver.streamFile(run.run_id, String(files[0]!.id))).text();
+    expect(streamed).toContain("Wir liefern");
   });
+
+  it("reconnects a stream that the network cuts and misses no event (SDK-004)", async () => {
+    const body = simple("SLOW");
+    body.nodes.splice(2, 0, agent("second", "SLOW"));
+    body.edges = [edge("start", "writer"), edge("writer", "second"), edge("second", "out")];
+    const { slug, token } = await publishedApi(body, "sdk-ts-reconnect", ["run", "read"]);
+    const run = await new PublishedWorkflow(server, slug, { apiKey: token }).start({ input: "x" });
+    const proxy = await cuttingProxy(server, "event: node_started");
+    try {
+      const api = new PublishedWorkflow(proxy.url, slug, { apiKey: token });
+      const events = await collect(api.events(run.run_id, { reconnect: { attempts: 5, backoffMs: 200 } }));
+      expect(events.at(-1)).toMatchObject({ event: "end", data: { status: "succeeded" } });
+      expect(proxy.heads.length).toBeGreaterThanOrEqual(2);
+      expect(proxy.heads[1]!.toLowerCase()).toContain("last-event-id:");
+      // The stream broke right after a step start; still every event arrives exactly once, in order. (A step that
+      // started before the first connection is only in the opening status, as the API intends.)
+      const steps = events.filter((event) => event.event.startsWith("node_")).map((event) => `${event.event}:${(event.data as { node_id: string }).node_id}`);
+      expect(new Set(steps).size).toBe(steps.length);
+      expect(steps).toEqual(expect.arrayContaining(["node_started:second", "node_finished:second"]));
+      const ids = events.filter((event) => event.event.startsWith("node_")).map((event) => Number(event.id));
+      expect(ids).toEqual([...ids].sort((a, b) => a - b));
+      expect(new Set(ids).size).toBe(ids.length);
+    } finally {
+      await proxy.close();
+    }
+  });
+
 
   it("cancels, continues, starts versions and reconnects to events", async () => {
     const { slug, token } = await publishedApi(simple("SLOW"), "sdk-ts-slow", ["run", "read"]);
@@ -338,6 +372,54 @@ describe("published workflow API, further operations", () => {
     expect((await failure(api.start({ input: "x" }, { version: 99 })))?.status).toBe(404);
     expect((await api.usage(1)).runs).toBeGreaterThanOrEqual(2);
     expect((await api.runs({ status: "cancelled" })).map((item) => item.run_id)).toEqual([run.run_id]);
+  });
+});
+
+describe("batches and schedules (SDK-003)", () => {
+  it("parses, plans, runs, exports and deletes a batch", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const parsed = await nodestro.parseBatchFile(workflow.id, "input\nACME\nBeta\n");
+    expect(parsed.columns).toEqual(["input"]);
+    expect((await nodestro.parseBatchFile(workflow.id, new Blob(["input\nGamma\n"]), "more.csv")).rows).toEqual([{ input: "Gamma" }]);
+    const rows = parsed.rows.map((row) => ({ input: row.input! }));
+    const plan = await nodestro.planBatch({ workflow_id: workflow.id, rows });
+    expect([plan.total, plan.valid, plan.invalid]).toEqual([2, 2, 0]);
+    const batch = await nodestro.createBatch({ workflow_id: workflow.id, rows, name: "SDK TS batch" });
+    const deadline = Date.now() + 60_000;
+    let found = await nodestro.getBatch(batch.id);
+    while (found.status === "running" && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      found = await nodestro.getBatch(batch.id);
+    }
+    expect(found.status).toBe("finished");
+    expect(found.items?.map((item) => item.status)).toEqual(["succeeded", "succeeded"]);
+    expect((await nodestro.listBatches()).map((item) => item.id)).toContain(batch.id);
+    expect(new TextDecoder().decode(await nodestro.exportBatch(batch.id))).toContain("ACME");
+    expect(new TextDecoder().decode(await nodestro.exportBatch(batch.id, "json")).trimStart()).toMatch(/^\[/);
+    await expect(nodestro.exportBatch(batch.id, "xml" as never)).rejects.toThrow(TypeError);
+    const notRunning = await failure(nodestro.pauseBatch(batch.id));
+    expect([notRunning?.status, notRunning?.code]).toEqual([400, "batch.not_running"]);
+    await nodestro.deleteBatch(batch.id);
+    expect((await failure(nodestro.getBatch(batch.id)))?.status).toBe(404);
+  });
+
+  it("previews, creates, changes and deletes a schedule without letting it run", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    expect(await nodestro.scheduleTimeZones()).toContain("Europe/Vienna");
+    const body = { workflow_id: workflow.id, name: "SDK TS daily", kind: "daily" as const, at: "06:30", time_zone: "UTC" };
+    const preview = await nodestro.previewSchedule(body);
+    expect(preview.next_runs?.length).toBeGreaterThan(0);
+    const schedule = await nodestro.createSchedule(body);
+    expect([schedule.enabled, schedule.at]).toEqual([false, "06:30"]);
+    expect((await nodestro.getSchedule(schedule.id)).name).toBe("SDK TS daily");
+    expect((await nodestro.listSchedules()).map((item) => item.id)).toContain(schedule.id);
+    expect((await nodestro.updateSchedule(schedule.id, { ...body, kind: "weekly", weekdays: [0] })).kind).toBe("weekly");
+    expect(typeof (await nodestro.previewSchedule(body, { scheduleId: schedule.id })).ok).toBe("boolean");
+    expect((await nodestro.disableSchedule(schedule.id)).schedule.enabled).toBe(false);
+    const bad = await failure(nodestro.createSchedule({ ...body, time_zone: "Mars/Base" }));
+    expect(bad?.status).toBeGreaterThanOrEqual(400);
+    await nodestro.deleteSchedule(schedule.id);
+    expect((await failure(nodestro.getSchedule(schedule.id)))?.status).toBe(404);
   });
 });
 
@@ -624,3 +706,57 @@ describe("revisions, paging, compatibility and local builds", () => {
     expect([(missing as NodestroAPIError).status, (missing as NodestroAPIError).code]).toEqual([400, "local.file_missing"]);
   });
 });
+
+/**
+ * A TCP proxy to `target` that cuts its first connection right after the first event containing `marker` reached
+ * the client (as a proxy or network that drops a stream); later connections pass through.
+ */
+async function cuttingProxy(target: string, marker: string) {
+  const upstreamUrl = new URL(target);
+  const heads: string[] = [];
+  const sockets = new Set<Socket>();
+  const proxy = createNetServer((client) => {
+    sockets.add(client);
+    const upstream = connect(Number(upstreamUrl.port), upstreamUrl.hostname);
+    sockets.add(upstream);
+    let head = "";
+    let first = false;
+    let sent = "";
+    client.on("data", (chunk) => {
+      if (!head.includes("\r\n\r\n")) {
+        head += chunk.toString("latin1");
+        if (head.includes("\r\n\r\n")) {
+          heads.push(head);
+          first = heads.length === 1;
+        }
+      }
+      upstream.write(chunk);
+    });
+    upstream.on("data", (chunk) => {
+      client.write(chunk);
+      if (!first) return;
+      sent += chunk.toString("latin1");
+      const found = sent.indexOf(marker);
+      if (found >= 0 && sent.indexOf("\n\n", found) >= 0) {
+        first = false;
+        client.end(() => client.destroy());
+        upstream.destroy();
+      }
+    });
+    const close = () => {
+      client.destroy();
+      upstream.destroy();
+    };
+    client.on("error", close).on("close", close);
+    upstream.on("error", close).on("close", close);
+  });
+  await new Promise<void>((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+  return {
+    url: `http://127.0.0.1:${(proxy.address() as AddressInfo).port}`,
+    heads,
+    close: () => {
+      for (const socket of sockets) socket.destroy();
+      return new Promise((resolve) => proxy.close(resolve));
+    },
+  };
+}
