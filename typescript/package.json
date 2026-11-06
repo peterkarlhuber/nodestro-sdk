@@ -13,7 +13,7 @@
     }
   },
   "files": ["dist", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22.12" },
   "repository": { "type": "git", "url": "git+https://github.com/peterkarlhuber/nodestro-sdk.git", "directory": "typescript" },
   "scripts": {
     "generate": "openapi-typescript ../openapi/nodestro-api.json -o src/generated/openapi.ts",

@@ -5,7 +5,7 @@ the studio REST API of an installation and `PublishedWorkflow` for published, ke
 by Nodestro or by a standalone export). ES modules with type definitions, promises and async iterators, built on
 `fetch`; no runtime dependencies.
 
-Runs on Node.js 20 and later (tested with 20 and 22) and in browsers with `fetch`, `AbortSignal.timeout` and Web
+Runs on Node.js 22.12 and later (tested with 22 and 24) and in browsers with `fetch`, `AbortSignal.timeout` and Web
 Streams (tested with Chromium; see [Browsers](#browsers)).
 
 ## Installation
