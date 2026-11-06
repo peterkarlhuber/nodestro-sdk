@@ -4,7 +4,7 @@
 
 ### TODO abatement round (2026-11-06)
 
-- Pins nodestro-api 452bac9 (the TODO abatement api branch, runtime 3d69702); types regenerated: run `cause`,
+- Pins nodestro-api a3bd875 (the TODO abatement api branch, runtime 3d69702); types regenerated: run `cause`,
   `GET /api/error-codes`, usage `budgets`, workflow `origin`, `ArchitectReasoning.subject`. Package version 0.3.0.
 - **Breaking (TypeScript):** `@nodestro/client` requires Node.js 22.12 or later (`engines`); Node.js 20 is no
   longer supported. CI tests Node.js 22 and 24 (SDK-010). Because the package is 0.x, the next version bump through
