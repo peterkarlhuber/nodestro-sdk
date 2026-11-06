@@ -730,6 +730,116 @@ class NodestroClient:
         """The audit log of the MCP configuration (never tokens or tool arguments)."""
         return cast(list[models.McpEvent], self._http.json("GET", "/api/mcp/events", params={"limit": limit}))
 
+    # ---- batches (one workflow over many inputs) -------------------------------------------
+
+    def list_batches(self) -> list[models.BatchSummary]:
+        """The batches, newest first."""
+        return cast(list[models.BatchSummary], self._http.json("GET", "/api/batches"))
+
+    def get_batch(self, batch_id: str) -> models.Batch:
+        """One batch with its items (one per row: status, run id, error)."""
+        return cast(models.Batch, self._http.json("GET", f"/api/batches/{path_segment(batch_id)}"))
+
+    def parse_batch_file(
+        self, workflow_id: str, file: str | os.PathLike[str] | bytes | IO[bytes], *, filename: str | None = None
+    ) -> models.ParsedRows:
+        """The rows of a CSV, XLSX or JSON file (at most 10 MB, 1000 rows) and a suggested mapping of its columns
+        to the workflow's form; nothing starts. ``file`` is a path, the content or a binary file object;
+        ``filename`` (its extension tells the format) defaults to the path's name or ``rows.csv``."""
+        if isinstance(file, (str, os.PathLike)):
+            name = filename or os.path.basename(os.fspath(file))
+            with open(file, "rb") as handle:
+                content = handle.read()
+        elif isinstance(file, bytes):
+            name, content = filename or "rows.csv", file
+        else:
+            name, content = filename or os.path.basename(str(getattr(file, "name", ""))) or "rows.csv", file.read()
+        return cast(
+            models.ParsedRows,
+            self._http.json(
+                "POST", "/api/batches/parse", files={"file": (name, content)}, data={"workflow_id": workflow_id}
+            ),
+        )
+
+    def plan_batch(self, batch: models.BatchIn | Mapping[str, Any]) -> models.BatchPlan:
+        """Count the valid and invalid rows and estimate the cost; nothing starts."""
+        return cast(models.BatchPlan, self._http.json("POST", "/api/batches/plan", json_body=dict(batch)))
+
+    def create_batch(self, batch: models.BatchIn | Mapping[str, Any]) -> models.Batch:
+        """Start a batch: ``{"workflow_id": ..., "rows": [{"values": {...}} or {"input": "..."}, ...]}`` with
+        ``concurrency``, ``max_cost_usd``, ``max_failures``. A workflow with external tools needs
+        ``confirm_external``. Not retried automatically (it would start the rows twice)."""
+        return cast(models.Batch, self._http.json("POST", "/api/batches", json_body=dict(batch)))
+
+    def pause_batch(self, batch_id: str) -> models.Batch:
+        """Start no further rows (running ones finish)."""
+        return cast(models.Batch, self._http.json("POST", f"/api/batches/{path_segment(batch_id)}/pause"))
+
+    def resume_batch(self, batch_id: str) -> models.Batch:
+        return cast(models.Batch, self._http.json("POST", f"/api/batches/{path_segment(batch_id)}/resume"))
+
+    def cancel_batch(self, batch_id: str) -> models.Batch:
+        """Cancel the batch and its running rows."""
+        return cast(models.Batch, self._http.json("POST", f"/api/batches/{path_segment(batch_id)}/cancel"))
+
+    def delete_batch(self, batch_id: str) -> None:
+        self._http.request("DELETE", f"/api/batches/{path_segment(batch_id)}")
+
+    def export_batch(self, batch_id: str, *, format: Literal["csv", "json"] = "csv") -> bytes:
+        """The results of all rows as a CSV (default) or JSON file."""
+        if format not in ("csv", "json"):
+            raise ValueError(f"format must be 'csv' or 'json', not {format!r}")
+        path = f"/api/batches/{path_segment(batch_id)}/export"
+        return self._http.request("GET", path, params={"format": format}).content
+
+    # ---- schedules (runs at set times) ----------------------------------------------------
+
+    def list_schedules(self) -> list[models.Schedule]:
+        return cast(list[models.Schedule], self._http.json("GET", "/api/schedules"))
+
+    def get_schedule(self, schedule_id: str) -> models.Schedule:
+        return cast(models.Schedule, self._http.json("GET", f"/api/schedules/{path_segment(schedule_id)}"))
+
+    def schedule_time_zones(self) -> list[str]:
+        """The IANA time zones a schedule can use."""
+        return cast(list[str], self._http.json("GET", "/api/schedules/time-zones"))
+
+    def preview_schedule(
+        self, schedule: models.ScheduleIn | Mapping[str, Any], *, schedule_id: str | None = None
+    ) -> models.Activation:
+        """Whether the schedule could be enabled (``ok``, ``problems``, ``notes``) and its next run times;
+        ``schedule_id`` checks a change of an existing schedule. Nothing is stored."""
+        return cast(
+            models.Activation,
+            self._http.json(
+                "POST", "/api/schedules/preview", json_body=dict(schedule), params={"schedule_id": schedule_id}
+            ),
+        )
+
+    def create_schedule(self, schedule: models.ScheduleIn | Mapping[str, Any]) -> models.Schedule:
+        """Store a schedule (``kind`` ``once``/``hourly``/``daily``/``weekly``/``monthly``, ``at``, ``time_zone``
+        ...). It is created disabled: :meth:`enable_schedule` starts it."""
+        return cast(models.Schedule, self._http.json("POST", "/api/schedules", json_body=dict(schedule)))
+
+    def update_schedule(self, schedule_id: str, schedule: models.ScheduleIn | Mapping[str, Any]) -> models.Schedule:
+        """Replace a schedule's settings (the whole ``ScheduleIn``)."""
+        return cast(
+            models.Schedule,
+            self._http.json("PUT", f"/api/schedules/{path_segment(schedule_id)}", json_body=dict(schedule)),
+        )
+
+    def enable_schedule(self, schedule_id: str) -> models.ScheduleState:
+        """Enable a schedule; refused (``activation.problems``) when its workflow cannot run unattended."""
+        path = f"/api/schedules/{path_segment(schedule_id)}/enable"
+        return cast(models.ScheduleState, self._http.json("POST", path))
+
+    def disable_schedule(self, schedule_id: str) -> models.ScheduleState:
+        path = f"/api/schedules/{path_segment(schedule_id)}/disable"
+        return cast(models.ScheduleState, self._http.json("POST", path))
+
+    def delete_schedule(self, schedule_id: str) -> None:
+        self._http.request("DELETE", f"/api/schedules/{path_segment(schedule_id)}")
+
     # ---- local models (Ollama) and the semantic knowledge index ---------------------------
 
     def local_models(self) -> models.LocalOverview:

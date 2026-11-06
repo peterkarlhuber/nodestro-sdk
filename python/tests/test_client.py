@@ -768,3 +768,59 @@ def test_a_catalog_model_is_built_from_local_files(nodestro: NodestroClient, tmp
             "build", str(tmp_path / "weights.safetensors"), name="mdenseon:307m", template=str(tmp_path / "t.gguf")
         )
     assert missing.value.status == 400 and missing.value.code == "local.file_missing"
+
+
+def test_batches_are_planned_run_exported_and_deleted(nodestro: NodestroClient, tmp_path: Path) -> None:
+    """SDK-003: one workflow over many inputs."""
+    workflow = nodestro.create_workflow(simple())
+    (tmp_path / "rows.csv").write_text("input\nACME\nBeta\n", encoding="utf-8")
+    parsed = nodestro.parse_batch_file(workflow["id"], tmp_path / "rows.csv")
+    assert parsed["columns"] == ["input"] and len(parsed["rows"]) == 2
+    assert nodestro.parse_batch_file(workflow["id"], b"input\nGamma\n", filename="more.csv")["rows"] == [
+        {"input": "Gamma"}
+    ]
+    rows = [{"input": row["input"]} for row in parsed["rows"]]
+    plan = nodestro.plan_batch({"workflow_id": workflow["id"], "rows": rows})
+    assert (plan["total"], plan["valid"], plan["invalid"]) == (2, 2, 0)
+    batch = nodestro.create_batch({"workflow_id": workflow["id"], "rows": rows, "name": "SDK batch"})
+    deadline = time.monotonic() + 60
+    while (found := nodestro.get_batch(batch["id"]))["status"] == "running" and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert found["status"] == "finished" and [item["status"] for item in found["items"]] == ["succeeded"] * 2
+    assert batch["id"] in [item["id"] for item in nodestro.list_batches()]
+    assert b"ACME" in nodestro.export_batch(batch["id"])
+    exported = nodestro.export_batch(batch["id"], format="json")
+    assert exported.lstrip().startswith(b"[")
+    with pytest.raises(ValueError, match="format"):
+        nodestro.export_batch(batch["id"], format="xml")  # type: ignore[arg-type]
+    with pytest.raises(NodestroAPIError) as finished:
+        nodestro.pause_batch(batch["id"])
+    assert (finished.value.status, finished.value.code) == (400, "batch.not_running")
+    nodestro.delete_batch(batch["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.get_batch(batch["id"])
+    assert gone.value.status == 404
+
+
+def test_schedules_are_previewed_created_changed_and_deleted(nodestro: NodestroClient) -> None:
+    """SDK-003: runs at set times (created disabled; this test never lets one run)."""
+    workflow = nodestro.create_workflow(simple())
+    assert "Europe/Vienna" in nodestro.schedule_time_zones()
+    body = {"workflow_id": workflow["id"], "name": "SDK daily", "kind": "daily", "at": "06:30", "time_zone": "UTC"}
+    preview = nodestro.preview_schedule(body)
+    assert isinstance(preview["ok"], bool) and preview["next_runs"]
+    schedule = nodestro.create_schedule(body)
+    assert schedule["enabled"] is False and schedule["at"] == "06:30"
+    assert nodestro.get_schedule(schedule["id"])["name"] == "SDK daily"
+    assert schedule["id"] in [item["id"] for item in nodestro.list_schedules()]
+    changed = nodestro.update_schedule(schedule["id"], {**body, "kind": "weekly", "weekdays": [0]})
+    assert changed["kind"] == "weekly"
+    assert nodestro.preview_schedule({**body, "kind": "weekly", "weekdays": [0]}, schedule_id=schedule["id"])
+    assert nodestro.disable_schedule(schedule["id"])["schedule"]["enabled"] is False
+    with pytest.raises(NodestroAPIError) as bad:
+        nodestro.create_schedule({**body, "time_zone": "Mars/Base"})
+    assert 400 <= bad.value.status < 500
+    nodestro.delete_schedule(schedule["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.get_schedule(schedule["id"])
+    assert gone.value.status == 404

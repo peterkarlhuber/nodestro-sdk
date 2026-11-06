@@ -117,6 +117,19 @@ export type NewApiKey = Schemas["NewApiKey"];
 export type ApiKey = Schemas["ApiKeyOut"];
 export type KeyIn = Schemas["KeyIn"];
 export type UsageReport = Schemas["UsageReport"];
+export type Batch = Stored<Schemas["Batch"]>;
+/** One row of a batch as sent (fields with a server default may be left out). */
+export type BatchRowIn = Partial<Schemas["BatchRow"]>;
+/** A batch as sent: `workflow_id` and `rows`; the other fields have server defaults. */
+export type BatchIn = Omit<Partial<Schemas["BatchIn"]>, "workflow_id" | "rows"> & { workflow_id: string; rows: BatchRowIn[] };
+export type BatchSummary = Schemas["BatchSummary"];
+export type BatchPlan = Schemas["BatchPlan"];
+export type ParsedRows = Schemas["ParsedRows"];
+export type Schedule = Stored<Schemas["Schedule"]>;
+/** A schedule as sent: `workflow_id`; the other fields have server defaults. */
+export type ScheduleIn = Omit<Partial<Schemas["ScheduleIn"]>, "workflow_id"> & { workflow_id: string };
+export type ScheduleState = Schemas["ScheduleState"];
+export type ScheduleActivation = Schemas["Activation"];
 export type PriceEntry = Schemas["PriceEntry"];
 export type PricingOverview = Schemas["PricingOverview"];
 export type PricingEvent = Schemas["PricingEvent"];
@@ -631,6 +644,116 @@ export class NodestroClient {
   /** The audit log of the MCP configuration (never tokens or tool arguments). */
   async mcpEvents(limit = 100): Promise<McpEvent[]> {
     return this.http.json("GET", `/api/mcp/events?limit=${encodeURIComponent(String(limit))}`);
+  }
+
+  // ---- batches (one workflow over many inputs)
+
+  /** The batches, newest first. */
+  async listBatches(): Promise<BatchSummary[]> {
+    return this.http.json("GET", "/api/batches");
+  }
+
+  /** One batch with its items (one per row: status, run id, error). */
+  async getBatch(batchId: string): Promise<Batch> {
+    return this.http.json("GET", `/api/batches/${enc(batchId)}`);
+  }
+
+  /**
+   * The rows of a CSV, XLSX or JSON file (at most 10 MB, 1000 rows) and a suggested mapping of its columns to the
+   * workflow's form; nothing starts. `filename` (its extension tells the format) defaults to the `File`'s name or
+   * `rows.csv`.
+   */
+  async parseBatchFile(workflowId: string, file: Blob | Uint8Array | string, filename?: string): Promise<ParsedRows> {
+    const blob = file instanceof Blob ? file : new Blob([typeof file === "string" ? file : new Uint8Array(file)]);
+    const name = filename ?? (typeof File !== "undefined" && file instanceof File && file.name ? file.name : "rows.csv");
+    const form = new FormData();
+    form.append("file", blob, name);
+    form.append("workflow_id", workflowId);
+    return this.http.json("POST", "/api/batches/parse", { form });
+  }
+
+  /** Count the valid and invalid rows and estimate the cost; nothing starts. */
+  async planBatch(batch: BatchIn): Promise<BatchPlan> {
+    return this.http.json("POST", "/api/batches/plan", { body: batch });
+  }
+
+  /**
+   * Start a batch: `{ workflow_id, rows: [{ values }, { input }, ...] }` with `concurrency`, `max_cost_usd`,
+   * `max_failures`. A workflow with external tools needs `confirm_external`. Not retried automatically (it would
+   * start the rows twice).
+   */
+  async createBatch(batch: BatchIn): Promise<Batch> {
+    return this.http.json("POST", "/api/batches", { body: batch });
+  }
+
+  /** Start no further rows (running ones finish). */
+  async pauseBatch(batchId: string): Promise<Batch> {
+    return this.http.json("POST", `/api/batches/${enc(batchId)}/pause`);
+  }
+
+  async resumeBatch(batchId: string): Promise<Batch> {
+    return this.http.json("POST", `/api/batches/${enc(batchId)}/resume`);
+  }
+
+  /** Cancel the batch and its running rows. */
+  async cancelBatch(batchId: string): Promise<Batch> {
+    return this.http.json("POST", `/api/batches/${enc(batchId)}/cancel`);
+  }
+
+  async deleteBatch(batchId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/batches/${enc(batchId)}`);
+  }
+
+  /** The results of all rows as a CSV (default) or JSON file. */
+  async exportBatch(batchId: string, format: "csv" | "json" = "csv"): Promise<Uint8Array> {
+    if (format !== "csv" && format !== "json") throw new TypeError(`format must be "csv" or "json", not ${JSON.stringify(format)}`);
+    return this.http.bytes("GET", `/api/batches/${enc(batchId)}/export`, { query: { format } });
+  }
+
+  // ---- schedules (runs at set times)
+
+  async listSchedules(): Promise<Schedule[]> {
+    return this.http.json("GET", "/api/schedules");
+  }
+
+  async getSchedule(scheduleId: string): Promise<Schedule> {
+    return this.http.json("GET", `/api/schedules/${enc(scheduleId)}`);
+  }
+
+  /** The IANA time zones a schedule can use. */
+  async scheduleTimeZones(): Promise<string[]> {
+    return this.http.json("GET", "/api/schedules/time-zones");
+  }
+
+  /**
+   * Whether the schedule could be enabled (`ok`, `problems`, `notes`) and its next run times; `scheduleId` checks a
+   * change of an existing schedule. Nothing is stored.
+   */
+  async previewSchedule(schedule: ScheduleIn, options: { scheduleId?: string } = {}): Promise<ScheduleActivation> {
+    return this.http.json("POST", "/api/schedules/preview", { body: schedule, query: { schedule_id: options.scheduleId } });
+  }
+
+  /** Store a schedule (`kind` once/hourly/daily/weekly/monthly, `at`, `time_zone` ...); it is created disabled. */
+  async createSchedule(schedule: ScheduleIn): Promise<Schedule> {
+    return this.http.json("POST", "/api/schedules", { body: schedule });
+  }
+
+  /** Replace a schedule's settings (the whole `ScheduleIn`). */
+  async updateSchedule(scheduleId: string, schedule: ScheduleIn): Promise<Schedule> {
+    return this.http.json("PUT", `/api/schedules/${enc(scheduleId)}`, { body: schedule });
+  }
+
+  /** Enable a schedule; refused (`activation.problems`) when its workflow cannot run unattended. */
+  async enableSchedule(scheduleId: string): Promise<ScheduleState> {
+    return this.http.json("POST", `/api/schedules/${enc(scheduleId)}/enable`);
+  }
+
+  async disableSchedule(scheduleId: string): Promise<ScheduleState> {
+    return this.http.json("POST", `/api/schedules/${enc(scheduleId)}/disable`);
+  }
+
+  async deleteSchedule(scheduleId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/schedules/${enc(scheduleId)}`);
   }
 
   // ---- local models (Ollama) and the semantic knowledge index

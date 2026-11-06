@@ -185,6 +185,25 @@ or cancelled; `params` has `request_status` and `decided_by`), 422 `budget.limit
 `params["max_limit_usd"]`) and `access.forbidden` (only the person who started the run or an administrator decides;
 `params["reason"]`).
 
+## Batches and schedules
+
+```python
+rows = nodestro.parse_batch_file(workflow_id, "customers.csv")["rows"]  # CSV, XLSX or JSON; nothing starts
+batch_in = {"workflow_id": workflow_id, "rows": [{"values": row} for row in rows], "max_cost_usd": 2.0}
+print(nodestro.plan_batch(batch_in)["estimate"])  # valid/invalid rows and the expected cost
+batch = nodestro.create_batch(batch_in)  # follow it with get_batch(); pause/resume/cancel_batch()
+csv = nodestro.export_batch(batch["id"])  # or format="json"
+
+schedule = nodestro.create_schedule(
+    {"workflow_id": workflow_id, "kind": "daily", "at": "07:00", "time_zone": "Europe/Vienna", "input": "Daily report"}
+)
+nodestro.enable_schedule(schedule["id"])  # created disabled; preview_schedule() checks first
+```
+
+`create_batch` is never retried automatically (a retry would start the rows twice). Schedules: `list_schedules`,
+`get_schedule`, `update_schedule`, `disable_schedule`, `delete_schedule`, `schedule_time_zones`. Test series,
+knowledge files and search, input files, per-call tool approvals and exports have no methods yet (SDK-003).
+
 ## Local models and the knowledge index
 
 On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as

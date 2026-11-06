@@ -13,7 +13,7 @@ with a Nodestro installation as well as with a workflow exported as a standalone
 ## Two clients
 
 - **`NodestroClient`** talks to the studio REST API of an installation (`/api`): workflows and their versions,
-  pre-checks, runs, live events, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
+  pre-checks, runs, live events, batches, schedules, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
   tools, the example library, publishing (publish, list, change, delete publications), API keys (create, list,
   rotate, revoke, delete), connected MCP services, model prices and usage, the tool sandbox status, local models
   (Ollama runtime, downloads, offline imports, recommendations) and the semantic knowledge index.

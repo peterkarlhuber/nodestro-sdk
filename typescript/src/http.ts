@@ -64,6 +64,8 @@ export interface ClientOptions {
 
 export interface RequestOptions {
   body?: unknown;
+  /** A multipart body (file uploads); replaces `body`. */
+  form?: FormData;
   query?: Record<string, string | number | boolean | undefined | null>;
   headers?: Record<string, string>;
   /** Retry also a request that changes something (it carries an idempotency key). */
@@ -247,8 +249,10 @@ export class Transport {
     const attempts = retryable ? this.retry.attempts : 1;
     const timeoutMs = checkTimeout("timeoutMs", options.timeoutMs ?? this.timeoutMs);
     const headers = mergeHeaders({ Accept: "application/json", "User-Agent": USER_AGENT }, this.headers, options.headers);
-    let body: string | undefined;
-    if (options.body !== undefined) {
+    let body: string | FormData | undefined;
+    if (options.form !== undefined) {
+      body = options.form; // fetch sets the multipart Content-Type with its boundary
+    } else if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(options.body);
     }

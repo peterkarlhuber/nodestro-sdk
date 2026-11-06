@@ -375,6 +375,54 @@ describe("published workflow API, further operations", () => {
   });
 });
 
+describe("batches and schedules (SDK-003)", () => {
+  it("parses, plans, runs, exports and deletes a batch", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const parsed = await nodestro.parseBatchFile(workflow.id, "input\nACME\nBeta\n");
+    expect(parsed.columns).toEqual(["input"]);
+    expect((await nodestro.parseBatchFile(workflow.id, new Blob(["input\nGamma\n"]), "more.csv")).rows).toEqual([{ input: "Gamma" }]);
+    const rows = parsed.rows.map((row) => ({ input: row.input! }));
+    const plan = await nodestro.planBatch({ workflow_id: workflow.id, rows });
+    expect([plan.total, plan.valid, plan.invalid]).toEqual([2, 2, 0]);
+    const batch = await nodestro.createBatch({ workflow_id: workflow.id, rows, name: "SDK TS batch" });
+    const deadline = Date.now() + 60_000;
+    let found = await nodestro.getBatch(batch.id);
+    while (found.status === "running" && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      found = await nodestro.getBatch(batch.id);
+    }
+    expect(found.status).toBe("finished");
+    expect(found.items?.map((item) => item.status)).toEqual(["succeeded", "succeeded"]);
+    expect((await nodestro.listBatches()).map((item) => item.id)).toContain(batch.id);
+    expect(new TextDecoder().decode(await nodestro.exportBatch(batch.id))).toContain("ACME");
+    expect(new TextDecoder().decode(await nodestro.exportBatch(batch.id, "json")).trimStart()).toMatch(/^\[/);
+    await expect(nodestro.exportBatch(batch.id, "xml" as never)).rejects.toThrow(TypeError);
+    const notRunning = await failure(nodestro.pauseBatch(batch.id));
+    expect([notRunning?.status, notRunning?.code]).toEqual([400, "batch.not_running"]);
+    await nodestro.deleteBatch(batch.id);
+    expect((await failure(nodestro.getBatch(batch.id)))?.status).toBe(404);
+  });
+
+  it("previews, creates, changes and deletes a schedule without letting it run", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    expect(await nodestro.scheduleTimeZones()).toContain("Europe/Vienna");
+    const body = { workflow_id: workflow.id, name: "SDK TS daily", kind: "daily" as const, at: "06:30", time_zone: "UTC" };
+    const preview = await nodestro.previewSchedule(body);
+    expect(preview.next_runs?.length).toBeGreaterThan(0);
+    const schedule = await nodestro.createSchedule(body);
+    expect([schedule.enabled, schedule.at]).toEqual([false, "06:30"]);
+    expect((await nodestro.getSchedule(schedule.id)).name).toBe("SDK TS daily");
+    expect((await nodestro.listSchedules()).map((item) => item.id)).toContain(schedule.id);
+    expect((await nodestro.updateSchedule(schedule.id, { ...body, kind: "weekly", weekdays: [0] })).kind).toBe("weekly");
+    expect(typeof (await nodestro.previewSchedule(body, { scheduleId: schedule.id })).ok).toBe("boolean");
+    expect((await nodestro.disableSchedule(schedule.id)).schedule.enabled).toBe(false);
+    const bad = await failure(nodestro.createSchedule({ ...body, time_zone: "Mars/Base" }));
+    expect(bad?.status).toBeGreaterThanOrEqual(400);
+    await nodestro.deleteSchedule(schedule.id);
+    expect((await failure(nodestro.getSchedule(schedule.id)))?.status).toBe(404);
+  });
+});
+
 describe("model prices and usage", () => {
   it("lists prices, keeps overrides with history and reports cost states", async () => {
     const prices = await nodestro.listPrices();

@@ -178,6 +178,23 @@ or cancelled; `params.request_status`, `params.decided_by`), 422 `budget.limit_n
 (`params.current_limit_usd`) and `budget.limit_invalid`, 403 `budget.over_policy` (above `params.max_limit_usd`) and
 `access.forbidden` (only the person who started the run or an administrator decides; `params.reason`).
 
+## Batches and schedules
+
+```ts
+const { rows } = await nodestro.parseBatchFile(workflowId, fileFromAnInput); // a File/Blob, bytes or CSV text
+const batchIn = { workflow_id: workflowId, rows: rows.map((values) => ({ values })), max_cost_usd: 2 };
+console.log((await nodestro.planBatch(batchIn)).estimate); // valid/invalid rows and the expected cost
+const batch = await nodestro.createBatch(batchIn);          // follow it with getBatch(); pause/resume/cancelBatch()
+const csv = await nodestro.exportBatch(batch.id);           // or "json"
+
+const schedule = await nodestro.createSchedule({ workflow_id: workflowId, kind: "daily", at: "07:00", time_zone: "Europe/Vienna" });
+await nodestro.enableSchedule(schedule.id);                 // created disabled; previewSchedule() checks first
+```
+
+`createBatch` is never retried automatically (a retry would start the rows twice). Schedules: `listSchedules`,
+`getSchedule`, `updateSchedule`, `disableSchedule`, `deleteSchedule`, `scheduleTimeZones`. Test series, knowledge
+files and search, input files, per-call tool approvals and exports have no methods yet (SDK-003).
+
 ## Local models and the knowledge index
 
 On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as
