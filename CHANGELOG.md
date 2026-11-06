@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### TODO abatement round 3 (2026-11-06)
+
+All additions; the package version stays 0.3.0 (already raised this round, not released).
+
+- Event streams reconnect when asked (SDK-004): `reconnect=True` or a `RetryPolicy` on `events()`,
+  `run_chat_events()` and `PublishedWorkflow.events()` (TypeScript: `{ reconnect: true }`). Bounded exponential
+  backoff (`DEFAULT_RECONNECT`: 5 attempts in a row without progress, 1 s up to 15 s); the published stream resumes
+  with `Last-Event-ID` (nothing missed, nothing twice), the studio streams start with a new snapshot; 401/403/404
+  are raised at once; the stream ends after `end`. Python takes `stop=threading.Event()`, TypeScript's `signal`
+  also ends the pause before a reconnect. Without `reconnect` the streams behave as before.
+- Streamed downloads (SDK-004): `stream_file()`/`save_file()` on both Python clients, `streamFile()` (a
+  `ReadableStream` with a per-piece time limit) on both TypeScript clients. A body that breaks off is a
+  `NodestroConnectionError` after the chunks that arrived; `save_file` to a path never leaves a partial file.
+- Batches and schedules (SDK-003, in part): `list_batches`, `get_batch`, `parse_batch_file`, `plan_batch`,
+  `create_batch`, `pause_batch`, `resume_batch`, `cancel_batch`, `delete_batch`, `export_batch` and
+  `list_schedules`, `get_schedule`, `schedule_time_zones`, `preview_schedule`, `create_schedule`,
+  `update_schedule`, `enable_schedule`, `disable_schedule`, `delete_schedule` (TypeScript: camelCase; input types
+  `BatchIn`, `BatchRowIn`, `ScheduleIn`). TypeScript requests can carry a `FormData` body (`RequestOptions.form`).
+- Runtime and browser smoke checks (SDK-006): `scripts/check_runtimes.sh` and `typescript/smoke/` run the built
+  package against the test server in Node.js, Bun, Deno, Chromium, Firefox and WebKit; new CI job `runtimes`
+  (Linux required, macOS and Windows not yet). Dev dependency `playwright` 1.63.0.
+- README: SDK version 0.3.0 in the compatibility table and the tarball name (was 0.2.0).
+
 ### TODO abatement round (2026-11-06)
 
 - Pins nodestro-api 56fa762 (TODO abatement round 2); types regenerated: tool version history
