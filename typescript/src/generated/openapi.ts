@@ -670,8 +670,8 @@ export interface paths {
         /**
          * Set File Retention
          * @description Set how long conversation files are kept (administrators). The input file clean-up
-         *     (``POST /api/inputs/cleanup``) and, in the desktop app, an hourly pass remove the older ones; ``null`` keeps them
-         *     until the conversation is deleted.
+         *     (``POST /api/inputs/cleanup``) and an hourly pass (the desktop app's, or on a server the worker's) remove the older
+         *     ones; ``null`` keeps them until the conversation is deleted.
          */
         put: operations["set_file_retention_api_assistant_files_retention_put"];
         post?: never;
@@ -1227,6 +1227,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/exports/{export_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Export
+         * @description Delete an export and its ZIP file (``404`` for an unknown id). On a server this frees space of the
+         *     workspace's quota for stored packages (``NODESTRO_SERVER_EXPORT_TENANT_QUOTA_BYTES``, API-048).
+         */
+        delete: operations["delete_export_api_exports__export_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -1498,6 +1519,9 @@ export interface paths {
          * Knowledge Reindex
          * @description Build the semantic index; an embedding model the local model server does not have is refused first
          *     (``409 model.local_unavailable``, with what can be done), instead of a job that fails at its first chunk.
+         *
+         *     The desktop builds it in a thread of its process; a server queues it for a worker process (API-044), so the
+         *     answer's ``job`` is ``running`` while it waits for one (``knowledge.reindex_running`` for a second start).
          */
         post: operations["knowledge_reindex_api_knowledge_index_rebuild_post"];
         delete?: never;
@@ -17964,6 +17988,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ExportJob"];
                 };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_export_api_exports__export_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                export_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             "4XX": {
