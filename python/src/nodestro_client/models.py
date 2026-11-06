@@ -38,6 +38,7 @@ class AgentModel(TypedDict):
     name: str
     needs: NotRequired[list[str]]
     part: NotRequired[str | None]
+    part_name: NotRequired[str | None]
     reasons: NotRequired[list[str]]
     suggested: NotRequired[str | None]
     task: str
@@ -513,6 +514,13 @@ class ContractField(TypedDict):
     name: str
 
 
+class ContractFieldSummary(TypedDict):
+    description: NotRequired[str]
+    name: str
+    required: NotRequired[bool]
+    type: str
+
+
 class ConversationFile(TypedDict):
     added_at: NotRequired[str]
     chars: NotRequired[int]
@@ -679,6 +687,7 @@ class ExportJob(TypedDict):
     created_at: NotRequired[str]
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
+    error_params: NotRequired[dict[str, Any]]
     export_id: NotRequired[str | None]
     finished_at: NotRequired[str | None]
     id: NotRequired[str]
@@ -1731,6 +1740,7 @@ class PublicationOverviewItem(TypedDict):
     active_version: NotRequired[int | None]
     created_at: str
     enabled: bool
+    export_jobs: NotRequired[list[ExportJob]]
     exports: NotRequired[list[ExportRecord]]
     id: str
     name: str
@@ -2204,7 +2214,9 @@ class SearchHit(TypedDict):
 class SearchResult(TypedDict):
     favorite: NotRequired[bool]
     id: str
-    kind: Literal['workflow', 'agent', 'template', 'tool', 'knowledge', 'example']
+    kind: Literal[
+        'workflow', 'agent', 'template', 'tool', 'knowledge', 'example', 'run'
+    ]
     node_id: NotRequired[str | None]
     score: NotRequired[float]
     snippet: NotRequired[str]
@@ -2233,6 +2245,28 @@ class SentFile(TypedDict):
     name: str
     notes: NotRequired[list[str]]
     size: NotRequired[int]
+
+
+class SettingsDefaults(TypedDict):
+    architect_budget_usd: NotRequired[float | None]
+    architect_max_repairs: NotRequired[int]
+    architect_retry_max_tokens: NotRequired[int]
+    architect_retry_truncated: NotRequired[bool]
+    assistant_model: str
+    budget_decision_hours: NotRequired[int]
+    default_budget_usd: NotRequired[float | None]
+    default_model: str
+    embedding_model: NotRequired[str | None]
+    knowledge_retrieval: NotRequired[Literal['fts', 'vector', 'hybrid']]
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    local_reasoning: NotRequired[Literal['auto', 'full']]
+    max_run_budget_usd: NotRequired[str | None]
+    ocr_enabled: NotRequired[bool]
+    prefer_european_models: NotRequired[bool]
+    price_mode: NotRequired[Literal['standard', 'strict']]
+    reasoning_summaries: NotRequired[bool]
+    sandbox: NotRequired[Literal['auto', 'subprocess', 'linux', 'docker']]
+    strict_offline: NotRequired[bool]
 
 
 class SettingsIn(TypedDict):
@@ -2840,6 +2874,7 @@ class WorkflowSummary(TypedDict):
     agents: int
     capabilities: NotRequired[list[str]]
     contract: NotRequired[list[str]]
+    contract_fields: NotRequired[list[ContractFieldSummary]]
     description: str
     id: str
     last_run_status: NotRequired[

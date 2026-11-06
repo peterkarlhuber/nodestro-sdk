@@ -3848,6 +3848,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings Defaults
+         * @description The default of every setting that ``PUT /api/settings`` changes (see :class:`SettingsDefaults`).
+         */
+        get: operations["get_settings_defaults_api_settings_defaults_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/providers/bedrock/verify": {
         parameters: {
             query?: never;
@@ -4884,6 +4904,8 @@ export interface components {
             needs?: string[];
             /** Part */
             part?: string | null;
+            /** Part Name */
+            part_name?: string | null;
             /** Reasons */
             reasons?: string[];
             /** Suggested */
@@ -7149,6 +7171,26 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * ContractFieldSummary
+         * @description One field of a workflow's output contract, as the workflow list shows it.
+         */
+        ContractFieldSummary: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Name */
+            name: string;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /** Type */
+            type: string;
+        };
         /** ConversationDetail */
         ConversationDetail: {
             /** Attachment States */
@@ -7681,6 +7723,10 @@ export interface components {
             error?: string | null;
             /** Error Code */
             error_code?: string | null;
+            /** Error Params */
+            error_params?: {
+                [key: string]: unknown;
+            };
             /** Export Id */
             export_id?: string | null;
             /** Finished At */
@@ -11145,6 +11191,8 @@ export interface components {
             created_at: string;
             /** Enabled */
             enabled: boolean;
+            /** Export Jobs */
+            export_jobs?: components["schemas"]["ExportJob"][];
             /** Exports */
             exports?: components["schemas"]["ExportRecord"][];
             /** Id */
@@ -12926,7 +12974,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "workflow" | "agent" | "template" | "tool" | "knowledge" | "example";
+            kind: "workflow" | "agent" | "template" | "tool" | "knowledge" | "example" | "run";
             /** Node Id */
             node_id?: string | null;
             /**
@@ -13157,6 +13205,98 @@ export interface components {
             /** Sandbox Backends */
             sandbox_backends?: components["schemas"]["SandboxBackendStatus"][];
             sandbox_selection?: components["schemas"]["SandboxSelection"];
+            /**
+             * Strict Offline
+             * @default false
+             */
+            strict_offline: boolean;
+        };
+        /**
+         * SettingsDefaults
+         * @description The value each setting of ``GET /api/settings`` has while nobody changed it (API-061), so an interface can mark
+         *     a field as "default" or "changed". The defaults of the output limits are ``output_limit_defaults`` of the
+         *     settings; provider settings have no default.
+         */
+        SettingsDefaults: {
+            /**
+             * Architect Budget Usd
+             * @default 2
+             */
+            architect_budget_usd: number | null;
+            /**
+             * Architect Max Repairs
+             * @default 2
+             */
+            architect_max_repairs: number;
+            /**
+             * Architect Retry Max Tokens
+             * @default 64000
+             */
+            architect_retry_max_tokens: number;
+            /**
+             * Architect Retry Truncated
+             * @default true
+             */
+            architect_retry_truncated: boolean;
+            /** Assistant Model */
+            assistant_model: string;
+            /**
+             * Budget Decision Hours
+             * @default 24
+             */
+            budget_decision_hours: number;
+            /**
+             * Default Budget Usd
+             * @default 2
+             */
+            default_budget_usd: number | null;
+            /** Default Model */
+            default_model: string;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            /**
+             * Knowledge Retrieval
+             * @default fts
+             * @enum {string}
+             */
+            knowledge_retrieval: "fts" | "vector" | "hybrid";
+            /** Language */
+            language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /**
+             * Local Reasoning
+             * @default auto
+             * @enum {string}
+             */
+            local_reasoning: "auto" | "full";
+            /** Max Run Budget Usd */
+            max_run_budget_usd?: string | null;
+            /**
+             * Ocr Enabled
+             * @default false
+             */
+            ocr_enabled: boolean;
+            /**
+             * Prefer European Models
+             * @default false
+             */
+            prefer_european_models: boolean;
+            /**
+             * Price Mode
+             * @default standard
+             * @enum {string}
+             */
+            price_mode: "standard" | "strict";
+            /**
+             * Reasoning Summaries
+             * @default false
+             */
+            reasoning_summaries: boolean;
+            /**
+             * Sandbox
+             * @default auto
+             * @enum {string}
+             */
+            sandbox: "auto" | "subprocess" | "linux" | "docker";
             /**
              * Strict Offline
              * @default false
@@ -14835,7 +14975,10 @@ export interface components {
             /** Max Steps */
             max_steps?: number | null;
         };
-        /** WorkflowSummary */
+        /**
+         * WorkflowSummary
+         * @description A workflow in the list; ``contract`` keeps the field names, ``contract_fields`` describes them (API-053).
+         */
         WorkflowSummary: {
             /** Agents */
             agents: number;
@@ -14843,6 +14986,8 @@ export interface components {
             capabilities?: string[];
             /** Contract */
             contract?: string[];
+            /** Contract Fields */
+            contract_fields?: components["schemas"]["ContractFieldSummary"][];
             /** Description */
             description: string;
             /** Id */
@@ -22724,6 +22869,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Settings"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_settings_defaults_api_settings_defaults_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsDefaults"];
                 };
             };
             /** @description Error */
