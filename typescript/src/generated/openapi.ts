@@ -655,6 +655,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assistant/files/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File Retention
+         * @description How long conversation files are kept (API-056); ``retention_days: null`` keeps them with their conversation.
+         */
+        get: operations["file_retention_api_assistant_files_retention_get"];
+        /**
+         * Set File Retention
+         * @description Set how long conversation files are kept (administrators). The input file clean-up
+         *     (``POST /api/inputs/cleanup``) and, in the desktop app, an hourly pass remove the older ones; ``null`` keeps them
+         *     until the conversation is deleted.
+         */
+        put: operations["set_file_retention_api_assistant_files_retention_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/assistant/files/support": {
         parameters: {
             query?: never;
@@ -1265,7 +1291,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cleanup Inputs */
+        /**
+         * Cleanup Inputs
+         * @description Remove input files nobody uses, with ``older_than_days`` also those of older finished runs, and the
+         *     assistant conversation files past their retention period (when an administrator set one).
+         */
         post: operations["cleanup_inputs_api_inputs_cleanup_post"];
         delete?: never;
         options?: never;
@@ -4314,6 +4344,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tools/{name}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tool Versions
+         * @description Every stored version of a tool, newest first, with its code, tests and who wrote it (ST-036): ``editor``
+         *     (the tool editor), ``adopted`` (an AI version adopted as one's own with exactly that content) or ``ai``. Empty for
+         *     built-in and MCP tools; 404 for an unknown name.
+         */
+        get: operations["get_tool_versions_api_tools__name__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/usage": {
         parameters: {
             query?: never;
@@ -7045,6 +7097,11 @@ export interface components {
             /** Older Than Days */
             older_than_days?: number | null;
         };
+        /** CleanupResult */
+        CleanupResult: {
+            /** Removed */
+            removed: string[];
+        };
         /** CollectionInfo */
         CollectionInfo: {
             /** Files */
@@ -8071,6 +8128,19 @@ export interface components {
             sanitize: boolean;
         };
         /**
+         * FileRetention
+         * @description How long files attached in assistant conversations are kept (API-056), set by an administrator.
+         *
+         *     ``None`` (the default) keeps them until the user removes them or deletes the conversation, as before. With a
+         *     number of days, every conversation file attached longer ago than that is removed by the input file clean-up
+         *     (``POST /api/inputs/cleanup``) and, in the desktop app, at start and then hourly; its conversation and messages
+         *     stay, and a sent message keeps only the file's name.
+         */
+        FileRetention: {
+            /** Retention Days */
+            retention_days?: number | null;
+        };
+        /**
          * FileSupport
          * @description What the assistant accepts, and what its current model reads natively.
          */
@@ -8322,11 +8392,6 @@ export interface components {
             /** Number */
             number?: number | null;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
         /**
          * Handover
          * @description A proposal to continue in an existing Nodestro function; the user decides there.
@@ -8444,6 +8509,29 @@ export interface components {
             version: number;
             /** Versions */
             versions?: number[];
+        };
+        /** InputCleanupResult */
+        InputCleanupResult: {
+            /**
+             * Assistant Files Expired
+             * @default 0
+             */
+            assistant_files_expired: number;
+            /**
+             * Freed Bytes
+             * @default 0
+             */
+            freed_bytes: number;
+            /**
+             * Kept In Use
+             * @default 0
+             */
+            kept_in_use: number;
+            /**
+             * Removed
+             * @default 0
+             */
+            removed: number;
         };
         /**
          * InputField
@@ -8962,6 +9050,8 @@ export interface components {
             };
             /** Language */
             language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /** Memory Space */
+            memory_space?: string | null;
             /** Models */
             models?: {
                 [key: string]: string;
@@ -11393,6 +11483,29 @@ export interface components {
         PublishOut: {
             publication: components["schemas"]["Publication"];
             release: components["schemas"]["ReleaseSummary"];
+        };
+        /**
+         * PublishedError
+         * @description Every error answer of a published API (``{"error": {...}}``; see :class:`ApiError`).
+         */
+        PublishedError: {
+            error: components["schemas"]["PublishedErrorDetail"];
+        };
+        /**
+         * PublishedErrorDetail
+         * @description The error of a published API's answer: HTTP status, a stable code, an English message and parameters.
+         */
+        PublishedErrorDetail: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: number;
         };
         /** PullIn */
         PullIn: {
@@ -14677,6 +14790,35 @@ export interface components {
             /** Tests */
             tests: string;
         };
+        /** ToolVersion */
+        ToolVersion: {
+            /**
+             * Author
+             * @enum {string}
+             */
+            author: "editor" | "adopted" | "ai";
+            /** Code */
+            code?: string | null;
+            /** Content Hash */
+            content_hash?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Function Name */
+            function_name?: string | null;
+            /** Own */
+            own: boolean;
+            /** Status */
+            status: string;
+            /** Tests */
+            tests?: string | null;
+            /** Version */
+            version: number;
+        };
         /** TraceImport */
         TraceImport: {
             /** Duplicate */
@@ -15236,11 +15378,6 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
         };
-        /** CleanupResult */
-        nodestro_api__api_python__CleanupResult: {
-            /** Removed */
-            removed: string[];
-        };
         /** CheckResult */
         nodestro_api__benchmarks__CheckResult: {
             /** Label */
@@ -15261,24 +15398,6 @@ export interface components {
             id: string;
             /** Name */
             name: string;
-        };
-        /** CleanupResult */
-        nodestro_runtime__input_files__CleanupResult: {
-            /**
-             * Freed Bytes
-             * @default 0
-             */
-            freed_bytes: number;
-            /**
-             * Kept In Use
-             * @default 0
-             */
-            kept_in_use: number;
-            /**
-             * Removed
-             * @default 0
-             */
-            removed: number;
         };
         /**
          * KnowledgeRef
@@ -16665,6 +16784,68 @@ export interface operations {
             };
         };
     };
+    file_retention_api_assistant_files_retention_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileRetention"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_file_retention_api_assistant_files_retention_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FileRetention"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileRetention"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     file_support_api_assistant_files_support_get: {
         parameters: {
             query?: never;
@@ -17938,7 +18119,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["nodestro_runtime__input_files__CleanupResult"];
+                    "application/json": components["schemas"]["InputCleanupResult"];
                 };
             };
             /** @description Error */
@@ -21109,13 +21290,49 @@ export interface operations {
                     "application/json": components["schemas"]["InfoOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21140,13 +21357,49 @@ export interface operations {
                     "application/json": components["schemas"]["RunStatusOut"][];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21184,19 +21437,86 @@ export interface operations {
                     "application/json": components["schemas"]["RunStatusOut"];
                 };
             };
-            /** @description The request does not fit the input form */
+            /** @description The body is not JSON or not a valid multipart form (see error.code) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A conflict with the run's state or an earlier request (see error.code) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request is too large (request.too_large) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
             };
-            /** @description A limit is reached (see error.code) */
+            /** @description A limit is reached (see error.code and Retry-After) */
             429: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The API is switched off, or a model provider cannot be used now (Retry-After) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
             };
         };
     };
@@ -21221,13 +21541,49 @@ export interface operations {
                     "application/json": components["schemas"]["RunStatusOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21253,13 +21609,49 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalOut"][];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21289,13 +21681,67 @@ export interface operations {
                     "application/json": components["schemas"]["RunStatusOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A conflict with the run's state or an earlier request (see error.code) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request is too large (request.too_large) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21321,13 +21767,58 @@ export interface operations {
                     "application/json": components["schemas"]["RunStatusOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A conflict with the run's state or an earlier request (see error.code) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21353,13 +21844,49 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21387,13 +21914,49 @@ export interface operations {
                     }[];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21420,13 +21983,49 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21452,20 +22051,58 @@ export interface operations {
                     "application/json": components["schemas"]["RunResultOut"];
                 };
             };
-            /** @description Not finished yet */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A conflict with the run's state or an earlier request (see error.code) */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
             };
-            /** @description Validation Error */
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21495,13 +22132,76 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A conflict with the run's state or an earlier request (see error.code) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request is too large (request.too_large) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The API is switched off, or a model provider cannot be used now (Retry-After) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21526,13 +22226,49 @@ export interface operations {
                     "application/json": components["schemas"]["UsageSummaryOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21562,13 +22298,85 @@ export interface operations {
                     "application/json": components["schemas"]["RunStatusOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description The body is not JSON or not a valid multipart form (see error.code) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description No API key, or an unknown, revoked or expired one (auth.*) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The key may not do this (auth.scope), or the API answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Unknown API, version, run, approval or file (*.not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A conflict with the run's state or an earlier request (see error.code) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request is too large (request.too_large) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The request does not fit the input form or the route's parameters (request.invalid) */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description A limit is reached (see error.code and Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description The API is switched off, or a model provider cannot be used now (Retry-After) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
         };
@@ -21617,7 +22425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["nodestro_api__api_python__CleanupResult"];
+                    "application/json": components["schemas"]["CleanupResult"];
                 };
             };
             /** @description Error */
@@ -24007,6 +24815,37 @@ export interface operations {
             };
         };
     };
+    get_tool_versions_api_tools__name__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolVersion"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     usage_api_usage_get: {
         parameters: {
             query?: {
@@ -24511,7 +25350,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Optional. A retry with the same key (same member, workflow and request, within 24 hours) returns the run that already started (200, ``Idempotent-Replayed: true``) instead of starting another; the same key with a different request is ``409 idempotency.conflict``. */
+                /** @description Optional. A retry with the same key (same member, workflow and request, within 24 hours) returns the run that already started (200, ``Idempotent-Replayed: true``) instead of starting another; the same key with a different request is ``409 idempotency.conflict``, and a retry while the first request is still starting its run is ``409 idempotency.in_progress`` (``Retry-After``). */
                 "idempotency-key"?: string | null;
             };
             path: {

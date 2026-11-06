@@ -480,6 +480,10 @@ class CleanupRequest(TypedDict):
     older_than_days: NotRequired[int | None]
 
 
+class CleanupResult(TypedDict):
+    removed: list[str]
+
+
 class CollectionInfo(TypedDict):
     files: int
     name: str
@@ -794,6 +798,10 @@ class FileRequest(TypedDict):
     sanitize: NotRequired[bool]
 
 
+class FileRetention(TypedDict):
+    retention_days: NotRequired[int | None]
+
+
 class FileSupport(TypedDict):
     formats: list[dict[str, Any]]
     images: bool
@@ -924,6 +932,13 @@ class InfoOut(TypedDict):
     uploads: NotRequired[dict[str, Any]]
     version: int
     versions: NotRequired[list[int]]
+
+
+class InputCleanupResult(TypedDict):
+    assistant_files_expired: NotRequired[int]
+    freed_bytes: NotRequired[int]
+    kept_in_use: NotRequired[int]
+    removed: NotRequired[int]
 
 
 class InputField(TypedDict):
@@ -1079,6 +1094,7 @@ class LegacyReport(TypedDict):
 class LibraryCopy(TypedDict):
     integrations: NotRequired[dict[str, str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    memory_space: NotRequired[str | None]
     models: NotRequired[dict[str, str]]
     tests: NotRequired[bool]
 
@@ -1803,6 +1819,13 @@ class PublicationPatch(TypedDict):
     mcp_tool: NotRequired[bool | None]
     network: NotRequired[bool | None]
     slug: NotRequired[str | None]
+
+
+class PublishedErrorDetail(TypedDict):
+    code: str
+    message: str
+    params: NotRequired[dict[str, Any]]
+    status: int
 
 
 class PullIn(TypedDict):
@@ -2772,6 +2795,19 @@ class ToolSource(TypedDict):
     tests: str
 
 
+class ToolVersion(TypedDict):
+    author: Literal['editor', 'adopted', 'ai']
+    code: NotRequired[str | None]
+    content_hash: NotRequired[str | None]
+    created_at: NotRequired[str | None]
+    description: NotRequired[str]
+    function_name: NotRequired[str | None]
+    own: bool
+    status: str
+    tests: NotRequired[str | None]
+    version: int
+
+
 class UnreconciledProvider(TypedDict):
     code: Literal[
         'pricing.reconciliation_not_supported', 'pricing.reconciliation_not_configured'
@@ -2954,10 +2990,6 @@ class WorkflowSummary(TypedDict):
     updated_at: str
 
 
-class NodestroApiApiPythonCleanupResult(TypedDict):
-    removed: list[str]
-
-
 class NodestroApiBenchmarksCheckResult(TypedDict):
     label: str
     passed: bool | None
@@ -2968,12 +3000,6 @@ class NodestroRuntimeAdoptionKnowledgeRef(TypedDict):
     collection: NotRequired[str]
     id: str
     name: str
-
-
-class NodestroRuntimeInputFilesCleanupResult(TypedDict):
-    freed_bytes: NotRequired[int]
-    kept_in_use: NotRequired[int]
-    removed: NotRequired[int]
 
 
 class NodestroRuntimeReleaseKnowledgeRef(TypedDict):
@@ -3341,10 +3367,6 @@ class GateReport(TypedDict):
     workflow_version: NotRequired[int | None]
 
 
-class HTTPValidationError(TypedDict):
-    detail: NotRequired[list[ValidationError]]
-
-
 class InstallState(TypedDict):
     error: NotRequired[Problem | None]
     finished_at: NotRequired[str | None]
@@ -3683,6 +3705,10 @@ class PublishIn(TypedDict):
 class PublishOut(TypedDict):
     publication: Publication
     release: ReleaseSummary
+
+
+class PublishedError(TypedDict):
+    error: PublishedErrorDetail
 
 
 class PythonEnvironment(TypedDict):
