@@ -824,3 +824,155 @@ def test_schedules_are_previewed_created_changed_and_deleted(nodestro: NodestroC
     with pytest.raises(NodestroAPIError) as gone:
         nodestro.get_schedule(schedule["id"])
     assert gone.value.status == 404
+
+
+def test_test_series_are_planned_run_compared_and_deleted(nodestro: NodestroClient) -> None:
+    """SDK-003: a workflow against saved test cases."""
+    workflow = nodestro.create_workflow(simple())
+    suite = nodestro.create_test_series(
+        {"workflow_id": workflow["id"], "name": "SDK series", "cases": [{"input": "ACME"}, {"input": "Beta"}]}
+    )
+    assert [case["name"] for case in suite["cases"]] == ["#1", "#2"]
+    assert nodestro.get_test_series(suite["id"])["name"] == "SDK series"
+    assert suite["id"] in [item["id"] for item in nodestro.list_test_series()]
+    renamed = nodestro.update_test_series(suite["id"], {**suite, "name": "SDK series 2"})
+    assert renamed["name"] == "SDK series 2"
+    plan = nodestro.plan_test_run(suite["id"], {"judge": False})
+    assert plan["cases"] == 2 and plan["judged_cases"] == 0
+    first = nodestro.start_test_run(suite["id"], {"judge": False, "concurrency": 2})
+    finished = nodestro.wait_for_test_run(first["id"], timeout=60, poll=0.2)
+    assert finished["status"] == "finished", finished
+    second = nodestro.wait_for_test_run(nodestro.start_test_run(suite["id"], {"judge": False})["id"], timeout=60)
+    assert [item["id"] for item in nodestro.list_test_runs(suite["id"])] == [second["id"], first["id"]]
+    comparison = nodestro.compare_test_runs(first["id"], second["id"])
+    assert (comparison["a"]["id"], comparison["b"]["id"]) == (first["id"], second["id"])
+    assert [case["change"] for case in comparison["cases"]] == ["same", "same"]
+    choice = nodestro.test_series_model_choice(suite["id"], "writer", min_pass_rate=0.5)
+    assert choice["node_id"] == "writer" and choice["suite_id"] == suite["id"]
+    with pytest.raises(NodestroAPIError) as invalid_rate:
+        nodestro.test_series_model_choice(suite["id"], "writer", min_pass_rate=2)
+    assert invalid_rate.value.status == 422
+    assert nodestro.cancel_test_run(first["id"])["status"] == "finished"  # an ended run stays as it is
+    nodestro.delete_test_run(first["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.get_test_run(first["id"])
+    assert gone.value.status == 404
+    with pytest.raises(NodestroAPIError) as empty:
+        nodestro.start_test_run(nodestro.create_test_series({"workflow_id": workflow["id"], "cases": []})["id"])
+    assert (empty.value.status, empty.value.code) == (400, "benchmark.no_cases")
+    nodestro.delete_test_series(suite["id"])
+    with pytest.raises(NodestroAPIError) as deleted:
+        nodestro.get_test_series(suite["id"])
+    assert deleted.value.status == 404
+    with pytest.raises(NodestroAPIError) as unknown_workflow:
+        nodestro.create_test_series({"workflow_id": "wf_missing", "cases": [{"input": "x"}]})
+    assert 400 <= unknown_workflow.value.status < 500
+
+
+def test_knowledge_files_are_uploaded_searched_changed_and_deleted(nodestro: NodestroClient, tmp_path: Path) -> None:
+    """SDK-003: the knowledge base."""
+    (tmp_path / "returns.md").write_text("# Returns\n\nGoods can be returned within 30 days.", encoding="utf-8")
+    added = nodestro.upload_knowledge(
+        [tmp_path / "returns.md", ("shipping.md", b"# Shipping\n\nWe ship to Austria in two days.")],
+        description="SDK policies",
+        collection="sdk-policies",
+    )
+    assert [item["name"] for item in added] == ["returns.md", "shipping.md"]
+    ids = [item["id"] for item in added]
+    assert {item["id"] for item in nodestro.list_knowledge("SDK policies")} >= set(ids)
+    assert "sdk-policies" in [item["name"] for item in nodestro.knowledge_collections()]
+    hits = nodestro.search_knowledge("returned", mode="fts")
+    assert hits and hits[0]["file_id"] == ids[0]
+    assert nodestro.search_knowledge("returned", file_ids=[ids[1]], mode="fts") == []
+    assert b"30 days" in nodestro.knowledge_content(ids[0])
+    changed = nodestro.update_knowledge(ids[0], description="Returns policy", collection="sdk-other")
+    assert (changed["description"], changed["collection"]) == ("Returns policy", "sdk-other")
+    with pytest.raises(NodestroAPIError) as invalid:
+        nodestro.search_knowledge("x", k=500)
+    assert invalid.value.status == 422
+    with pytest.raises(ValueError, match="at least one"):
+        nodestro.upload_knowledge([])
+    with pytest.raises(TypeError):
+        nodestro.upload_knowledge(tmp_path / "returns.md")  # type: ignore[arg-type]
+    for file_id in ids:
+        nodestro.delete_knowledge(file_id)
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.knowledge_content(ids[0])
+    assert gone.value.status == 404
+
+
+def test_input_files_are_uploaded_read_and_cleaned_up(nodestro: NodestroClient) -> None:
+    """SDK-003: files for runs."""
+    formats = nodestro.input_formats()
+    assert formats
+    before = nodestro.input_storage()
+    results = nodestro.upload_inputs([("order.txt", b"10 pieces until Friday"), ("tool.exe", b"MZ")], accept=".txt")
+    assert results[0]["file"] is not None and results[0].get("problem") in (None, {})
+    assert results[1].get("file") is None and results[1]["problem"]
+    stored = results[0]["file"]
+    assert stored is not None
+    assert nodestro.get_input(stored["id"])["name"] == "order.txt"
+    assert "10 pieces" in nodestro.input_text(stored["id"])["text"]
+    assert nodestro.input_content(stored["id"]) == b"10 pieces until Friday"
+    assert nodestro.input_storage()["files"] == before["files"] + 1
+    run = nodestro.start_run(nodestro.create_workflow(simple())["id"], input="Read it", file_ids=[stored["id"]])
+    nodestro.wait_for_run(run["id"], timeout=60)
+    unused = nodestro.upload_inputs([("unused.txt", b"nobody reads this")])[0]["file"]
+    assert unused is not None
+    nodestro.clean_up_inputs()  # a new file and the file of a finished run stay
+    assert nodestro.get_input(unused["id"]) and nodestro.get_input(stored["id"])
+    with pytest.raises(NodestroAPIError) as in_use:
+        nodestro.delete_input(stored["id"])
+    assert in_use.value.code == "input.in_use" and 400 <= in_use.value.status < 500
+    nodestro.delete_input(unused["id"])
+    cleaned = nodestro.clean_up_inputs(older_than_days=0)  # also the files of finished runs
+    assert cleaned["removed"] >= 1 and cleaned["freed_bytes"] >= len(b"10 pieces until Friday")
+    for file_id in (stored["id"], unused["id"]):
+        with pytest.raises(NodestroAPIError) as gone:
+            nodestro.get_input(file_id)
+        assert gone.value.status == 404
+
+
+def test_tool_approvals_are_read_and_decided_only_where_switched_on(nodestro: NodestroClient) -> None:
+    """SDK-003: per-call tool approvals. The test server keeps NODESTRO_TOOL_APPROVALS off (the default), so there
+    are no questions; the methods answer and refuse unknown ones."""
+    assert nodestro.list_tool_approvals() == []
+    run = nodestro.start_run(nodestro.create_workflow(simple())["id"], input="go")
+    assert nodestro.run_tool_approvals(run["id"]) == []
+    assert isinstance(nodestro.tool_approval_audit(limit=10), list)
+    with pytest.raises(NodestroAPIError) as unknown:
+        nodestro.decide_tool_approval(run["id"], "tap_missing", "approved", arguments_hash="0" * 64)
+    assert unknown.value.status in (404, 409)
+    with pytest.raises(ValueError, match="decision"):
+        nodestro.decide_tool_approval(run["id"], "tap_missing", "maybe", arguments_hash="x")  # type: ignore[arg-type]
+
+
+def test_exports_are_checked_built_downloaded_and_deleted(nodestro: NodestroClient, tmp_path: Path) -> None:
+    """SDK-003: standalone exports of a publication; portable packages are export jobs (their build downloads
+    Python and libraries, so this test only checks how a job is refused and looked up)."""
+    import io
+    import zipfile
+
+    workflow = nodestro.create_workflow(simple())
+    publication = nodestro.publish(workflow["id"], slug=f"sdk-export-{int(time.time() * 1000)}")["publication"]
+    check = nodestro.check_export(publication["id"])
+    assert check["ok"] is True
+    record = nodestro.create_export(publication["id"], {"kind": "standard"})
+    assert record["publication_id"] == publication["id"] and record["size"] > 0
+    assert nodestro.list_exports(publication["id"])[0]["id"] == record["id"]
+    data = nodestro.download_export(record["id"])
+    assert len(data) == record["size"] and zipfile.ZipFile(io.BytesIO(data)).namelist()
+    assert nodestro.save_export(record["id"], tmp_path / "export.zip") == record["size"]
+    assert (tmp_path / "export.zip").read_bytes() == data
+    with pytest.raises(NodestroAPIError) as standard_job:
+        nodestro.start_export_job(publication["id"], {"kind": "standard"})
+    assert (standard_job.value.status, standard_job.value.code) == (400, "export.not_portable")
+    assert nodestro.list_export_jobs(publication["id"]) == []
+    for call in (nodestro.get_export_job, nodestro.cancel_export_job):
+        with pytest.raises(NodestroAPIError) as missing:
+            call("xjob_missing")
+        assert missing.value.status == 404
+    nodestro.delete_export(record["id"])
+    with pytest.raises(NodestroAPIError) as gone:
+        nodestro.download_export(record["id"])
+    assert gone.value.status == 404

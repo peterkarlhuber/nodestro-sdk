@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### TODO abatement round 4 (2026-11-06)
+
+- Both clients have methods for the remaining studio API areas, contract-tested against the test server (SDK-003):
+  test series (`list_test_series`/`listTestSeries`, create, change, delete, `plan_test_run`, `start_test_run`,
+  `wait_for_test_run`, cancel, delete, `compare_test_runs`, `test_series_model_choice`, `propose_test_case`),
+  knowledge files and search (`list_knowledge`, `upload_knowledge`, `update_knowledge`, `delete_knowledge`,
+  `knowledge_content`, `knowledge_collections`, `search_knowledge`), input files (`input_storage`, `input_formats`,
+  `upload_inputs`, `get_input`, `input_text`, `input_content`, `delete_input`, `clean_up_inputs`), per-call tool
+  approvals (`list_tool_approvals`, `run_tool_approvals`, `decide_tool_approval`, `tool_approval_audit`; the feature
+  stays off by default on the API) and exports (`check_export`, `create_export`, `list_exports`,
+  `download_export`/`save_export` (TypeScript: `streamExport`), `delete_export`, `start_export_job`,
+  `list_export_jobs`, `get_export_job`, `cancel_export_job`, `wait_for_export_job`). TypeScript names are the
+  camelCase forms.
+- Regenerates the OpenAPI document and types from nodestro-api (export jobs report `queued`). The nodestro-api pin
+  is unchanged; it moves with the next pin bump.
+
 ### TODO abatement round 3 (2026-11-06)
 
 All additions; the package version stays 0.3.0 (already raised this round, not released).

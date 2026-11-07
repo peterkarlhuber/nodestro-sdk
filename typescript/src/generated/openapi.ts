@@ -2750,9 +2750,10 @@ export interface paths {
          * @description Build a portable package in the background (``options.kind`` must be ``portable``).
          *
          *     On a server this answers ``403 export.server_unsupported`` unless its operator enabled export jobs
-         *     (``NODESTRO_SERVER_EXPORT_JOBS=1``); then one package is built at a time on the whole server
-         *     (``export.busy`` otherwise) and a package larger than ``NODESTRO_SERVER_EXPORT_MAX_BYTES`` (default 2 GiB) is
-         *     refused (``403 export.server_too_large`` from the estimate, or the job fails with that code).
+         *     (``NODESTRO_SERVER_EXPORT_JOBS=1``); then the job is queued for a worker (``queued``), which builds one package
+         *     at a time on the whole server (API-048), a workspace has one active export job (``export.busy`` otherwise), and a
+         *     package larger than ``NODESTRO_SERVER_EXPORT_MAX_BYTES`` (default 2 GiB) is refused (``403
+         *     export.server_too_large`` from the estimate, or the job fails with that code).
          */
         post: operations["start_export_job_api_publications__publication_id__export_jobs_post"];
         delete?: never;
@@ -7949,6 +7950,11 @@ export interface components {
             progress: number;
             /** Publication Id */
             publication_id: string;
+            /**
+             * Queued
+             * @default false
+             */
+            queued: boolean;
             /** Release Number */
             release_number: number;
             /**

@@ -148,6 +148,38 @@ export type ChatTarget = Schemas["ChatTarget"];
 export type ChatLimits = Schemas["ChatLimits"];
 export type TeamActivity = Schemas["TeamActivity"];
 export type DecisionNote = Schemas["DecisionNote"];
+export type Suite = Stored<Schemas["Suite"]>;
+/** A test series as sent: `workflow_id`; the other fields have server defaults. */
+export type SuiteIn = Omit<Partial<Schemas["SuiteIn"]>, "workflow_id" | "cases"> & {
+  workflow_id: string;
+  cases?: Partial<Schemas["TestCase"]>[];
+};
+/** A test run's settings as sent (every field has a server default). */
+export type BenchmarkStart = Partial<Schemas["BenchmarkStart"]>;
+export type BenchmarkPlan = Schemas["BenchmarkPlan"];
+export type BenchmarkRun = Stored<Schemas["BenchmarkRun"]>;
+export type Comparison = Schemas["Comparison"];
+export type ModelChoice = Schemas["ModelChoice"];
+export type CaseProposalIn = Partial<Schemas["CaseProposalIn"]>;
+export type CaseProposal = Schemas["CaseProposal"];
+export type KnowledgeFile = Schemas["KnowledgeFile"];
+export type CollectionInfo = Schemas["CollectionInfo"];
+export type SearchHit = Schemas["SearchHit"];
+export type StorageInfo = Schemas["StorageInfo"];
+export type FormatsInfo = Schemas["FormatsInfo"];
+export type UploadResult = Schemas["UploadResult"];
+export type InputFile = Schemas["InputFileOut"];
+export type FileText = Schemas["FileText"];
+export type InputCleanupResult = Schemas["InputCleanupResult"];
+export type ToolApprovalRequest = Schemas["ToolApprovalRequest"];
+export type ToolApprovalEvent = Schemas["ToolApprovalEvent"];
+/** Export options as sent (every field has a server default; `kind` is `standard` unless given). */
+export type ExportOptions = Partial<Schemas["ExportOptions"]>;
+export type ExportCheck = Schemas["ExportCheck"];
+export type ExportRecord = Stored<Schemas["ExportRecord"]>;
+export type ExportJob = Stored<Schemas["ExportJob"]>;
+/** A file to upload: a `Blob`/`File`, or a name with its content. */
+export type UploadFile = Blob | { name: string; content: Uint8Array | string };
 /** A budget request of a run; amounts are decimal strings (`"2.50"`). */
 export type BudgetRequest = Stored<Schemas["BudgetRequest"]>;
 /** The budget of a run's top-level run, its open request and what the caller may decide; amounts are decimal strings. */
@@ -962,6 +994,307 @@ export class NodestroClient {
   async deletePublication(publicationId: string): Promise<void> {
     await this.http.request("DELETE", `/api/publications/${enc(publicationId)}`);
   }
+
+  // ---- test series (a workflow against saved test cases)
+
+  /** The test series (suites of test cases), most recently changed first. */
+  async listTestSeries(): Promise<Suite[]> {
+    return this.http.json("GET", "/api/benchmarks");
+  }
+
+  async getTestSeries(suiteId: string): Promise<Suite> {
+    return this.http.json("GET", `/api/benchmarks/${enc(suiteId)}`);
+  }
+
+  /** Save a test series: `{ workflow_id, name, cases: [{ input, checks }] }`. */
+  async createTestSeries(suite: SuiteIn): Promise<Suite> {
+    return this.http.json("POST", "/api/benchmarks", { body: suite });
+  }
+
+  async updateTestSeries(suiteId: string, suite: SuiteIn): Promise<Suite> {
+    return this.http.json("PUT", `/api/benchmarks/${enc(suiteId)}`, { body: suite });
+  }
+
+  async deleteTestSeries(suiteId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/benchmarks/${enc(suiteId)}`);
+  }
+
+  /** What a test run would do and cost (cases, judged cases, estimate, problems); nothing starts. */
+  async planTestRun(suiteId: string, start: BenchmarkStart = {}): Promise<BenchmarkPlan> {
+    return this.http.json("POST", `/api/benchmarks/${enc(suiteId)}/plan`, { body: start });
+  }
+
+  /**
+   * Run every case of a test series (`judge`, `concurrency`, `max_cost_usd`, `max_failures`, `version`, `models`).
+   * Not retried automatically (it would run the cases twice).
+   */
+  async startTestRun(suiteId: string, start: BenchmarkStart = {}): Promise<BenchmarkRun> {
+    return this.http.json("POST", `/api/benchmarks/${enc(suiteId)}/runs`, { body: start });
+  }
+
+  /** The test runs of a series, newest first. */
+  async listTestRuns(suiteId: string): Promise<BenchmarkRun[]> {
+    return this.http.json("GET", `/api/benchmarks/${enc(suiteId)}/runs`);
+  }
+
+  async getTestRun(runId: string): Promise<BenchmarkRun> {
+    return this.http.json("GET", `/api/benchmark-runs/${enc(runId)}`);
+  }
+
+  /** Poll a test run until it is no longer `running` or `evaluating` ({@link NodestroTimeoutError} after `timeoutMs`). */
+  async waitForTestRun(runId: string, options: WaitOptions = {}): Promise<BenchmarkRun> {
+    return pollUntil(
+      () => this.getTestRun(runId),
+      (found) => found.status !== "running" && found.status !== "evaluating",
+      runId,
+      { timeoutMs: options.timeoutMs ?? 600_000, pollMs: options.pollMs ?? 1000, signal: options.signal },
+    );
+  }
+
+  async cancelTestRun(runId: string): Promise<BenchmarkRun> {
+    return this.http.json("POST", `/api/benchmark-runs/${enc(runId)}/cancel`);
+  }
+
+  async deleteTestRun(runId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/benchmark-runs/${enc(runId)}`);
+  }
+
+  /** Two test runs of a series case by case (for example two workflow versions). */
+  async compareTestRuns(a: string, b: string): Promise<Comparison> {
+    return this.http.json("GET", "/api/benchmark-runs/compare", { query: { a, b } });
+  }
+
+  /** The model one agent should use by the series' measured test runs and a policy; nothing changes. */
+  async testSeriesModelChoice(
+    suiteId: string,
+    nodeId: string,
+    policy: { objective?: string; minPassRate?: number; noNewFailures?: boolean } = {},
+  ): Promise<ModelChoice> {
+    const query = {
+      node_id: nodeId,
+      objective: policy.objective ?? "cost",
+      min_pass_rate: policy.minPassRate,
+      no_new_failures: policy.noNewFailures ?? true,
+    };
+    return this.http.json("GET", `/api/benchmarks/${enc(suiteId)}/model-choice`, { query });
+  }
+
+  /**
+   * A redacted test case from the input of a failed run (credentials always replaced; `personal_data` replaces
+   * e-mail addresses, phone numbers and the like too); nothing is stored.
+   */
+  async proposeTestCase(runId: string, request: CaseProposalIn = {}): Promise<CaseProposal> {
+    return this.http.json("POST", `/api/runs/${enc(runId)}/test-case`, { body: request });
+  }
+
+  // ---- knowledge files and search
+
+  /** The knowledge files (`query` filters by name and description). */
+  async listKnowledge(query?: string): Promise<KnowledgeFile[]> {
+    return this.http.json("GET", "/api/knowledge", { query: { q: query || undefined } });
+  }
+
+  /** Add files to the knowledge base (the extension of the name tells the format). Not retried automatically. */
+  async uploadKnowledge(
+    files: UploadFile[],
+    options: { description?: string; collection?: string } = {},
+  ): Promise<KnowledgeFile[]> {
+    const form = uploadForm(files);
+    form.append("description", options.description ?? "");
+    form.append("collection", options.collection ?? "");
+    return this.http.json("POST", "/api/knowledge", { form });
+  }
+
+  /** Change a knowledge file's description and (when given) its collection. */
+  async updateKnowledge(fileId: string, change: { description: string; collection?: string }): Promise<KnowledgeFile> {
+    return this.http.json("PATCH", `/api/knowledge/${enc(fileId)}`, { body: change });
+  }
+
+  async deleteKnowledge(fileId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/knowledge/${enc(fileId)}`);
+  }
+
+  /** The stored file itself. */
+  async knowledgeContent(fileId: string): Promise<Uint8Array> {
+    return this.http.bytes("GET", `/api/knowledge/${enc(fileId)}/content`);
+  }
+
+  async knowledgeCollections(): Promise<CollectionInfo[]> {
+    return this.http.json("GET", "/api/knowledge/collections");
+  }
+
+  /**
+   * Search the knowledge base (`k` 1 to 50 hits; `mode` full text, semantic or both, default the workspace's
+   * setting; a mode that is not available is an error, never a silent fallback).
+   */
+  async searchKnowledge(
+    query: string,
+    options: { fileIds?: string[]; k?: number; mode?: "fts" | "vector" | "hybrid" } = {},
+  ): Promise<SearchHit[]> {
+    const params = {
+      q: query,
+      k: options.k ?? 8,
+      file_ids: options.fileIds?.length ? options.fileIds.join(",") : undefined,
+      mode: options.mode,
+    };
+    return this.http.json("GET", "/api/knowledge/search", { query: params });
+  }
+
+  // ---- input files (uploads for runs)
+
+  /** How many input files there are and how much they take (in use by runs or not). */
+  async inputStorage(): Promise<StorageInfo> {
+    return this.http.json("GET", "/api/inputs");
+  }
+
+  /** The file formats Nodestro reads, by group, and the size limits. */
+  async inputFormats(): Promise<FormatsInfo> {
+    return this.http.json("GET", "/api/inputs/formats");
+  }
+
+  /**
+   * Upload files for a run (`fileIds` of {@link startRun}). Each result has the stored `file` or a `problem` (refused
+   * format or size; the others are stored). `accept` narrows the formats like a form field's (`.pdf,.docx`). Not
+   * retried automatically.
+   */
+  async uploadInputs(files: UploadFile[], options: { accept?: string; maxSizeMb?: number } = {}): Promise<UploadResult[]> {
+    const form = uploadForm(files);
+    form.append("accept", options.accept ?? "");
+    form.append("origin", "sdk");
+    if (options.maxSizeMb !== undefined) form.append("max_size_mb", String(options.maxSizeMb));
+    return this.http.json("POST", "/api/inputs", { form });
+  }
+
+  async getInput(fileId: string): Promise<InputFile> {
+    return this.http.json("GET", `/api/inputs/${enc(fileId)}`);
+  }
+
+  /** What Nodestro read from a file (or, with `path`, from one file of an archive): the text agents get. */
+  async inputText(fileId: string, path = ""): Promise<FileText> {
+    return this.http.json("GET", `/api/inputs/${enc(fileId)}/text`, { query: { path: path || undefined } });
+  }
+
+  /** The uploaded file itself. */
+  async inputContent(fileId: string): Promise<Uint8Array> {
+    return this.http.bytes("GET", `/api/inputs/${enc(fileId)}/content`);
+  }
+
+  async deleteInput(fileId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/inputs/${enc(fileId)}`);
+  }
+
+  /** Remove input files no run uses (`olderThanDays`: also the files of finished runs older than that). */
+  async cleanUpInputs(olderThanDays?: number): Promise<InputCleanupResult> {
+    const body = olderThanDays === undefined ? {} : { older_than_days: olderThanDays };
+    return this.http.json("POST", "/api/inputs/cleanup", { body });
+  }
+
+  // ---- per-call tool approvals (only while the installation switched them on)
+
+  /**
+   * The open questions of runs paused at a tool call. Empty while `NODESTRO_TOOL_APPROVALS` is off (the default);
+   * the SDK never switches it on.
+   */
+  async listToolApprovals(): Promise<ToolApprovalRequest[]> {
+    return this.http.json("GET", "/api/tool-approvals");
+  }
+
+  /** Every tool approval question of one run, open or decided. */
+  async runToolApprovals(runId: string): Promise<ToolApprovalRequest[]> {
+    return this.http.json("GET", `/api/runs/${enc(runId)}/tool-approvals`);
+  }
+
+  /**
+   * Approve or reject one tool call. `argumentsHash` is the question's own: a decision about other arguments than
+   * the ones shown is refused.
+   */
+  async decideToolApproval(
+    runId: string,
+    requestId: string,
+    decision: "approved" | "rejected",
+    options: { argumentsHash: string; comment?: string },
+  ): Promise<ToolApprovalRequest> {
+    if (decision !== "approved" && decision !== "rejected") {
+      throw new TypeError(`decision must be "approved" or "rejected", not ${JSON.stringify(decision)}`);
+    }
+    const body = { decision, arguments_hash: options.argumentsHash, comment: options.comment ?? "" };
+    return this.http.json("POST", `/api/runs/${enc(runId)}/tool-approvals/${enc(requestId)}`, { body });
+  }
+
+  /** The audit trail of tool approval questions and decisions, newest first. */
+  async toolApprovalAudit(limit = 200): Promise<ToolApprovalEvent[]> {
+    return this.http.json("GET", "/api/tool-approvals/audit", { query: { limit } });
+  }
+
+  // ---- exports of published workflows
+
+  /**
+   * What an export of a publication's release (`number`, default the active one) would contain and what keeps it
+   * from being built (`ok`, `problems`); nothing is written.
+   */
+  async checkExport(publicationId: string, options: ExportOptions = {}, number?: number): Promise<ExportCheck> {
+    return this.http.json("POST", `/api/publications/${enc(publicationId)}/export/check`, { body: exportBody(options, number) });
+  }
+
+  /** Export a release as a standalone project (`kind` `standard`, the default); portable packages are export jobs. */
+  async createExport(publicationId: string, options: ExportOptions = {}, number?: number): Promise<ExportRecord> {
+    return this.http.json("POST", `/api/publications/${enc(publicationId)}/exports`, { body: exportBody(options, number) });
+  }
+
+  /** The stored exports of a publication, newest first. */
+  async listExports(publicationId: string): Promise<ExportRecord[]> {
+    return this.http.json("GET", `/api/publications/${enc(publicationId)}/exports`);
+  }
+
+  /** The ZIP of an export in memory (a portable package can be gigabytes: see {@link streamExport}). */
+  async downloadExport(exportId: string): Promise<Uint8Array> {
+    return this.http.bytes("GET", `/api/exports/${enc(exportId)}/download`);
+  }
+
+  /** The ZIP of an export as a `ReadableStream` (as {@link streamFile}). */
+  async streamExport(exportId: string, options: DownloadOptions = {}): Promise<ReadableStream<Uint8Array>> {
+    return this.http.download(`/api/exports/${enc(exportId)}/download`, options);
+  }
+
+  /** Delete an export and its ZIP (on a server this frees the workspace's export quota). */
+  async deleteExport(exportId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/exports/${enc(exportId)}`);
+  }
+
+  /**
+   * Build a portable package in the background (`kind` must be `portable`); follow it with {@link getExportJob} or
+   * {@link waitForExportJob}. Not retried automatically.
+   */
+  async startExportJob(publicationId: string, options: ExportOptions, number?: number): Promise<ExportJob> {
+    return this.http.json("POST", `/api/publications/${enc(publicationId)}/export-jobs`, { body: exportBody(options, number) });
+  }
+
+  async listExportJobs(publicationId: string): Promise<ExportJob[]> {
+    return this.http.json("GET", `/api/publications/${enc(publicationId)}/export-jobs`);
+  }
+
+  async getExportJob(jobId: string): Promise<ExportJob> {
+    return this.http.json("GET", `/api/export-jobs/${enc(jobId)}`);
+  }
+
+  async cancelExportJob(jobId: string): Promise<ExportJob> {
+    return this.http.json("POST", `/api/export-jobs/${enc(jobId)}/cancel`);
+  }
+
+  /** Poll an export job until it is no longer `running` ({@link NodestroTimeoutError} after `timeoutMs`). */
+  async waitForExportJob(jobId: string, options: WaitOptions = {}): Promise<ExportJob> {
+    const job = await pollUntil(
+      async () => {
+        const found = await this.getExportJob(jobId);
+        return { ...found, status: found.state };
+      },
+      (found) => found.state !== "running",
+      jobId,
+      { timeoutMs: options.timeoutMs ?? 3_600_000, pollMs: options.pollMs ?? 2000, signal: options.signal },
+    );
+    const { status: _status, ...rest } = job;
+    return rest as ExportJob;
+  }
 }
 
 /** One path segment (see {@link pathSegment}). */
@@ -976,4 +1309,24 @@ function modelPath(model: string): string {
 function amount(value: unknown): string {
   if (typeof value !== "string") throw new TypeError(`limitUsd must be a decimal string, not ${typeof value}`);
   return value;
+}
+
+/** A multipart form with each file as `files`. */
+function uploadForm(files: UploadFile[]): FormData {
+  if (!Array.isArray(files) || files.length === 0) throw new TypeError("files must name at least one file");
+  const form = new FormData();
+  for (const file of files) {
+    if (file instanceof Blob) {
+      const name = typeof File !== "undefined" && file instanceof File && file.name ? file.name : "file";
+      form.append("files", file, name);
+    } else {
+      const content = typeof file.content === "string" ? file.content : new Uint8Array(file.content);
+      form.append("files", new Blob([content]), file.name);
+    }
+  }
+  return form;
+}
+
+function exportBody(options: ExportOptions, number?: number): { options: ExportOptions; number?: number } {
+  return number === undefined ? { options } : { options, number };
 }

@@ -760,3 +760,119 @@ async function cuttingProxy(target: string, marker: string) {
     },
   };
 }
+
+describe("test series, knowledge, input files, tool approvals and exports (SDK-003)", () => {
+  it("plans, runs, compares and deletes a test series", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const suite = await nodestro.createTestSeries({ workflow_id: workflow.id, name: "SDK TS series", cases: [{ input: "ACME" }, { input: "Beta" }] });
+    expect(suite.cases?.map((item) => item.name)).toEqual(["#1", "#2"]);
+    expect((await nodestro.getTestSeries(suite.id)).name).toBe("SDK TS series");
+    expect((await nodestro.listTestSeries()).map((item) => item.id)).toContain(suite.id);
+    expect((await nodestro.updateTestSeries(suite.id, { ...suite, name: "SDK TS series 2" })).name).toBe("SDK TS series 2");
+    const plan = await nodestro.planTestRun(suite.id, { judge: false });
+    expect([plan.cases, plan.judged_cases]).toEqual([2, 0]);
+    const first = await nodestro.waitForTestRun((await nodestro.startTestRun(suite.id, { judge: false, concurrency: 2 })).id, fast);
+    expect(first.status).toBe("finished");
+    const second = await nodestro.waitForTestRun((await nodestro.startTestRun(suite.id, { judge: false })).id, fast);
+    expect((await nodestro.listTestRuns(suite.id)).map((item) => item.id)).toEqual([second.id, first.id]);
+    const comparison = await nodestro.compareTestRuns(first.id, second.id);
+    expect([comparison.a.id, comparison.b.id]).toEqual([first.id, second.id]);
+    expect(comparison.cases.map((item) => item.change)).toEqual(["same", "same"]);
+    const choice = await nodestro.testSeriesModelChoice(suite.id, "writer", { minPassRate: 0.5 });
+    expect([choice.node_id, choice.suite_id]).toEqual(["writer", suite.id]);
+    expect((await failure(nodestro.testSeriesModelChoice(suite.id, "writer", { minPassRate: 2 })))?.status).toBe(422);
+    expect((await nodestro.cancelTestRun(first.id)).status).toBe("finished");
+    await nodestro.deleteTestRun(first.id);
+    expect((await failure(nodestro.getTestRun(first.id)))?.status).toBe(404);
+    const empty = await nodestro.createTestSeries({ workflow_id: workflow.id, cases: [] });
+    const noCases = await failure(nodestro.startTestRun(empty.id));
+    expect([noCases?.status, noCases?.code]).toEqual([400, "benchmark.no_cases"]);
+    await nodestro.deleteTestSeries(suite.id);
+    expect((await failure(nodestro.getTestSeries(suite.id)))?.status).toBe(404);
+  });
+
+  it("uploads, searches, changes and deletes knowledge files", async () => {
+    const added = await nodestro.uploadKnowledge(
+      [
+        new File(["# Returns\n\nGoods can be returned within 30 days."], "ts-returns.md"),
+        { name: "ts-shipping.md", content: "# Shipping\n\nWe ship to Austria in two days." },
+      ],
+      { description: "SDK TS policies", collection: "sdk-ts-policies" },
+    );
+    expect(added.map((item) => item.name)).toEqual(["ts-returns.md", "ts-shipping.md"]);
+    const ids = added.map((item) => item.id);
+    expect((await nodestro.listKnowledge("SDK TS policies")).map((item) => item.id)).toEqual(expect.arrayContaining(ids));
+    expect((await nodestro.knowledgeCollections()).map((item) => item.name)).toContain("sdk-ts-policies");
+    const hits = await nodestro.searchKnowledge("returned", { mode: "fts", fileIds: ids });
+    expect(hits[0]?.file_id).toBe(ids[0]);
+    expect(await nodestro.searchKnowledge("returned", { mode: "fts", fileIds: [ids[1]!] })).toEqual([]);
+    expect(new TextDecoder().decode(await nodestro.knowledgeContent(ids[0]!))).toContain("30 days");
+    const changed = await nodestro.updateKnowledge(ids[0]!, { description: "Returns policy", collection: "sdk-ts-other" });
+    expect([changed.description, changed.collection]).toEqual(["Returns policy", "sdk-ts-other"]);
+    expect((await failure(nodestro.searchKnowledge("x", { k: 500 })))?.status).toBe(422);
+    await expect(nodestro.uploadKnowledge([])).rejects.toThrow(TypeError);
+    for (const id of ids) await nodestro.deleteKnowledge(id);
+    expect((await failure(nodestro.knowledgeContent(ids[0]!)))?.status).toBe(404);
+  });
+
+  it("uploads input files, reads them and cleans them up", async () => {
+    expect(await nodestro.inputFormats()).toBeTruthy();
+    const before = await nodestro.inputStorage();
+    const results = await nodestro.uploadInputs(
+      [{ name: "order.txt", content: "10 pieces until Friday" }, { name: "tool.exe", content: new Uint8Array([77, 90]) }],
+      { accept: ".txt" },
+    );
+    const stored = results[0]?.file;
+    expect(stored).toBeTruthy();
+    expect(results[1]?.file ?? null).toBeNull();
+    expect(results[1]?.problem).toBeTruthy();
+    expect((await nodestro.getInput(stored!.id)).name).toBe("order.txt");
+    expect((await nodestro.inputText(stored!.id)).text).toContain("10 pieces");
+    expect(new TextDecoder().decode(await nodestro.inputContent(stored!.id))).toBe("10 pieces until Friday");
+    expect((await nodestro.inputStorage()).files).toBe((before.files ?? 0) + 1);
+    const run = await nodestro.startRun((await nodestro.createWorkflow(simple())).id, { input: "Read it", fileIds: [stored!.id] });
+    await nodestro.waitForRun(run.id, fast);
+    const unused = (await nodestro.uploadInputs([{ name: "unused.txt", content: "nobody reads this" }]))[0]?.file;
+    await nodestro.cleanUpInputs(); // a new file and the file of a finished run stay
+    expect((await nodestro.getInput(unused!.id)).id).toBe(unused!.id);
+    const inUse = await failure(nodestro.deleteInput(stored!.id));
+    expect(inUse?.code).toBe("input.in_use");
+    await nodestro.deleteInput(unused!.id);
+    const cleaned = await nodestro.cleanUpInputs(0); // also the files of finished runs
+    expect(cleaned.removed).toBeGreaterThanOrEqual(1);
+    for (const id of [stored!.id, unused!.id]) expect((await failure(nodestro.getInput(id)))?.status).toBe(404);
+  });
+
+  it("reads tool approvals and refuses unknown decisions (approvals stay off on the test server)", async () => {
+    expect(await nodestro.listToolApprovals()).toEqual([]);
+    const run = await nodestro.startRun((await nodestro.createWorkflow(simple())).id, { input: "go" });
+    expect(await nodestro.runToolApprovals(run.id)).toEqual([]);
+    expect(Array.isArray(await nodestro.toolApprovalAudit(10))).toBe(true);
+    const unknown = await failure(nodestro.decideToolApproval(run.id, "tap_missing", "approved", { argumentsHash: "0".repeat(64) }));
+    expect([404, 409]).toContain(unknown?.status);
+    await expect(nodestro.decideToolApproval(run.id, "tap_missing", "maybe" as never, { argumentsHash: "x" })).rejects.toThrow(TypeError);
+  });
+
+  it("checks, builds, downloads and deletes an export", async () => {
+    const workflow = await nodestro.createWorkflow(simple());
+    const { publication } = await nodestro.publish(workflow.id, { slug: `sdk-ts-export-${Date.now()}` });
+    expect((await nodestro.checkExport(publication.id)).ok).toBe(true);
+    const record = await nodestro.createExport(publication.id, { kind: "standard" });
+    expect(record.publication_id).toBe(publication.id);
+    expect((await nodestro.listExports(publication.id))[0]?.id).toBe(record.id);
+    const data = await nodestro.downloadExport(record.id);
+    expect(data.byteLength).toBe(record.size);
+    expect([data[0], data[1]]).toEqual([0x50, 0x4b]); // "PK": a ZIP
+    let streamed = 0;
+    const reader = (await nodestro.streamExport(record.id)).getReader();
+    for (let piece = await reader.read(); !piece.done; piece = await reader.read()) streamed += piece.value.byteLength;
+    expect(streamed).toBe(record.size);
+    const standardJob = await failure(nodestro.startExportJob(publication.id, { kind: "standard" }));
+    expect([standardJob?.status, standardJob?.code]).toEqual([400, "export.not_portable"]);
+    expect(await nodestro.listExportJobs(publication.id)).toEqual([]);
+    expect((await failure(nodestro.getExportJob("xjob_missing")))?.status).toBe(404);
+    expect((await failure(nodestro.cancelExportJob("xjob_missing")))?.status).toBe(404);
+    await nodestro.deleteExport(record.id);
+    expect((await failure(nodestro.downloadExport(record.id)))?.status).toBe(404);
+  });
+});

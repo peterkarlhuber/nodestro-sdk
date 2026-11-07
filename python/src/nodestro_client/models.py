@@ -735,6 +735,7 @@ class ExportJob(TypedDict):
     options: NotRequired[dict[str, Any]]
     progress: NotRequired[float]
     publication_id: str
+    queued: NotRequired[bool]
     release_number: int
     state: NotRequired[Literal['running', 'done', 'failed', 'cancelled']]
     step: NotRequired[str]

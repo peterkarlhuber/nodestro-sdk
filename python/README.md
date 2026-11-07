@@ -201,8 +201,34 @@ nodestro.enable_schedule(schedule["id"])  # created disabled; preview_schedule()
 ```
 
 `create_batch` is never retried automatically (a retry would start the rows twice). Schedules: `list_schedules`,
-`get_schedule`, `update_schedule`, `disable_schedule`, `delete_schedule`, `schedule_time_zones`. Test series,
-knowledge files and search, input files, per-call tool approvals and exports have no methods yet (SDK-003).
+`get_schedule`, `update_schedule`, `disable_schedule`, `delete_schedule`, `schedule_time_zones`.
+
+## Test series, knowledge, input files, tool approvals and exports
+
+```python
+suite = nodestro.create_test_series({"workflow_id": workflow_id, "name": "Offers", "cases": [{"input": "ACME"}]})
+print(nodestro.plan_test_run(suite["id"], {"judge": False})["estimate"])
+run = nodestro.wait_for_test_run(nodestro.start_test_run(suite["id"], {"judge": False})["id"])
+# compare_test_runs(a, b), test_series_model_choice(suite_id, node_id), propose_test_case(failed_run_id)
+
+nodestro.upload_knowledge(["returns.md", ("shipping.md", b"# Shipping ...")], collection="policies")
+hits = nodestro.search_knowledge("returns", k=5, mode="fts")  # list_knowledge, update_knowledge, delete_knowledge
+
+uploaded = nodestro.upload_inputs(["order.pdf"])  # each result: the stored "file" or a "problem"
+nodestro.start_run(workflow_id, input="Check it", file_ids=[uploaded[0]["file"]["id"]])
+nodestro.clean_up_inputs()  # files nobody uses; older_than_days= also those of older finished runs
+
+record = nodestro.create_export(publication_id, {"kind": "standard"})  # check_export() first
+nodestro.save_export(record["id"], "project.zip")  # streamed; a cut download leaves no partial file
+job = nodestro.start_export_job(publication_id, {"kind": "portable", "confirm_distribution": True})
+job = nodestro.wait_for_export_job(job["id"])  # "done" (export_id), "failed" (error_code) or "cancelled"
+```
+
+`start_test_run`, `upload_knowledge`, `upload_inputs` and `start_export_job` are never retried automatically.
+Per-call tool approvals (`list_tool_approvals`, `run_tool_approvals`, `decide_tool_approval` with the question's
+`arguments_hash`, `tool_approval_audit`) only have questions where the installation switched
+`NODESTRO_TOOL_APPROVALS` on (off by default); the SDK never switches it on. On a server, portable export jobs wait in
+the job queue (`queued`) until a worker builds them.
 
 ## Local models and the knowledge index
 
