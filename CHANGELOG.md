@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### MUP-ONA B6 cascade (2026-11-07)
+
+- Pins nodestro-api 05e0232 (api #109: the server checks the knowledge and memory tables at start and stops with
+  `storage.schema_mismatch` on a deviation; runtime 81b0f55 on orkexa's PostgreSQL backends, orkexa 792a041, examples
+  e063e89). The error code `partition.missing` left the API's catalog; the OpenAPI contract is unchanged.
+
 ### MUP-ONA B4 cascade (2026-11-07)
 
 - Pins nodestro-api e5b5281 (api #108: runtime df4aeb3, whose B4 SQL rendering tests skip without psycopg;
