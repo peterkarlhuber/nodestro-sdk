@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### MUP-ONA B2 cascade (2026-11-07)
+
+- Pins nodestro-api 44212bc (api #105: runtime d9c3d6e with orkexa 028faa1 and Axentra 60d83b3). The OpenAPI
+  document is unchanged.
+
 ### MUP-ONA B1/B3 cascade (2026-11-07)
 
 - Pins nodestro-api 2685925 (api #104: runtime 099f4d4 with the orkexa conformance suite and the PostgreSQL ranking
