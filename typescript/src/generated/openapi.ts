@@ -15025,6 +15025,8 @@ export interface components {
             pricing_sources?: string[];
             /** Pricing Versions */
             pricing_versions?: string[];
+            /** Regions */
+            regions?: string[];
             /**
              * Requests
              * @default 0
@@ -15140,6 +15142,8 @@ export interface components {
             by_day: components["schemas"]["UsageBucket"][];
             /** By Model */
             by_model: components["schemas"]["UsageBucket"][];
+            /** By Region */
+            by_region?: components["schemas"]["UsageBucket"][];
             /** By Source */
             by_source: components["schemas"]["UsageBucket"][];
             /** By Workflow */

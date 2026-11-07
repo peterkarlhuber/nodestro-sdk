@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### MUP-ONA A1 cascade (2026-11-07)
+
+- Pins nodestro-api 63af1df (api #103: MUP-ONA A1 and B0, runtime de56875; includes api #102) and regenerates the
+  types. Uploads with a PDF over the runtime's limits answer `422 document.too_complex` (`name`, `reason`); the
+  clients raise it like any other API error.
+- Contract: `UsageReport.by_region` and `UsageBucket.regions` (nodestro-api API-021), types regenerated.
+
 ### TODO abatement round 4 (2026-11-06)
 
 - Pins nodestro-api 77f53be (api #100: runtime f26dac4) and regenerates the types: optional `value_warnings` on
