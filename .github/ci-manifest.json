@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "comment": "Mandatory checks (S2) per CI-FAST. A PR is ok only if every listed check ran on the PR head SHA and succeeded. Changing this list needs a reason in the PR.",
+  "pull_request": {
+    "ci.yml": [
+      "python (3.11)",
+      "python (3.13)",
+      "typescript (22)",
+      "typescript (24)",
+      "runtimes (ubuntu-latest)",
+      "runtimes (macos-latest)",
+      "runtimes (windows-latest)"
+    ]
+  },
+  "nightly": {
+    "nightly.yml": [
+      "report"
+    ]
+  }
+}
