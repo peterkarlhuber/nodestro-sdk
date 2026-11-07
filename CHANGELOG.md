@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### MUP-ONA B1/B3 cascade (2026-11-07)
+
+- Pins nodestro-api 2685925 (api #104: runtime 099f4d4 with the orkexa conformance suite and the PostgreSQL ranking
+  drift fixes, orkexa b3d6fae). The OpenAPI document is unchanged. New error codes the clients raise like any other
+  API error: `422 agent.VectorError` (an embedding model returned an unusable vector) and `422 agent.RetrievalError`
+  with `query.too_long` for searches over 1000 characters or 64 distinct words.
+
 ### MUP-ONA A1 cascade (2026-11-07)
 
 - Pins nodestro-api 63af1df (api #103: MUP-ONA A1 and B0, runtime de56875; includes api #102) and regenerates the
