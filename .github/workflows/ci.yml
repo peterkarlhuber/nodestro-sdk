@@ -10,9 +10,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # CI-FAST AP1: a new push to a pull request cancels the older run of that pull request. Every other run (master
+  # push, schedule, dispatch, and the nightly's workflow_call, where github.workflow is "Nightly") gets its own group
+  # from github.run_id, so it is never cancelled and never waits behind another run.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   python:
     runs-on: ubuntu-latest
+    timeout-minutes: 15 # CI-FAST AP1: p99 1.9 min, slowest entry 3.13 (successful runs 2026-11-01..07)
     strategy:
       fail-fast: false
       matrix:
@@ -65,6 +73,7 @@ jobs:
 
   typescript:
     runs-on: ubuntu-latest
+    timeout-minutes: 15 # CI-FAST AP1: p99 2.4 min, slowest entry 22 (successful runs 2026-11-01..07)
     strategy:
       fail-fast: false
       matrix:
@@ -113,6 +122,7 @@ jobs:
   # Windows are not verified yet and may fail without failing the workflow.
   runtimes:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 65 # CI-FAST AP1: p99 41.3 min, slowest entry ubuntu-latest (successful runs 2026-11-01..07)
     continue-on-error: ${{ matrix.os != 'ubuntu-latest' }}
     strategy:
       fail-fast: false
