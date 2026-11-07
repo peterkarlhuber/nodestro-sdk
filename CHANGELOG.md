@@ -4,6 +4,8 @@
 
 ### MUP-ONA B4 cascade (2026-11-07)
 
+- Pins nodestro-api e5b5281 (api #108: runtime df4aeb3, whose B4 SQL rendering tests skip without psycopg;
+  examples c9ef422); the OpenAPI contract is unchanged.
 - Pins nodestro-api acf09cd (api #107: runtime 76f9cb2 with the MUP-ONA B4 statement catalog and partition guard,
   catalog code `partition.missing`); the OpenAPI contract is unchanged (`make contract`).
 
