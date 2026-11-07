@@ -5174,6 +5174,8 @@ export interface components {
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCallRecord"][];
             usage?: components["schemas"]["Usage"];
+            /** Value Warnings */
+            value_warnings?: components["schemas"]["ValueWarning"][];
         };
         /**
          * ApiCheck
@@ -10052,6 +10054,11 @@ export interface components {
             fits?: boolean | null;
             /** Free Bytes */
             free_bytes?: number | null;
+            /**
+             * From Registry
+             * @default false
+             */
+            from_registry: boolean;
             /** Host */
             host?: string | null;
             job?: components["schemas"]["LocalJob"] | null;
@@ -14930,6 +14937,8 @@ export interface components {
             pricing_sources?: string[];
             /** Pricing Versions */
             pricing_versions?: string[];
+            /** Regions */
+            regions?: string[];
             /**
              * Requests
              * @default 0
@@ -15085,6 +15094,8 @@ export interface components {
             model: string;
             /** Ref */
             ref?: string | null;
+            /** Region */
+            region?: string | null;
             /** Request */
             request?: string | null;
             /**
@@ -15173,6 +15184,27 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * ValueWarning
+         * @description A key figure (``source="tool"``) that the agent's own computing tool calls in the test do not back (RT-054).
+         *
+         *     A workflow run would ask the agent once to correct it and then fail the step (``run.value_unverified``); the
+         *     test only warns, because a step that copies a figure an earlier step computed has no earlier steps here.
+         *     ``reason`` as :class:`~nodestro_runtime.value_checks.Unverified`: ``missing``, ``not_from_tool``,
+         *     ``table_incomplete`` or ``table_changed``.
+         */
+        ValueWarning: {
+            /** Field */
+            field: string;
+            /** Reason */
+            reason: string;
+            /** Rows In Input */
+            rows_in_input?: number | null;
+            /** Rows Passed */
+            rows_passed?: number | null;
+            /** Value */
+            value?: unknown;
         };
         /** VersionNote */
         VersionNote: {
