@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 import os
 import threading
+import time
 from typing import IO, Any, Literal, cast
 import uuid
 
@@ -746,14 +747,7 @@ class NodestroClient:
         """The rows of a CSV, XLSX or JSON file (at most 10 MB, 1000 rows) and a suggested mapping of its columns
         to the workflow's form; nothing starts. ``file`` is a path, the content or a binary file object;
         ``filename`` (its extension tells the format) defaults to the path's name or ``rows.csv``."""
-        if isinstance(file, (str, os.PathLike)):
-            name = filename or os.path.basename(os.fspath(file))
-            with open(file, "rb") as handle:
-                content = handle.read()
-        elif isinstance(file, bytes):
-            name, content = filename or "rows.csv", file
-        else:
-            name, content = filename or os.path.basename(str(getattr(file, "name", ""))) or "rows.csv", file.read()
+        name, content = _upload(file, filename, "rows.csv")
         return cast(
             models.ParsedRows,
             self._http.json(
@@ -998,6 +992,346 @@ class NodestroClient:
         """Take a workflow's API offline and delete its publication with its releases (keys lose it); refused with
         ``api.runs_active`` while runs of the API have not finished."""
         self._http.request("DELETE", f"/api/publications/{path_segment(publication_id)}")
+
+    # ---- test series (a workflow against saved test cases) ----------------------------------
+
+    def list_test_series(self) -> list[models.Suite]:
+        """The test series (suites of test cases), most recently changed first."""
+        return cast(list[models.Suite], self._http.json("GET", "/api/benchmarks"))
+
+    def get_test_series(self, suite_id: str) -> models.Suite:
+        return cast(models.Suite, self._http.json("GET", f"/api/benchmarks/{path_segment(suite_id)}"))
+
+    def create_test_series(self, suite: models.SuiteIn | Mapping[str, Any]) -> models.Suite:
+        """Save a test series: ``{"workflow_id": ..., "name": ..., "cases": [{"input": ..., "checks": [...]}]}``."""
+        return cast(models.Suite, self._http.json("POST", "/api/benchmarks", json_body=dict(suite)))
+
+    def update_test_series(self, suite_id: str, suite: models.SuiteIn | Mapping[str, Any]) -> models.Suite:
+        path = f"/api/benchmarks/{path_segment(suite_id)}"
+        return cast(models.Suite, self._http.json("PUT", path, json_body=dict(suite)))
+
+    def delete_test_series(self, suite_id: str) -> None:
+        self._http.request("DELETE", f"/api/benchmarks/{path_segment(suite_id)}")
+
+    def plan_test_run(
+        self, suite_id: str, start: models.BenchmarkStart | Mapping[str, Any] | None = None
+    ) -> models.BenchmarkPlan:
+        """What a test run would do and cost (cases, judged cases, estimate, problems); nothing starts."""
+        path = f"/api/benchmarks/{path_segment(suite_id)}/plan"
+        return cast(models.BenchmarkPlan, self._http.json("POST", path, json_body=dict(start or {})))
+
+    def start_test_run(
+        self, suite_id: str, start: models.BenchmarkStart | Mapping[str, Any] | None = None
+    ) -> models.BenchmarkRun:
+        """Run every case of a test series (``judge``, ``concurrency``, ``max_cost_usd``, ``max_failures``,
+        ``version``, ``models``). Not retried automatically (it would run the cases twice)."""
+        path = f"/api/benchmarks/{path_segment(suite_id)}/runs"
+        return cast(models.BenchmarkRun, self._http.json("POST", path, json_body=dict(start or {})))
+
+    def list_test_runs(self, suite_id: str) -> list[models.BenchmarkRun]:
+        """The test runs of a series, newest first."""
+        path = f"/api/benchmarks/{path_segment(suite_id)}/runs"
+        return cast(list[models.BenchmarkRun], self._http.json("GET", path))
+
+    def get_test_run(self, run_id: str) -> models.BenchmarkRun:
+        return cast(models.BenchmarkRun, self._http.json("GET", f"/api/benchmark-runs/{path_segment(run_id)}"))
+
+    def wait_for_test_run(self, run_id: str, *, timeout: float = 600.0, poll: float = 1.0) -> models.BenchmarkRun:
+        """Poll a test run until it is no longer ``running`` or ``evaluating``; :class:`TimeoutError` after
+        ``timeout`` seconds."""
+        deadline = time.monotonic() + timeout
+        while True:
+            found = self.get_test_run(run_id)
+            if found.get("status") not in ("running", "evaluating"):
+                return found
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"Test run {run_id} did not finish within {timeout} seconds")
+            time.sleep(poll)
+
+    def cancel_test_run(self, run_id: str) -> models.BenchmarkRun:
+        path = f"/api/benchmark-runs/{path_segment(run_id)}/cancel"
+        return cast(models.BenchmarkRun, self._http.json("POST", path))
+
+    def delete_test_run(self, run_id: str) -> None:
+        self._http.request("DELETE", f"/api/benchmark-runs/{path_segment(run_id)}")
+
+    def compare_test_runs(self, a: str, b: str) -> models.Comparison:
+        """Two test runs of a series case by case (for example two workflow versions)."""
+        return cast(models.Comparison, self._http.json("GET", "/api/benchmark-runs/compare", params={"a": a, "b": b}))
+
+    def test_series_model_choice(
+        self,
+        suite_id: str,
+        node_id: str,
+        *,
+        objective: str = "cost",
+        min_pass_rate: float | None = None,
+        no_new_failures: bool = True,
+    ) -> models.ModelChoice:
+        """The model one agent should use by the series' measured test runs and a policy; nothing changes."""
+        params: dict[str, Any] = {"node_id": node_id, "objective": objective, "no_new_failures": no_new_failures}
+        if min_pass_rate is not None:
+            params["min_pass_rate"] = min_pass_rate
+        path = f"/api/benchmarks/{path_segment(suite_id)}/model-choice"
+        return cast(models.ModelChoice, self._http.json("GET", path, params=params))
+
+    def propose_test_case(
+        self, run_id: str, request: models.CaseProposalIn | Mapping[str, Any] | None = None
+    ) -> models.CaseProposal:
+        """A redacted test case from the input of a failed run (credentials always replaced; ``personal_data``
+        replaces e-mail addresses, phone numbers and the like too); nothing is stored."""
+        path = f"/api/runs/{path_segment(run_id)}/test-case"
+        return cast(models.CaseProposal, self._http.json("POST", path, json_body=dict(request or {})))
+
+    # ---- knowledge files and search ----------------------------------------------------------
+
+    def list_knowledge(self, query: str | None = None) -> list[models.KnowledgeFile]:
+        """The knowledge files (``query`` filters by name and description)."""
+        params = {"q": query} if query else None
+        return cast(list[models.KnowledgeFile], self._http.json("GET", "/api/knowledge", params=params))
+
+    def upload_knowledge(
+        self,
+        files: Sequence[str | os.PathLike[str] | tuple[str, bytes]],
+        *,
+        description: str = "",
+        collection: str = "",
+    ) -> list[models.KnowledgeFile]:
+        """Add files to the knowledge base: paths, or ``(filename, content)`` pairs (the extension tells the
+        format). Not retried automatically (it would add them twice)."""
+        parts = [("files", _upload(item, None, "file")) for item in _uploads(files)]
+        data = {"description": description, "collection": collection}
+        return cast(list[models.KnowledgeFile], self._http.json("POST", "/api/knowledge", files=parts, data=data))
+
+    def update_knowledge(
+        self, file_id: str, *, description: str, collection: str | None = None
+    ) -> models.KnowledgeFile:
+        """Change a knowledge file's description and (when given) its collection."""
+        body: dict[str, Any] = {"description": description}
+        if collection is not None:
+            body["collection"] = collection
+        path = f"/api/knowledge/{path_segment(file_id)}"
+        return cast(models.KnowledgeFile, self._http.json("PATCH", path, json_body=body))
+
+    def delete_knowledge(self, file_id: str) -> None:
+        self._http.request("DELETE", f"/api/knowledge/{path_segment(file_id)}")
+
+    def knowledge_content(self, file_id: str) -> bytes:
+        """The stored file itself."""
+        return self._http.request("GET", f"/api/knowledge/{path_segment(file_id)}/content").content
+
+    def knowledge_collections(self) -> list[models.CollectionInfo]:
+        return cast(list[models.CollectionInfo], self._http.json("GET", "/api/knowledge/collections"))
+
+    def search_knowledge(
+        self,
+        query: str,
+        *,
+        file_ids: Sequence[str] | None = None,
+        k: int = 8,
+        mode: Literal["fts", "vector", "hybrid"] | None = None,
+    ) -> list[models.SearchHit]:
+        """Search the knowledge base (``k`` 1 to 50 hits; ``mode`` full text, semantic or both, default the
+        workspace's setting; a mode that is not available is an error, never a silent fallback)."""
+        params: dict[str, Any] = {"q": query, "k": k}
+        if file_ids:
+            params["file_ids"] = ",".join(file_ids)
+        if mode is not None:
+            params["mode"] = mode
+        return cast(list[models.SearchHit], self._http.json("GET", "/api/knowledge/search", params=params))
+
+    # ---- input files (uploads for runs) --------------------------------------------------------
+
+    def input_storage(self) -> models.StorageInfo:
+        """How many input files there are and how much they take (in use by runs or not)."""
+        return cast(models.StorageInfo, self._http.json("GET", "/api/inputs"))
+
+    def input_formats(self) -> models.FormatsInfo:
+        """The file formats Nodestro reads, by group, and the size limits."""
+        return cast(models.FormatsInfo, self._http.json("GET", "/api/inputs/formats"))
+
+    def upload_inputs(
+        self,
+        files: Sequence[str | os.PathLike[str] | tuple[str, bytes]],
+        *,
+        accept: str = "",
+        max_size_mb: int | None = None,
+    ) -> list[models.UploadResult]:
+        """Upload files for a run (``file_ids`` of :meth:`start_run`). Each result has the stored ``file`` or a
+        ``problem`` (refused format or size; the others are stored). ``accept`` narrows the formats like a form
+        field's (``.pdf,.docx``). Not retried automatically."""
+        parts = [("files", _upload(item, None, "file")) for item in _uploads(files)]
+        data: dict[str, Any] = {"accept": accept, "origin": "sdk"}
+        if max_size_mb is not None:
+            data["max_size_mb"] = str(max_size_mb)
+        return cast(list[models.UploadResult], self._http.json("POST", "/api/inputs", files=parts, data=data))
+
+    def get_input(self, file_id: str) -> models.InputFileOut:
+        return cast(models.InputFileOut, self._http.json("GET", f"/api/inputs/{path_segment(file_id)}"))
+
+    def input_text(self, file_id: str, *, path: str = "") -> models.FileText:
+        """What Nodestro read from a file (or, with ``path``, from one file of an archive): the text agents get."""
+        params = {"path": path} if path else None
+        return cast(models.FileText, self._http.json("GET", f"/api/inputs/{path_segment(file_id)}/text", params=params))
+
+    def input_content(self, file_id: str) -> bytes:
+        """The uploaded file itself."""
+        return self._http.request("GET", f"/api/inputs/{path_segment(file_id)}/content").content
+
+    def delete_input(self, file_id: str) -> None:
+        self._http.request("DELETE", f"/api/inputs/{path_segment(file_id)}")
+
+    def clean_up_inputs(self, *, older_than_days: int | None = None) -> models.InputCleanupResult:
+        """Remove input files no run uses (``older_than_days``: only those older than that)."""
+        body = {"older_than_days": older_than_days} if older_than_days is not None else {}
+        return cast(models.InputCleanupResult, self._http.json("POST", "/api/inputs/cleanup", json_body=body))
+
+    # ---- per-call tool approvals (only while the installation switched them on) ------------------
+
+    def list_tool_approvals(self) -> list[models.ToolApprovalRequest]:
+        """The open questions of runs paused at a tool call. Empty while ``NODESTRO_TOOL_APPROVALS`` is off (the
+        default); the SDK never switches it on."""
+        return cast(list[models.ToolApprovalRequest], self._http.json("GET", "/api/tool-approvals"))
+
+    def run_tool_approvals(self, run_id: str) -> list[models.ToolApprovalRequest]:
+        """Every tool approval question of one run, open or decided."""
+        path = f"/api/runs/{path_segment(run_id)}/tool-approvals"
+        return cast(list[models.ToolApprovalRequest], self._http.json("GET", path))
+
+    def decide_tool_approval(
+        self,
+        run_id: str,
+        request_id: str,
+        decision: Literal["approved", "rejected"],
+        *,
+        arguments_hash: str,
+        comment: str = "",
+    ) -> models.ToolApprovalRequest:
+        """Approve or reject one tool call. ``arguments_hash`` is the question's own (``arguments_hash`` of
+        :meth:`list_tool_approvals`): a decision about other arguments than the ones shown is refused."""
+        if decision not in ("approved", "rejected"):
+            raise ValueError(f"decision must be 'approved' or 'rejected', not {decision!r}")
+        path = f"/api/runs/{path_segment(run_id)}/tool-approvals/{path_segment(request_id)}"
+        body = {"decision": decision, "arguments_hash": arguments_hash, "comment": comment}
+        return cast(models.ToolApprovalRequest, self._http.json("POST", path, json_body=body))
+
+    def tool_approval_audit(self, *, limit: int = 200) -> list[models.ToolApprovalEvent]:
+        """The audit trail of tool approval questions and decisions, newest first."""
+        return cast(
+            list[models.ToolApprovalEvent], self._http.json("GET", "/api/tool-approvals/audit", params={"limit": limit})
+        )
+
+    # ---- exports of published workflows ---------------------------------------------------------
+
+    def check_export(
+        self,
+        publication_id: str,
+        options: models.ExportOptions | Mapping[str, Any] | None = None,
+        *,
+        number: int | None = None,
+    ) -> models.ExportCheck:
+        """What an export of a publication's release (``number``, default the active one) would contain and what
+        keeps it from being built (``ok``, ``problems``); nothing is written."""
+        path = f"/api/publications/{path_segment(publication_id)}/export/check"
+        return cast(models.ExportCheck, self._http.json("POST", path, json_body=_export_body(options, number)))
+
+    def create_export(
+        self,
+        publication_id: str,
+        options: models.ExportOptions | Mapping[str, Any] | None = None,
+        *,
+        number: int | None = None,
+    ) -> models.ExportRecord:
+        """Export a release as a standalone project (``options.kind`` ``standard``, the default); a portable
+        package is built by :meth:`start_export_job`."""
+        path = f"/api/publications/{path_segment(publication_id)}/exports"
+        return cast(models.ExportRecord, self._http.json("POST", path, json_body=_export_body(options, number)))
+
+    def list_exports(self, publication_id: str) -> list[models.ExportRecord]:
+        """The stored exports of a publication, newest first."""
+        path = f"/api/publications/{path_segment(publication_id)}/exports"
+        return cast(list[models.ExportRecord], self._http.json("GET", path))
+
+    def download_export(self, export_id: str) -> bytes:
+        """The ZIP of an export in memory (a portable package can be gigabytes: use :meth:`save_export`)."""
+        return self._http.request("GET", f"/api/exports/{path_segment(export_id)}/download").content
+
+    def save_export(self, export_id: str, target: str | os.PathLike[str] | IO[bytes]) -> int:
+        """Stream the ZIP of an export to a path (written to a temporary file next to it first, so a cut
+        download leaves no partial file) or a binary file object; returns the bytes written."""
+        chunks = self._http.download(f"/api/exports/{path_segment(export_id)}/download", chunk_size=DOWNLOAD_CHUNK)
+        with contextlib.closing(chunks):
+            return save_chunks(chunks, target)
+
+    def delete_export(self, export_id: str) -> None:
+        """Delete an export and its ZIP (on a server this frees the workspace's export quota)."""
+        self._http.request("DELETE", f"/api/exports/{path_segment(export_id)}")
+
+    def start_export_job(
+        self, publication_id: str, options: models.ExportOptions | Mapping[str, Any], *, number: int | None = None
+    ) -> models.ExportJob:
+        """Build a portable package in the background (``options.kind`` must be ``portable``); follow it with
+        :meth:`get_export_job` or :meth:`wait_for_export_job`. Not retried automatically."""
+        path = f"/api/publications/{path_segment(publication_id)}/export-jobs"
+        return cast(models.ExportJob, self._http.json("POST", path, json_body=_export_body(options, number)))
+
+    def list_export_jobs(self, publication_id: str) -> list[models.ExportJob]:
+        path = f"/api/publications/{path_segment(publication_id)}/export-jobs"
+        return cast(list[models.ExportJob], self._http.json("GET", path))
+
+    def get_export_job(self, job_id: str) -> models.ExportJob:
+        return cast(models.ExportJob, self._http.json("GET", f"/api/export-jobs/{path_segment(job_id)}"))
+
+    def cancel_export_job(self, job_id: str) -> models.ExportJob:
+        path = f"/api/export-jobs/{path_segment(job_id)}/cancel"
+        return cast(models.ExportJob, self._http.json("POST", path))
+
+    def wait_for_export_job(self, job_id: str, *, timeout: float = 3600.0, poll: float = 2.0) -> models.ExportJob:
+        """Poll an export job until it is no longer ``running`` (``done``, ``failed`` with ``error_code``, or
+        ``cancelled``); :class:`TimeoutError` after ``timeout`` seconds."""
+        deadline = time.monotonic() + timeout
+        while True:
+            job = self.get_export_job(job_id)
+            if job.get("state") != "running":
+                return job
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"Export job {job_id} did not end within {timeout} seconds")
+            time.sleep(poll)
+
+
+def _uploads(
+    files: Sequence[str | os.PathLike[str] | tuple[str, bytes]],
+) -> list[str | os.PathLike[str] | tuple[str, bytes]]:
+    if isinstance(files, (str, bytes, os.PathLike)) or (
+        isinstance(files, tuple) and len(files) == 2 and isinstance(files[1], bytes)
+    ):
+        raise TypeError("files must be a list of paths or (filename, content) pairs")
+    found = list(files)
+    if not found:
+        raise ValueError("files must name at least one file")
+    return found
+
+
+def _upload(
+    file: str | os.PathLike[str] | bytes | IO[bytes] | tuple[str, bytes], filename: str | None, default: str
+) -> tuple[str, bytes]:
+    """``(name, content)`` of an upload: a path, the content, a binary file object or a ``(name, content)`` pair."""
+    if isinstance(file, tuple):
+        name, content = file
+        return filename or name, content
+    if isinstance(file, (str, os.PathLike)):
+        with open(file, "rb") as handle:
+            return filename or os.path.basename(os.fspath(file)), handle.read()
+    if isinstance(file, bytes):
+        return filename or default, file
+    return filename or os.path.basename(str(getattr(file, "name", ""))) or default, file.read()
+
+
+def _export_body(options: Mapping[str, Any] | None, number: int | None) -> dict[str, Any]:
+    body: dict[str, Any] = {"options": dict(options or {})}
+    if number is not None:
+        body["number"] = number
+    return body
 
 
 def _amount(value: str | Decimal) -> str:

@@ -192,8 +192,34 @@ await nodestro.enableSchedule(schedule.id);                 // created disabled;
 ```
 
 `createBatch` is never retried automatically (a retry would start the rows twice). Schedules: `listSchedules`,
-`getSchedule`, `updateSchedule`, `disableSchedule`, `deleteSchedule`, `scheduleTimeZones`. Test series, knowledge
-files and search, input files, per-call tool approvals and exports have no methods yet (SDK-003).
+`getSchedule`, `updateSchedule`, `disableSchedule`, `deleteSchedule`, `scheduleTimeZones`.
+
+## Test series, knowledge, input files, tool approvals and exports
+
+```ts
+const suite = await nodestro.createTestSeries({ workflow_id: workflowId, name: "Offers", cases: [{ input: "ACME" }] });
+console.log((await nodestro.planTestRun(suite.id, { judge: false })).estimate);
+const run = await nodestro.waitForTestRun((await nodestro.startTestRun(suite.id, { judge: false })).id);
+// compareTestRuns(a, b), testSeriesModelChoice(suiteId, nodeId), proposeTestCase(failedRunId)
+
+await nodestro.uploadKnowledge([fileFromAnInput, { name: "shipping.md", content: "# Shipping ..." }], { collection: "policies" });
+const hits = await nodestro.searchKnowledge("returns", { k: 5, mode: "fts" }); // listKnowledge, updateKnowledge, deleteKnowledge
+
+const [uploaded] = await nodestro.uploadInputs([fileFromAnInput]); // each result: the stored `file` or a `problem`
+await nodestro.startRun(workflowId, { input: "Check it", fileIds: [uploaded!.file!.id] });
+await nodestro.cleanUpInputs(); // files nobody uses; cleanUpInputs(days) also those of older finished runs
+
+const record = await nodestro.createExport(publicationId, { kind: "standard" }); // checkExport() first
+const zip = await nodestro.streamExport(record.id); // or downloadExport() in memory
+const job = await nodestro.startExportJob(publicationId, { kind: "portable", confirm_distribution: true });
+const ended = await nodestro.waitForExportJob(job.id); // "done" (export_id), "failed" (error_code) or "cancelled"
+```
+
+`startTestRun`, `uploadKnowledge`, `uploadInputs` and `startExportJob` are never retried automatically. Per-call tool
+approvals (`listToolApprovals`, `runToolApprovals`, `decideToolApproval` with the question's `argumentsHash`,
+`toolApprovalAudit`) only have questions where the installation switched `NODESTRO_TOOL_APPROVALS` on (off by
+default); the SDK never switches it on. On a server, portable export jobs wait in the job queue (`queued`) until a
+worker builds them.
 
 ## Local models and the knowledge index
 
