@@ -4,7 +4,7 @@
 
 ### TODO abatement round 4 (2026-11-06)
 
-- Pins nodestro-api c2aedcc (api #100: runtime 5f8c0f0) and regenerates the types: optional `value_warnings` on
+- Pins nodestro-api 77f53be (api #100: runtime f26dac4) and regenerates the types: optional `value_warnings` on
   agent tests, `from_registry`, `regions` and `region` (TODO abatement round 4).
 - Both clients have methods for the remaining studio API areas, contract-tested against the test server (SDK-003):
   test series (`list_test_series`/`listTestSeries`, create, change, delete, `plan_test_run`, `start_test_run`,
