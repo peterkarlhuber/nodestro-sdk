@@ -3,7 +3,7 @@
 > Open work for this repository: release blockers, known bugs, security follow-ups, technical debt and planned improvements.
 > GitHub issues are the source of truth for details; this file is the entry point and summary.
 >
-> **Last full review:** 2026-11-06 against master at 9327e2c (TODO abatement round)
+> **Last full review:** 2026-11-06 against master at d7dff14 (TODO abatement round)
 
 ## Summary
 
@@ -13,14 +13,15 @@
 | P1 High | 0 |
 | P2 Medium | 0 |
 | P3 Low | 2 |
-| P4 Optional | 3 |
+| P4 Optional | 2 |
 
 **Release blockers:** None for this repository; every entry below is not a release blocker.
 
 Both clients are complete for their scope and contract-tested against the pinned API. Event streams reconnect on
-request and result files can be streamed (SDK-004, done 2026-11-06). The open work is mainly API coverage, platform
-verification and dependency hygiene: some API areas have no client methods yet (SDK-003; batches and schedules have
-them since 2026-11-06), Safari, macOS and Windows are not verified (SDK-006), and TypeScript 7 still breaks
+request and result files can be streamed (SDK-004, done 2026-11-06). Since TODO abatement round 4 both clients also have
+methods for test series, knowledge files and search, input files, per-call tool approvals, exports and export jobs
+(former SDK-003). The open work is mainly platform verification and dependency hygiene: Safari, macOS and Windows
+are not verified (SDK-006), and TypeScript 7 still breaks
 type generation with openapi-typescript 7.13.0, so Dependabot ignores TypeScript majors (SDK-009); `@types/node`
 majors are ignored too, because it follows the lowest supported Node.js major (22). Since the TODO abatement round
 (2026-11-06) the package needs Node.js 22.12 or later, CI tests Node.js 22 and 24, and Vitest 5 is in use.
@@ -58,16 +59,6 @@ None known.
 
 ## Features and enhancements
 
-### SDK-003 · Further studio API areas only through the generated types
-
-- **Priority:** P4 Optional · **Status:** Open · **Refs:** `python/src/nodestro_client/client.py`, `typescript/src/client.ts`
-- **What:** The clients have no methods for test series, knowledge files and search, input files, per-call tool
-  approvals, exports or export jobs; callers build those requests themselves (the generated types cover them).
-  Batches and schedules have methods since 2026-11-06 (`create_batch`/`createBatch`, `create_schedule`/
-  `createSchedule` ...), local models and the knowledge index since #71, settings changes since #79.
-- **Next step:** Add the remaining areas one by one with contract tests against the test server, test series and
-  knowledge files first.
-
 ### SDK-005 · Clients for the server profile
 
 - **Priority:** P4 Optional · **Status:** Needs decision · **Refs:** backend audit D-18
@@ -85,7 +76,7 @@ None known.
 
 ### SDK-006 · Safari, macOS and Windows hosts and a server deployment not verified
 
-- **Priority:** P3 Low · **Status:** Open · **Refs:** SDK quality round 2026-10-30, `scripts/check_runtimes.sh`,
+- **Priority:** P3 Low · **Status:** Blocked · **Refs:** SDK quality round 2026-10-30, `scripts/check_runtimes.sh`,
   CI job `runtimes`
 - **What:** Since 2026-11-06 `scripts/check_runtimes.sh` runs smoke checks of the built TypeScript package against
   the test server in Node.js, Bun, Deno, Chromium, Firefox and WebKit (Playwright); results are in
@@ -95,6 +86,8 @@ None known.
   iOS) and a real `nodestro-server` deployment.
 - **Next step:** Check the first CI results of the `runtimes` job on macOS and Windows, fix what fails and make
   them required; verify against a `nodestro-server` deployment once SDK-005 gives scripts a credential.
+- **Depends on:** CI results on macOS and Windows runners (re-verified 2026-11-06: nothing more can be checked on the
+  Linux development host); SDK-005 for the server deployment
 
 ## Documentation
 
