@@ -12,6 +12,11 @@
       "runtimes (windows-latest)"
     ]
   },
+  "advisory": [
+    "ci.yml/runtimes (macos-latest)",
+    "ci.yml/runtimes (windows-latest)"
+  ],
+  "comment_advisory": "Jobs with continue-on-error (experimental): ci-ok reports them but they never decide the verdict.",
   "nightly": {
     "nightly.yml": [
       "report"
