@@ -1386,6 +1386,7 @@ class ModelProblem(TypedDict):
     download_bytes: NotRequired[int | None]
     fits: NotRequired[bool | None]
     free_bytes: NotRequired[int | None]
+    from_registry: NotRequired[bool]
     host: NotRequired[str | None]
     job: NotRequired[LocalJob | None]
     location: Literal['this_computer', 'container', 'remote', 'server']
@@ -2839,6 +2840,7 @@ class Usage(TypedDict):
     pricing_quality: NotRequired[str | None]
     pricing_sources: NotRequired[list[str]]
     pricing_versions: NotRequired[list[str]]
+    regions: NotRequired[list[str]]
     requests: NotRequired[int]
     stale_price_requests: NotRequired[int]
     thinking_tokens: NotRequired[int]
@@ -2883,6 +2885,7 @@ class UsageEntry(TypedDict):
     label: NotRequired[str]
     model: str
     ref: NotRequired[str | None]
+    region: NotRequired[str | None]
     request: NotRequired[str | None]
     source: Literal[
         'agent_test',
@@ -2932,6 +2935,14 @@ class ValidationError(TypedDict):
     loc: list[str | int]
     msg: str
     type: str
+
+
+class ValueWarning(TypedDict):
+    field: str
+    reason: str
+    rows_in_input: NotRequired[int | None]
+    rows_passed: NotRequired[int | None]
+    value: NotRequired[Any]
 
 
 class VersionNote(TypedDict):
@@ -3088,6 +3099,7 @@ class AgentTestResult(TypedDict):
     text: NotRequired[str]
     tool_calls: NotRequired[list[ToolCallRecord]]
     usage: NotRequired[Usage]
+    value_warnings: NotRequired[list[ValueWarning]]
 
 
 class ApiCheck(TypedDict):
