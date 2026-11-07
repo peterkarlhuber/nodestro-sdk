@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### MUP-ONA B4 cascade (2026-11-07)
+
+- Pins nodestro-api acf09cd (api #107: runtime 76f9cb2 with the MUP-ONA B4 statement catalog and partition guard,
+  catalog code `partition.missing`); the OpenAPI contract is unchanged (`make contract`).
+
 ### MUP-ONA B2 cascade (2026-11-07)
 
 - Pins nodestro-api 44212bc (api #105: runtime d9c3d6e with orkexa 028faa1 and Axentra 60d83b3). The OpenAPI
