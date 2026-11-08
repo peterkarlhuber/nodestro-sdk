@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Pin wave W7, TABRION JQ-4 (2026-11-08)
+
+- Pins nodestro-api 221f9e1 (api #113: regression test for an export whose enqueue reply is lost; runtime f5da80d,
+  runtime #143: writes are never repeated after a lost connection, Axentra 9c4666f with the B-06-1 log redaction;
+  examples 4d46e22). The API contract is unchanged.
+
 ### MUP-ONA B6 cascade (2026-11-07)
 
 - Pins nodestro-api 05e0232 (api #109: the server checks the knowledge and memory tables at start and stops with
