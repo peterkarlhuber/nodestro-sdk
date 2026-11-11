@@ -6,6 +6,7 @@
 
 - Pins nodestro-api 3817da3 (api #115, runtime RT-067): `NodeRun.limits_handled` in both SDKs' types; the
   `run.agent.IncompleteResponseError` params gain `cause`, `max_tokens` and `output_tokens`.
+- Pins nodestro-api e584d6f (api #116: runtime 979c11c, a tests-only change; no API change, types unchanged).
 
 ### Pin wave W7, TABRION JQ-4 (2026-11-08)
 
