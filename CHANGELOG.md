@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Limits handled on a step (RT-067, 2026-11-11)
+
+- Pins nodestro-api 3817da3 (api #115, runtime RT-067): `NodeRun.limits_handled` in both SDKs' types; the
+  `run.agent.IncompleteResponseError` params gain `cause`, `max_tokens` and `output_tokens`.
+
 ### Pin wave W7, TABRION JQ-4 (2026-11-08)
 
 - Pins nodestro-api 221f9e1 (api #113: regression test for an export whose enqueue reply is lost; runtime f5da80d,

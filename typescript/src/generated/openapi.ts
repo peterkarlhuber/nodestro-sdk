@@ -10347,6 +10347,8 @@ export interface components {
             guidance?: components["schemas"]["GuidanceRef"][];
             /** Iteration */
             iteration?: number[];
+            /** Limits Handled */
+            limits_handled?: ("reasoning" | "tool_rounds")[];
             /** Memory */
             memory?: {
                 [key: string]: string;

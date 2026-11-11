@@ -3572,6 +3572,7 @@ class NodeRun(TypedDict):
     finished_at: NotRequired[str | None]
     guidance: NotRequired[list[GuidanceRef]]
     iteration: NotRequired[list[int]]
+    limits_handled: NotRequired[list[Literal['reasoning', 'tool_rounds']]]
     memory: NotRequired[dict[str, str] | None]
     orchestration: NotRequired[dict[str, Any] | None]
     output: NotRequired[Any]
