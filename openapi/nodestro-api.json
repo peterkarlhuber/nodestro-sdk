@@ -660,6 +660,13 @@
             "title": "Tool Policies",
             "type": "object"
           },
+          "tool_settings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToolSettings"
+            },
+            "title": "Tool Settings",
+            "type": "object"
+          },
           "tools": {
             "items": {
               "type": "string"
@@ -16932,6 +16939,13 @@
             "title": "Builtin Tools",
             "type": "array"
           },
+          "builtin_versions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Builtin Versions",
+            "type": "object"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -16985,6 +16999,13 @@
             },
             "title": "Python",
             "type": "array"
+          },
+          "required_connections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Required Connections",
+            "type": "object"
           },
           "runtime": {
             "additionalProperties": {
@@ -23360,6 +23381,16 @@
             ],
             "title": "Server Name"
           },
+          "spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tests": {
             "anyOf": [
               {
@@ -23682,6 +23713,30 @@
         "title": "ToolRunResult",
         "type": "object"
       },
+      "ToolSettings": {
+        "description": "How an agent binds one built-in tool (NAL-A1, ADR-0001): the service connection it uses and its binding\nparameters (validated against the tool's ``params_schema``). Never visible to the model.",
+        "properties": {
+          "connection_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Id"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "title": "ToolSettings",
+        "type": "object"
+      },
       "ToolSource": {
         "properties": {
           "code": {
@@ -23704,6 +23759,129 @@
           "tests"
         ],
         "title": "ToolSource",
+        "type": "object"
+      },
+      "ToolSpec": {
+        "additionalProperties": false,
+        "description": "The catalog entry of one built-in tool (see the module documentation).",
+        "properties": {
+          "capability": {
+            "$ref": "#/components/schemas/ToolCapability"
+          },
+          "category": {
+            "enum": [
+              "compute",
+              "data",
+              "files",
+              "web",
+              "communication"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "connection_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Type"
+          },
+          "cost_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Unit"
+          },
+          "i18n_key": {
+            "default": "",
+            "title": "I18N Key",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "max_calls_per_run": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Calls Per Run"
+          },
+          "modes": {
+            "default": [
+              "desktop",
+              "export",
+              "local-container",
+              "server"
+            ],
+            "items": {
+              "enum": [
+                "desktop",
+                "local-container",
+                "server",
+                "export"
+              ],
+              "type": "string"
+            },
+            "title": "Modes",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "network": {
+            "default": "none",
+            "enum": [
+              "none",
+              "external"
+            ],
+            "title": "Network",
+            "type": "string"
+          },
+          "offline": {
+            "default": true,
+            "title": "Offline",
+            "type": "boolean"
+          },
+          "params_schema": {
+            "additionalProperties": true,
+            "title": "Params Schema",
+            "type": "object"
+          },
+          "timeout_seconds": {
+            "default": 30.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 600.0,
+            "title": "Timeout Seconds",
+            "type": "number"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "capability"
+        ],
+        "title": "ToolSpec",
         "type": "object"
       },
       "ToolVersion": {
