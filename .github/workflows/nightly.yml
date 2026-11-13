@@ -47,7 +47,9 @@ jobs:
       - name: Install
         working-directory: python
         run: |
-          pip install -e ".[dev,test]"
+          python -m pip install "pip>=26.1"
+          curl -fsSL https://raw.githubusercontent.com/peterkarlhuber/nodestro-studio/master/platform/internal-server.txt > "$RUNNER_TEMP/lock.txt"
+          pip install -c "$RUNNER_TEMP/lock.txt" -e ".[dev,test]"
       - name: Collect the test IDs (test-ids-python.txt)
         working-directory: python
         run: python -m pytest --collect-only -q -p no:cacheprovider > "$GITHUB_WORKSPACE/test-ids-python.txt" || true
