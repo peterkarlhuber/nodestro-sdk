@@ -29261,7 +29261,7 @@
         },
         "summary": "List Connections",
         "tags": [
-          "workspace"
+          "tools"
         ]
       },
       "post": {
@@ -29300,7 +29300,7 @@
         },
         "summary": "Create Connection",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
@@ -29350,7 +29350,7 @@
         },
         "summary": "List Connection Events",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
@@ -29381,7 +29381,7 @@
         },
         "summary": "Connection Status",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
@@ -29417,7 +29417,7 @@
         },
         "summary": "List Connection Types",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
@@ -29463,7 +29463,7 @@
         },
         "summary": "Delete Connection",
         "tags": [
-          "workspace"
+          "tools"
         ]
       },
       "get": {
@@ -29503,7 +29503,7 @@
         },
         "summary": "Get Connection",
         "tags": [
-          "workspace"
+          "tools"
         ]
       },
       "patch": {
@@ -29553,7 +29553,7 @@
         },
         "summary": "Update Connection",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
@@ -29596,7 +29596,7 @@
         },
         "summary": "Check Connection",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
@@ -29649,7 +29649,7 @@
         },
         "summary": "Set Connection Secret",
         "tags": [
-          "workspace"
+          "tools"
         ]
       }
     },
