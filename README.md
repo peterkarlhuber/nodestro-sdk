@@ -16,8 +16,8 @@ with a Nodestro installation as well as with a workflow exported as a standalone
   pre-checks, runs, live events, batches, schedules, test series, knowledge files and search, input files,
   per-call tool approvals, exports and portable export jobs, approvals, run budget decisions, the live run chat, continuing failed runs, result files, agents and agent templates,
   tools, the example library, publishing (publish, list, change, delete publications), API keys (create, list,
-  rotate, revoke, delete), connected MCP services, model prices and usage, the tool sandbox status, local models
-  (Ollama runtime, downloads, offline imports, recommendations) and the semantic knowledge index.
+  rotate, revoke, delete), service connections and the built-in tool catalog (secrets are write-only), connected
+  MCP services, model prices and usage, the tool sandbox status, local models (Ollama runtime, downloads, offline imports, recommendations) and the semantic knowledge index.
 - **`PublishedWorkflow`** talks to one published workflow API (`/api/published/{slug}`) with a Nodestro API key:
   start (with an `Idempotency-Key`), status, result, waiting, events with `Last-Event-ID`, cancelling,
   approvals, continuing, result files and usage. The same API is served by Nodestro itself and by a standalone

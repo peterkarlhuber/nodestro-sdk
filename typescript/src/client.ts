@@ -91,6 +91,13 @@ export type LocalJob = Schemas["LocalJob"];
 export type LocalImport = Schemas["ImportIn"];
 export type Recommendation = Schemas["Recommendation"];
 export type KnowledgeIndexStatus = Schemas["KnowledgeIndexStatus"];
+export type BuiltinToolInfo = Schemas["BuiltinToolInfo"];
+export type ConnectionStatus = Schemas["ConnectionStatus"];
+export type ConnectionTypeInfo = Schemas["ConnectionTypeInfo"];
+export type ConnectionView = Schemas["ConnectionView"];
+export type ConnectionIn = Schemas["ConnectionIn"];
+export type ConnectionPatch = Schemas["ConnectionPatch"];
+export type ConnectionEvent = Schemas["ConnectionEvent"];
 export type McpStatus = Schemas["McpStatus"];
 export type McpServerView = Schemas["McpServerView"];
 export type McpServerIn = Schemas["McpServerIn"];
@@ -592,6 +599,61 @@ export class NodestroClient {
   /** The tools agents can use: built-in, custom and generated ones. */
   async listTools(): Promise<ToolInfo[]> {
     return this.http.json("GET", "/api/tools");
+  }
+
+  /** Built-in tools with their specs: category, network, offline, connection type, limits, cost unit. */
+  async listBuiltinTools(): Promise<BuiltinToolInfo[]> {
+    return this.http.json("GET", "/api/tools/builtin");
+  }
+
+  // ---- service connections (nodestro-runtime ADR-0001)
+
+  /** Whether secrets are stored encrypted (`secret_vault`), the mode and the contract version. */
+  async connectionStatus(): Promise<ConnectionStatus> {
+    return this.http.json("GET", "/api/connections/status");
+  }
+
+  async listConnectionTypes(): Promise<ConnectionTypeInfo[]> {
+    return this.http.json("GET", "/api/connections/types");
+  }
+
+  /** The service connections (secrets are never returned, only `secret_set`). */
+  async listConnections(options: { type?: string } = {}): Promise<ConnectionView[]> {
+    return this.http.json("GET", "/api/connections", options.type === undefined ? {} : { query: { type: options.type } });
+  }
+
+  async getConnection(connectionId: string): Promise<ConnectionView> {
+    return this.http.json("GET", `/api/connections/${enc(connectionId)}`);
+  }
+
+  /** Create a connection (`type`, `name`, `provider`, `settings`); needs `admin`. */
+  async createConnection(connection: Partial<ConnectionIn> & { type: string; name: string }): Promise<ConnectionView> {
+    return this.http.json("POST", "/api/connections", { body: connection });
+  }
+
+  /** Change name, description, provider or settings; a new target resets the check. */
+  async updateConnection(connectionId: string, change: ConnectionPatch): Promise<ConnectionView> {
+    return this.http.json("PATCH", `/api/connections/${enc(connectionId)}`, { body: change });
+  }
+
+  /** Delete a connection; one that agents still bind is refused (`connection.in_use`) unless `force`. */
+  async deleteConnection(connectionId: string, options: { force?: boolean } = {}): Promise<void> {
+    await this.http.request("DELETE", `/api/connections/${enc(connectionId)}`, options.force ? { query: { force: true } } : {});
+  }
+
+  /** Store or replace the secret (`""` removes it); it is never returned. */
+  async setConnectionSecret(connectionId: string, secret: string): Promise<ConnectionView> {
+    return this.http.json("PUT", `/api/connections/${enc(connectionId)}/secret`, { body: { secret } });
+  }
+
+  /** Check the connection; the result holds a status and an error code, never the service's message. */
+  async checkConnection(connectionId: string): Promise<ConnectionView> {
+    return this.http.json("POST", `/api/connections/${enc(connectionId)}/check`);
+  }
+
+  /** Administration events, newest first (never secrets or settings values); needs `admin`. */
+  async listConnectionEvents(options: { limit?: number } = {}): Promise<ConnectionEvent[]> {
+    return this.http.json("GET", "/api/connections/events", { query: { limit: options.limit ?? 200 } });
   }
 
   /** The example library (`language`: `de`, `en`, `es`, `fr`, `it` or `pt-BR`). */

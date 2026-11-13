@@ -398,6 +398,13 @@ class BuiltinSandboxStatus(TypedDict):
     system: NotRequired[str]
 
 
+class BuiltinToolInfo(TypedDict):
+    description: str
+    name: str
+    origin: Literal['nodestro', 'integration']
+    spec: NotRequired[dict[str, Any] | None]
+
+
 class CaseOrigin(TypedDict):
     error_code: NotRequired[str | None]
     personal_data: NotRequired[bool]
@@ -523,6 +530,75 @@ class ConfigIssue(TypedDict):
     level: NotRequired[str]
     message: str
     params: NotRequired[dict[str, Any]]
+
+
+class ConnectionCheck(TypedDict):
+    checked_at: NotRequired[str | None]
+    code: NotRequired[str | None]
+    kind: NotRequired[Literal['configuration', 'service'] | None]
+    status: NotRequired[Literal['unchecked', 'ok', 'failed']]
+
+
+class ConnectionEvent(TypedDict):
+    actor: NotRequired[str | None]
+    at: NotRequired[str]
+    connection_id: str
+    connection_type: str
+    details: NotRequired[dict[str, Any]]
+    id: NotRequired[str]
+    kind: Literal[
+        'created', 'updated', 'deleted', 'secret_set', 'secret_cleared', 'checked'
+    ]
+
+
+class ConnectionIn(TypedDict, closed=True):
+    description: NotRequired[str]
+    name: str
+    provider: NotRequired[str]
+    settings: NotRequired[dict[str, Any]]
+    type: str
+
+
+class ConnectionPatch(TypedDict, closed=True):
+    description: NotRequired[str | None]
+    name: NotRequired[str | None]
+    provider: NotRequired[str | None]
+    settings: NotRequired[dict[str, Any] | None]
+
+
+class ConnectionStatus(TypedDict):
+    contract: int
+    mode: Literal['desktop', 'local-container', 'server']
+    secret_vault: bool
+
+
+class ConnectionTypeInfo(TypedDict):
+    checkable: bool
+    modes: list[str]
+    name: str
+    providers: list[str]
+    secret_label: str
+    secret_required: bool
+    settings_schema: dict[str, Any]
+
+
+class ConnectionView(TypedDict):
+    check: ConnectionCheck
+    contract: int
+    created_at: str
+    created_by: NotRequired[str | None]
+    description: str
+    egress: list[str]
+    id: str
+    name: str
+    provider: str
+    secret_set: bool
+    secret_storage: Literal['none', 'vault', 'session']
+    settings: dict[str, Any]
+    type: str
+    updated_at: str
+    updated_by: NotRequired[str | None]
+    used_by: NotRequired[list[str]]
 
 
 class ContextRef(TypedDict):
@@ -1451,6 +1527,8 @@ class NetworkNeed(TypedDict):
         'mcp',
         'docker_sandbox',
         'ollama_cloud',
+        'builtin_tool',
+        'connection',
     ]
     name: str
     used_by: NotRequired[list[str]]
@@ -2301,6 +2379,10 @@ class SearchResult(TypedDict):
     tags: NotRequired[list[str]]
     title: str
     workflow_id: NotRequired[str | None]
+
+
+class SecretIn(TypedDict):
+    secret: str
 
 
 class SendRequest(TypedDict):

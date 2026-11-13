@@ -1129,6 +1129,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Connections */
+        get: operations["list_connections_api_connections_get"];
+        put?: never;
+        /** Create Connection */
+        post: operations["create_connection_api_connections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Connection Events
+         * @description Administration events, newest first (who changed which connection; never secrets or settings values).
+         */
+        get: operations["list_connection_events_api_connections_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connection Status */
+        get: operations["connection_status_api_connections_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Connection Types
+         * @description The connection types this installation offers (``database`` appears once CR-DB registers it).
+         */
+        get: operations["list_connection_types_api_connections_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{connection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Connection */
+        get: operations["get_connection_api_connections__connection_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Connection
+         * @description Delete a connection; one that agents still bind is refused (``connection.in_use``) unless ``force``.
+         */
+        delete: operations["delete_connection_api_connections__connection_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Connection */
+        patch: operations["update_connection_api_connections__connection_id__patch"];
+        trace?: never;
+    };
+    "/api/connections/{connection_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Connection
+         * @description Check the connection; the result is stored as status and error code (never the service's own message).
+         */
+        post: operations["check_connection_api_connections__connection_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{connection_id}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Connection Secret
+         * @description Store or replace the secret (``""`` removes it). The answer only says ``secret_set``.
+         */
+        put: operations["set_connection_secret_api_connections__connection_id__secret_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diagnostics": {
         parameters: {
             query?: never;
@@ -4119,6 +4256,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tools/builtin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Builtin Tools
+         * @description The built-in tools with their specs: network, offline, connection type, limits, cost unit (NAL-A1).
+         */
+        get: operations["list_builtin_tools_api_tools_builtin_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tools/check": {
         parameters: {
             query?: never;
@@ -6738,6 +6895,25 @@ export interface components {
              */
             system: string;
         };
+        /**
+         * BuiltinToolInfo
+         * @description A built-in tool's catalog entry (its spec) with the description the model reads.
+         */
+        BuiltinToolInfo: {
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "nodestro" | "integration";
+            /** Spec */
+            spec?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** CaseComparison */
         CaseComparison: {
             a?: components["schemas"]["CaseResult"] | null;
@@ -7228,6 +7404,168 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
+        };
+        /** ConnectionCheck */
+        ConnectionCheck: {
+            /** Checked At */
+            checked_at?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Kind */
+            kind?: ("configuration" | "service") | null;
+            /**
+             * Status
+             * @default unchecked
+             * @enum {string}
+             */
+            status: "unchecked" | "ok" | "failed";
+        };
+        /**
+         * ConnectionEvent
+         * @description An administration event (who changed which connection); never secrets or settings values.
+         */
+        ConnectionEvent: {
+            /** Actor */
+            actor?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Connection Id */
+            connection_id: string;
+            /** Connection Type */
+            connection_type: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id?: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "created" | "updated" | "deleted" | "secret_set" | "secret_cleared" | "checked";
+        };
+        /**
+         * ConnectionIn
+         * @description A new connection. The secret is set separately (:meth:`ConnectionService.set_secret`).
+         */
+        ConnectionIn: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Name */
+            name: string;
+            /**
+             * Provider
+             * @default generic
+             */
+            provider: string;
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            };
+            /** Type */
+            type: string;
+        };
+        /**
+         * ConnectionPatch
+         * @description A change of a connection; the type cannot change.
+         */
+        ConnectionPatch: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Provider */
+            provider?: string | null;
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ConnectionStatus */
+        ConnectionStatus: {
+            /** Contract */
+            contract: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "desktop" | "local-container" | "server";
+            /** Secret Vault */
+            secret_vault: boolean;
+        };
+        /** ConnectionTypeInfo */
+        ConnectionTypeInfo: {
+            /** Checkable */
+            checkable: boolean;
+            /** Modes */
+            modes: string[];
+            /** Name */
+            name: string;
+            /** Providers */
+            providers: string[];
+            /** Secret Label */
+            secret_label: string;
+            /** Secret Required */
+            secret_required: boolean;
+            /** Settings Schema */
+            settings_schema: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ConnectionView
+         * @description What every read returns: the connection without its secret, with ``secret_set``.
+         */
+        ConnectionView: {
+            check: components["schemas"]["ConnectionCheck"];
+            /** Contract */
+            contract: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Description */
+            description: string;
+            /** Egress */
+            egress: string[];
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+            /** Secret Set */
+            secret_set: boolean;
+            /**
+             * Secret Storage
+             * @enum {string}
+             */
+            secret_storage: "none" | "vault" | "session";
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** Type */
+            type: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by?: string | null;
+            /** Used By */
+            used_by?: string[];
         };
         /** ContextPreview */
         ContextPreview: {
@@ -10237,7 +10575,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "cloud_model" | "endpoint" | "server_tool" | "mcp" | "docker_sandbox" | "ollama_cloud";
+            kind: "cloud_model" | "endpoint" | "server_tool" | "mcp" | "docker_sandbox" | "ollama_cloud" | "builtin_tool" | "connection";
             /** Name */
             name: string;
             /** Used By */
@@ -13328,6 +13666,14 @@ export interface components {
             title: string;
             /** Workflow Id */
             workflow_id?: string | null;
+        };
+        /**
+         * SecretIn
+         * @description The new secret; ``""`` removes it. Never returned by any route.
+         */
+        SecretIn: {
+            /** Secret */
+            secret: string;
         };
         /** SendRequest */
         SendRequest: {
@@ -17966,6 +18312,322 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BudgetRequest"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_connections_api_connections_get: {
+        parameters: {
+            query?: {
+                type?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionView"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_connection_api_connections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_connection_events_api_connections_events_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionEvent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    connection_status_api_connections_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_connection_types_api_connections_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTypeInfo"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_connection_api_connections__connection_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_connection_api_connections__connection_id__delete: {
+        parameters: {
+            query?: {
+                force?: boolean;
+            };
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_connection_api_connections__connection_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    check_connection_api_connections__connection_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_connection_secret_api_connections__connection_id__secret_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecretIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionView"];
                 };
             };
             /** @description Error */
@@ -24479,6 +25141,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SaveResult"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_builtin_tools_api_tools_builtin_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuiltinToolInfo"][];
                 };
             };
             /** @description Error */

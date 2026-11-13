@@ -493,6 +493,27 @@ def test_the_release_gate(nodestro: NodestroClient) -> None:
     assert nodestro.set_release_gate(publication["id"], None)["gate"] is None
 
 
+def test_service_connections_and_the_builtin_catalog(nodestro: NodestroClient) -> None:
+    catalog = {item["name"]: item for item in nodestro.list_builtin_tools()}
+    spec = catalog["calculator"]["spec"]
+    assert catalog["calculator"]["origin"] == "nodestro" and spec is not None and spec["offline"] is True
+    assert nodestro.connection_status()["contract"] == 1
+    assert {"search", "smtp", "webhook"} <= {item["name"] for item in nodestro.list_connection_types()}
+    with pytest.raises(NodestroAPIError) as unsafe:
+        nodestro.create_connection({"type": "webhook", "name": "Hook", "settings": {"url": "http://hooks.example.com"}})
+    assert unsafe.value.status == 400 and unsafe.value.code == "connection.address_invalid"
+    made = nodestro.create_connection({"type": "search", "provider": "test", "name": "SDK search"})
+    assert made["secret_set"] is False and made in nodestro.list_connections(type="search")
+    stored = nodestro.set_connection_secret(made["id"], "sdk-connection-secret")
+    assert stored["secret_set"] is True and "sdk-connection-secret" not in str(stored)
+    assert nodestro.check_connection(made["id"])["check"]["status"] == "ok"
+    changed = nodestro.update_connection(made["id"], {"description": "from the SDK"})
+    assert changed["description"] == "from the SDK" and nodestro.get_connection(made["id"])["secret_set"] is True
+    assert "sdk-connection-secret" not in str(nodestro.list_connection_events())
+    nodestro.delete_connection(made["id"])
+    assert made["id"] not in {item["id"] for item in nodestro.list_connections()}
+
+
 def test_connected_mcp_services(nodestro: NodestroClient) -> None:
     status = nodestro.mcp_status()
     assert status["write_tools_enabled"] is False and status["endpoint_list"] is None
