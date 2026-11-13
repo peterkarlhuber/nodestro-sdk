@@ -5019,6 +5019,10 @@ export interface components {
             tool_policies?: {
                 [key: string]: components["schemas"]["ToolBinding"];
             };
+            /** Tool Settings */
+            tool_settings?: {
+                [key: string]: components["schemas"]["ToolSettings"];
+            };
             /** Tools */
             tools?: string[];
         };
@@ -11990,6 +11994,10 @@ export interface components {
         ReleaseBundle: {
             /** Builtin Tools */
             builtin_tools?: string[];
+            /** Builtin Versions */
+            builtin_versions?: {
+                [key: string]: number;
+            };
             /** Created At */
             created_at?: string;
             /**
@@ -12018,6 +12026,10 @@ export interface components {
             };
             /** Python */
             python?: components["schemas"]["PythonLock"][];
+            /** Required Connections */
+            required_connections?: {
+                [key: string]: string;
+            };
             /** Runtime */
             runtime?: {
                 [key: string]: string;
@@ -14684,6 +14696,7 @@ export interface components {
             server_id?: string | null;
             /** Server Name */
             server_name?: string | null;
+            spec?: components["schemas"]["ToolSpec"] | null;
             /** Tests */
             tests?: string | null;
             /**
@@ -14820,6 +14833,19 @@ export interface components {
             /** Output */
             output: string;
         };
+        /**
+         * ToolSettings
+         * @description How an agent binds one built-in tool (NAL-A1, ADR-0001): the service connection it uses and its binding
+         *     parameters (validated against the tool's ``params_schema``). Never visible to the model.
+         */
+        ToolSettings: {
+            /** Connection Id */
+            connection_id?: string | null;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+        };
         /** ToolSource */
         ToolSource: {
             /** Code */
@@ -14828,6 +14854,66 @@ export interface components {
             function_name: string;
             /** Tests */
             tests: string;
+        };
+        /**
+         * ToolSpec
+         * @description The catalog entry of one built-in tool (see the module documentation).
+         */
+        ToolSpec: {
+            capability: components["schemas"]["ToolCapability"];
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "compute" | "data" | "files" | "web" | "communication";
+            /** Connection Type */
+            connection_type?: string | null;
+            /** Cost Unit */
+            cost_unit?: string | null;
+            /**
+             * I18N Key
+             * @default
+             */
+            i18n_key: string;
+            /** Id */
+            id: string;
+            /** Max Calls Per Run */
+            max_calls_per_run?: number | null;
+            /**
+             * Modes
+             * @default [
+             *       "desktop",
+             *       "export",
+             *       "local-container",
+             *       "server"
+             *     ]
+             */
+            modes: ("desktop" | "local-container" | "server" | "export")[];
+            /**
+             * Network
+             * @default none
+             * @enum {string}
+             */
+            network: "none" | "external";
+            /**
+             * Offline
+             * @default true
+             */
+            offline: boolean;
+            /** Params Schema */
+            params_schema?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Timeout Seconds
+             * @default 30
+             */
+            timeout_seconds: number;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
         };
         /** ToolVersion */
         ToolVersion: {
