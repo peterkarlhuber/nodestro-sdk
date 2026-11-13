@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Service connections and the built-in tool catalog (NAL-A1, 2026-11-13)
+
+- Both SDKs: `list_builtin_tools`/`listBuiltinTools` (tool specs) and service connections: status, types, list,
+  get, create, update, delete (`force`), write-only secret, check and events (nodestro-runtime ADR-0001). New types
+  `ConnectionView`, `ConnectionIn`, `ConnectionPatch`, `ConnectionTypeInfo`, `ConnectionStatus`, `ConnectionEvent`,
+  `BuiltinToolInfo`; `AgentConfig.tool_settings`, `ReleaseBundle.builtin_versions` and `required_connections`,
+  `NetworkNeed` kinds `builtin_tool` and `connection`. OpenAPI document regenerated from nodestro-api.
+
 ### Limits handled on a step (RT-067, 2026-11-11)
 
 - Pins nodestro-api 3817da3 (api #115, runtime RT-067): `NodeRun.limits_handled` in both SDKs' types; the

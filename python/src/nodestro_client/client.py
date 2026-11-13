@@ -641,6 +641,59 @@ class NodestroClient:
         """The tools agents can use: built-in, custom and generated ones."""
         return cast(list[models.ToolInfo], self._http.json("GET", "/api/tools"))
 
+    def list_builtin_tools(self) -> list[models.BuiltinToolInfo]:
+        """Built-in tools with their specs: category, network, offline, connection type, limits, cost unit."""
+        return cast(list[models.BuiltinToolInfo], self._http.json("GET", "/api/tools/builtin"))
+
+    # ---- service connections (nodestro-runtime ADR-0001) -----------------------------------------
+
+    def connection_status(self) -> models.ConnectionStatus:
+        """Whether secrets are stored encrypted (``secret_vault``), the mode and the contract version."""
+        return cast(models.ConnectionStatus, self._http.json("GET", "/api/connections/status"))
+
+    def list_connection_types(self) -> list[models.ConnectionTypeInfo]:
+        return cast(list[models.ConnectionTypeInfo], self._http.json("GET", "/api/connections/types"))
+
+    def list_connections(self, *, type: str | None = None) -> list[models.ConnectionView]:
+        """The service connections (secrets are never returned, only ``secret_set``)."""
+        params = {"type": type} if type is not None else None
+        return cast(list[models.ConnectionView], self._http.json("GET", "/api/connections", params=params))
+
+    def get_connection(self, connection_id: str) -> models.ConnectionView:
+        return cast(models.ConnectionView, self._http.json("GET", f"/api/connections/{path_segment(connection_id)}"))
+
+    def create_connection(self, connection: models.ConnectionIn | Mapping[str, Any]) -> models.ConnectionView:
+        """Create a connection (``type``, ``name``, ``provider``, ``settings``); needs ``admin``."""
+        return cast(models.ConnectionView, self._http.json("POST", "/api/connections", json_body=dict(connection)))
+
+    def update_connection(
+        self, connection_id: str, change: models.ConnectionPatch | Mapping[str, Any]
+    ) -> models.ConnectionView:
+        """Change name, description, provider or settings; a new target resets the check."""
+        path = f"/api/connections/{path_segment(connection_id)}"
+        return cast(models.ConnectionView, self._http.json("PATCH", path, json_body=dict(change)))
+
+    def delete_connection(self, connection_id: str, *, force: bool = False) -> None:
+        """Delete a connection; one that agents still bind is refused (``connection.in_use``) unless ``force``."""
+        params = {"force": True} if force else None
+        self._http.request("DELETE", f"/api/connections/{path_segment(connection_id)}", params=params)
+
+    def set_connection_secret(self, connection_id: str, secret: str) -> models.ConnectionView:
+        """Store or replace the secret (``""`` removes it); it is never returned."""
+        path = f"/api/connections/{path_segment(connection_id)}/secret"
+        return cast(models.ConnectionView, self._http.json("PUT", path, json_body={"secret": secret}))
+
+    def check_connection(self, connection_id: str) -> models.ConnectionView:
+        """Check the connection; the result holds a status and an error code, never the service's message."""
+        path = f"/api/connections/{path_segment(connection_id)}/check"
+        return cast(models.ConnectionView, self._http.json("POST", path))
+
+    def list_connection_events(self, *, limit: int = 200) -> list[models.ConnectionEvent]:
+        """Administration events, newest first (never secrets or settings values); needs ``admin``."""
+        return cast(
+            list[models.ConnectionEvent], self._http.json("GET", "/api/connections/events", params={"limit": limit})
+        )
+
     # ---- connected MCP services ------------------------------------------------------------
 
     def mcp_status(self) -> models.McpStatus:

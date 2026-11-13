@@ -461,6 +461,32 @@ describe("release gate", () => {
   });
 });
 
+describe("service connections", () => {
+  it("lists the built-in catalog and manages a connection without returning its secret", async () => {
+    const catalog = await nodestro.listBuiltinTools();
+    const calculator = catalog.find((item) => item.name === "calculator");
+    expect(calculator?.origin).toBe("nodestro");
+    expect((await nodestro.connectionStatus()).contract).toBe(1);
+    expect((await nodestro.listConnectionTypes()).map((item) => item.name)).toEqual(expect.arrayContaining(["search", "smtp", "webhook"]));
+    const unsafe = await nodestro
+      .createConnection({ type: "webhook", name: "Hook", settings: { url: "http://hooks.example.com" } })
+      .catch((error: unknown) => error);
+    expect((unsafe as NodestroAPIError).code).toBe("connection.address_invalid");
+    const made = await nodestro.createConnection({ type: "search", provider: "test", name: "TS search" });
+    expect(made.secret_set).toBe(false);
+    expect((await nodestro.listConnections({ type: "search" })).map((item) => item.id)).toContain(made.id);
+    const stored = await nodestro.setConnectionSecret(made.id, "ts-connection-secret");
+    expect(stored.secret_set).toBe(true);
+    expect(JSON.stringify(stored)).not.toContain("ts-connection-secret");
+    expect((await nodestro.checkConnection(made.id)).check.status).toBe("ok");
+    expect((await nodestro.updateConnection(made.id, { description: "from TS" })).description).toBe("from TS");
+    expect((await nodestro.getConnection(made.id)).secret_set).toBe(true);
+    expect(JSON.stringify(await nodestro.listConnectionEvents())).not.toContain("ts-connection-secret");
+    await nodestro.deleteConnection(made.id);
+    expect((await nodestro.listConnections()).map((item) => item.id)).not.toContain(made.id);
+  });
+});
+
 describe("connected MCP services", () => {
   it("adds, lists, changes and removes a server without returning its token", async () => {
     const status = await nodestro.mcpStatus();

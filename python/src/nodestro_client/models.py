@@ -398,6 +398,13 @@ class BuiltinSandboxStatus(TypedDict):
     system: NotRequired[str]
 
 
+class BuiltinToolInfo(TypedDict):
+    description: str
+    name: str
+    origin: Literal['nodestro', 'integration']
+    spec: NotRequired[dict[str, Any] | None]
+
+
 class CaseOrigin(TypedDict):
     error_code: NotRequired[str | None]
     personal_data: NotRequired[bool]
@@ -523,6 +530,75 @@ class ConfigIssue(TypedDict):
     level: NotRequired[str]
     message: str
     params: NotRequired[dict[str, Any]]
+
+
+class ConnectionCheck(TypedDict):
+    checked_at: NotRequired[str | None]
+    code: NotRequired[str | None]
+    kind: NotRequired[Literal['configuration', 'service'] | None]
+    status: NotRequired[Literal['unchecked', 'ok', 'failed']]
+
+
+class ConnectionEvent(TypedDict):
+    actor: NotRequired[str | None]
+    at: NotRequired[str]
+    connection_id: str
+    connection_type: str
+    details: NotRequired[dict[str, Any]]
+    id: NotRequired[str]
+    kind: Literal[
+        'created', 'updated', 'deleted', 'secret_set', 'secret_cleared', 'checked'
+    ]
+
+
+class ConnectionIn(TypedDict, closed=True):
+    description: NotRequired[str]
+    name: str
+    provider: NotRequired[str]
+    settings: NotRequired[dict[str, Any]]
+    type: str
+
+
+class ConnectionPatch(TypedDict, closed=True):
+    description: NotRequired[str | None]
+    name: NotRequired[str | None]
+    provider: NotRequired[str | None]
+    settings: NotRequired[dict[str, Any] | None]
+
+
+class ConnectionStatus(TypedDict):
+    contract: int
+    mode: Literal['desktop', 'local-container', 'server']
+    secret_vault: bool
+
+
+class ConnectionTypeInfo(TypedDict):
+    checkable: bool
+    modes: list[str]
+    name: str
+    providers: list[str]
+    secret_label: str
+    secret_required: bool
+    settings_schema: dict[str, Any]
+
+
+class ConnectionView(TypedDict):
+    check: ConnectionCheck
+    contract: int
+    created_at: str
+    created_by: NotRequired[str | None]
+    description: str
+    egress: list[str]
+    id: str
+    name: str
+    provider: str
+    secret_set: bool
+    secret_storage: Literal['none', 'vault', 'session']
+    settings: dict[str, Any]
+    type: str
+    updated_at: str
+    updated_by: NotRequired[str | None]
+    used_by: NotRequired[list[str]]
 
 
 class ContextRef(TypedDict):
@@ -1451,6 +1527,8 @@ class NetworkNeed(TypedDict):
         'mcp',
         'docker_sandbox',
         'ollama_cloud',
+        'builtin_tool',
+        'connection',
     ]
     name: str
     used_by: NotRequired[list[str]]
@@ -2303,6 +2381,10 @@ class SearchResult(TypedDict):
     workflow_id: NotRequired[str | None]
 
 
+class SecretIn(TypedDict):
+    secret: str
+
+
 class SendRequest(TypedDict):
     content: NotRequired[str]
     file_ids: NotRequired[list[str]]
@@ -2713,27 +2795,6 @@ class ToolDependencyRequest(TypedDict):
     tests: NotRequired[str]
 
 
-class ToolInfo(TypedDict):
-    adoption: NotRequired[ToolAdoption | None]
-    capability: NotRequired[ToolCapability]
-    code: NotRequired[str | None]
-    content_hash: NotRequired[str | None]
-    created_at: NotRequired[str | None]
-    definition_hash: NotRequired[str | None]
-    description: str
-    function_name: NotRequired[str | None]
-    input_schema: NotRequired[dict[str, Any] | None]
-    kind: Literal['builtin', 'custom', 'generated', 'mcp']
-    mcp_name: NotRequired[str | None]
-    name: str
-    requirement: NotRequired[str | None]
-    server_id: NotRequired[str | None]
-    server_name: NotRequired[str | None]
-    tests: NotRequired[str | None]
-    trust: NotRequired[Literal['trusted', 'user-authored', 'untrusted']]
-    version: NotRequired[int]
-
-
 class ToolIssue(TypedDict):
     blocking: NotRequired[bool]
     code: str
@@ -2791,10 +2852,31 @@ class ToolRunResult(TypedDict):
     output: str
 
 
+class ToolSettings(TypedDict):
+    connection_id: NotRequired[str | None]
+    params: NotRequired[dict[str, Any]]
+
+
 class ToolSource(TypedDict):
     code: str
     function_name: str
     tests: str
+
+
+class ToolSpec(TypedDict, closed=True):
+    capability: ToolCapability
+    category: Literal['compute', 'data', 'files', 'web', 'communication']
+    connection_type: NotRequired[str | None]
+    cost_unit: NotRequired[str | None]
+    i18n_key: NotRequired[str]
+    id: str
+    max_calls_per_run: NotRequired[int | None]
+    modes: NotRequired[list[Literal['desktop', 'local-container', 'server', 'export']]]
+    network: NotRequired[Literal['none', 'external']]
+    offline: NotRequired[bool]
+    params_schema: NotRequired[dict[str, Any]]
+    timeout_seconds: NotRequired[float]
+    version: NotRequired[int]
 
 
 class ToolVersion(TypedDict):
@@ -3889,11 +3971,6 @@ class SandboxBackendStatus(TypedDict):
     tested_at: NotRequired[str | None]
 
 
-class SaveResult(TypedDict):
-    check: NodestroRuntimeToolLibraryCheckResult
-    tool: ToolInfo | None
-
-
 class ScheduleState(TypedDict):
     activation: NotRequired[Activation | None]
     schedule: Schedule
@@ -4009,9 +4086,26 @@ class ToolDraft(TypedDict):
     tests: NotRequired[str]
 
 
-class ToolDraftDecision(TypedDict):
-    draft: ToolDraft
-    tool: NotRequired[ToolInfo | None]
+class ToolInfo(TypedDict):
+    adoption: NotRequired[ToolAdoption | None]
+    capability: NotRequired[ToolCapability]
+    code: NotRequired[str | None]
+    content_hash: NotRequired[str | None]
+    created_at: NotRequired[str | None]
+    definition_hash: NotRequired[str | None]
+    description: str
+    function_name: NotRequired[str | None]
+    input_schema: NotRequired[dict[str, Any] | None]
+    kind: Literal['builtin', 'custom', 'generated', 'mcp']
+    mcp_name: NotRequired[str | None]
+    name: str
+    requirement: NotRequired[str | None]
+    server_id: NotRequired[str | None]
+    server_name: NotRequired[str | None]
+    spec: NotRequired[ToolSpec | None]
+    tests: NotRequired[str | None]
+    trust: NotRequired[Literal['trusted', 'user-authored', 'untrusted']]
+    version: NotRequired[int]
 
 
 class TraceImport(TypedDict):
@@ -4048,6 +4142,7 @@ class AgentConfig(TypedDict):
     thinking_display: NotRequired[Literal['summarized', 'omitted', 'updates'] | None]
     tool_choice: NotRequired[ToolChoice]
     tool_policies: NotRequired[dict[str, ToolBinding]]
+    tool_settings: NotRequired[dict[str, ToolSettings]]
     tools: NotRequired[list[str]]
 
 
@@ -4298,6 +4393,16 @@ class RunChatView(TypedDict):
     targets: list[ChatTarget]
 
 
+class SaveResult(TypedDict):
+    check: NodestroRuntimeToolLibraryCheckResult
+    tool: ToolInfo | None
+
+
+class ToolDraftDecision(TypedDict):
+    draft: ToolDraft
+    tool: NotRequired[ToolInfo | None]
+
+
 class Workflow(TypedDict):
     budget_usd: NotRequired[float | None]
     capabilities: NotRequired[list[str]]
@@ -4532,6 +4637,7 @@ class WorkflowDependencyRequest(TypedDict):
 
 class ReleaseBundle(TypedDict):
     builtin_tools: NotRequired[list[str]]
+    builtin_versions: NotRequired[dict[str, int]]
     created_at: NotRequired[str]
     format: NotRequired[str]
     format_version: NotRequired[int]
@@ -4541,6 +4647,7 @@ class ReleaseBundle(TypedDict):
     models: NotRequired[list[str]]
     output_schema: NotRequired[dict[str, Any]]
     python: NotRequired[list[PythonLock]]
+    required_connections: NotRequired[dict[str, str]]
     runtime: NotRequired[dict[str, str]]
     server_tools: NotRequired[list[str]]
     subworkflows: NotRequired[list[SubworkflowSnapshot]]
