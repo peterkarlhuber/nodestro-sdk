@@ -13,6 +13,15 @@ The package is not published to PyPI; install it from the repository at a commit
 pip install "nodestro-client @ git+https://github.com/peterkarlhuber/nodestro-sdk.git@<commit>#subdirectory=python"
 ```
 
+The client itself needs no other Nodestro component. The `test` extra (the real Nodestro API the tests start)
+declares `nodestro-api` as a version range, and since the PyPI names of the Nodestro components are not
+registered, it installs only with the studio lock, which names the exact commits (pip 26.1 or later):
+
+```bash
+pip install -c https://raw.githubusercontent.com/peterkarlhuber/nodestro-studio/master/platform/internal-server.txt \
+  "nodestro-client[test] @ git+https://github.com/peterkarlhuber/nodestro-sdk.git@<commit>#subdirectory=python"
+```
+
 ## Quickstart
 
 ```python

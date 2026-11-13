@@ -36,9 +36,18 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
+      # nodestro-api (the test server) is a version range in pyproject.toml; the studio lock pins the exact commits of
+      # it and its Nodestro dependencies. pip 26.1 or later applies it to the git requirements.
       - name: Install
         run: |
-          pip install -e ".[dev,test]"
+          python -m pip install "pip>=26.1"
+          # A pull request reads the lock of the studio branch with its own name when there is one (a contract change
+          # and the studio bump that moves nodestro-api land as a pair), else the studio master's.
+          lock=https://raw.githubusercontent.com/peterkarlhuber/nodestro-studio
+          curl -fsSL "$lock/${GITHUB_HEAD_REF:-master}/platform/internal-server.txt" > "$RUNNER_TEMP/lock.txt" ||
+            curl -fsSL "$lock/master/platform/internal-server.txt" > "$RUNNER_TEMP/lock.txt"
+          echo "lock: $(grep '^nodestro-api' "$RUNNER_TEMP/lock.txt")"
+          pip install -c "$RUNNER_TEMP/lock.txt" -e ".[dev,test]"
       - run: ruff check . ../scripts
       - run: ruff format --check . ../scripts
       - run: mypy
@@ -89,7 +98,14 @@ jobs:
       # The test server only (scripts/test_server.py); the TypeScript SDK needs no Python.
       - name: Install the test server
         run: |
-          pip install "./python[test]"
+          python -m pip install "pip>=26.1"
+          # A pull request reads the lock of the studio branch with its own name when there is one (a contract change
+          # and the studio bump that moves nodestro-api land as a pair), else the studio master's.
+          lock=https://raw.githubusercontent.com/peterkarlhuber/nodestro-studio
+          curl -fsSL "$lock/${GITHUB_HEAD_REF:-master}/platform/internal-server.txt" > "$RUNNER_TEMP/lock.txt" ||
+            curl -fsSL "$lock/master/platform/internal-server.txt" > "$RUNNER_TEMP/lock.txt"
+          echo "lock: $(grep '^nodestro-api' "$RUNNER_TEMP/lock.txt")"
+          pip install -c "$RUNNER_TEMP/lock.txt" "./python[test]"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
@@ -141,7 +157,14 @@ jobs:
           cache: pip
       - name: Install the test server
         run: |
-          pip install "./python[test]"
+          python -m pip install "pip>=26.1"
+          # A pull request reads the lock of the studio branch with its own name when there is one (a contract change
+          # and the studio bump that moves nodestro-api land as a pair), else the studio master's.
+          lock=https://raw.githubusercontent.com/peterkarlhuber/nodestro-studio
+          curl -fsSL "$lock/${GITHUB_HEAD_REF:-master}/platform/internal-server.txt" > "$RUNNER_TEMP/lock.txt" ||
+            curl -fsSL "$lock/master/platform/internal-server.txt" > "$RUNNER_TEMP/lock.txt"
+          echo "lock: $(grep '^nodestro-api' "$RUNNER_TEMP/lock.txt")"
+          pip install -c "$RUNNER_TEMP/lock.txt" "./python[test]"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
