@@ -50,11 +50,11 @@ Both clients offer the same operations under language-typical names (`wait_for_r
 | --- | --- |
 | SDK version | 0.3.0 (both packages, not released yet) |
 | API contract | Nodestro API 0.2.0 (`API_VERSION`; `openapi/nodestro-api.json`) |
-| Tested against | `nodestro-api` at the commit pinned in [`python/pyproject.toml`](python/pyproject.toml) (`test` extra) |
+| Tested against | `nodestro-api` at the commit named by the studio lock (`nodestro-studio/platform/internal-server.txt`; the `test` extra in [`python/pyproject.toml`](python/pyproject.toml) declares the version range) |
 | Platform | the tested combination of all components is recorded in `nodestro-studio/platform/versions.json` |
 
 A newer API is not guaranteed to work with this SDK; the CI checks that the committed contract and the generated
-types match the pinned API exactly.
+types match the locked API exactly.
 
 ## Security
 
@@ -89,7 +89,7 @@ types match the pinned API exactly.
 ## Development
 
 ```bash
-make install     # Python package with the dev and test extras, npm ci
+make install     # Python package with the dev and test extras (studio lock: LOCK=<url or file>), npm ci
 make check       # ruff, ruff format, mypy, tsc and both test suites
 make contract    # copy the contract from the installed nodestro-api and regenerate the types
 make generate    # regenerate the types from openapi/nodestro-api.json
@@ -97,8 +97,8 @@ scripts/check_typescript_package.sh   # pack @nodestro/client and compile and ru
 ```
 
 The tests start a real Nodestro API server (`scripts/test_server.py`) whose agents answer from a script, so no
-model provider is called and nothing is paid. The `test` extra installs `nodestro-api` at the pinned commit for
-this. `NODESTRO_SDK_SERVER=<url>` runs the tests against an already running `scripts/test_server.py` instead; the
+model provider is called and nothing is paid. The `test` extra installs `nodestro-api` at the commit named by the
+studio lock for this. `NODESTRO_SDK_SERVER=<url>` runs the tests against an already running `scripts/test_server.py` instead; the
 tests refuse any other server, because they create workflows, publications and keys.
 
 The CI needs no secret: orkexa and the Nodestro repositories are public and are installed anonymously.

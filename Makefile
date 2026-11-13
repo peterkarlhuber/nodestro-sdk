@@ -1,9 +1,14 @@
 .PHONY: install generate contract check test test-python test-typescript lint package
 
 PYTHON ?= python
+# The studio lock: the exact commits of the internal packages whose version ranges python/pyproject.toml declares
+# (nodestro-api in the test extra). A URL or a local file; install copies it to a temporary file first.
+LOCK ?= https://raw.githubusercontent.com/peterkarlhuber/nodestro-studio/master/platform/internal-server.txt
 
 install:
-	cd python && $(PYTHON) -m pip install -e ".[dev,test]"
+	lock="$$(mktemp)" && \
+	case "$(LOCK)" in http://*|https://*) curl -fsSL "$(LOCK)" -o "$$lock" ;; *) cp "$(LOCK)" "$$lock" ;; esac && \
+	cd python && $(PYTHON) -m pip install "pip>=26.1" && $(PYTHON) -m pip install -c "$$lock" -e ".[dev,test]"
 	cd typescript && npm ci
 
 # Regenerates the types of both SDKs from openapi/nodestro-api.json (CI checks they are current).
