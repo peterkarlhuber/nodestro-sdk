@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added (NAL-B1): agent template versions, check, export and import (`list_agent_template_versions`,
+  `get_agent_template_version`, `check_agent_template`, `export_agent_template`, `import_agent_template`; TypeScript
+  `listAgentTemplateVersions`, `getAgentTemplateVersion`, `checkAgentTemplate`, `exportAgentTemplate`,
+  `importAgentTemplate`) and the shipped agent library (`list_library_agents`, `get_library_agent`,
+  `copy_library_agent`; TypeScript `listLibraryAgents`, `getLibraryAgent`, `copyLibraryAgent`). Types regenerated
+  from the nodestro-api contract.
 - Contract (NAL-B2): `openapi/nodestro-api.json` from nodestro-api (copy route of library templates), types of both
   SDKs regenerated. Additions only: `OutputField.source` gains `ledger_cited`, `ledger_list` and `ledger_range`;
   `TemplateDetail.services` and `LibraryCopy.services` (kind -> service connection id when copying a template).

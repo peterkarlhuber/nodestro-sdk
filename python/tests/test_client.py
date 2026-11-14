@@ -162,9 +162,29 @@ def test_agents_and_their_templates(nodestro: NodestroClient) -> None:
         {"name": "SDK-Vorlage", "agent": {"name": "Prüfer", "system_prompt": "Prüfe."}}
     )
     assert created["id"] in {item["id"] for item in nodestro.list_agent_templates()}
+    nodestro.update_agent_template(created["id"], {"agent": {"name": "Prüfer", "system_prompt": "Prüfe genau."}})
+    versions = nodestro.list_agent_template_versions(created["id"])
+    assert [item["version"] for item in versions] == [2, 1]
+    assert nodestro.get_agent_template_version(created["id"], 1)["agent"]["system_prompt"] == "Prüfe."
+    assert nodestro.check_agent_template(created["id"])["issues"] == []
+    exported = nodestro.export_agent_template(created["id"])
+    assert exported["format"] == "nodestro-agent/1"
+    imported = nodestro.import_agent_template(exported)
+    assert imported["template"]["meta"]["origin"].startswith("import:")
+    nodestro.delete_agent_template(imported["template"]["id"])
     nodestro.delete_agent_template(created["id"])
     assert created["id"] not in {item["id"] for item in nodestro.list_agent_templates()}
     assert {"calculator", "current_datetime"} <= {tool["name"] for tool in nodestro.list_tools()}
+
+
+def test_library_agents_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
+    agents = nodestro.list_library_agents("en")
+    assert "summary" in {item["id"] for item in agents}
+    detail = nodestro.get_library_agent("summary", "de")
+    assert detail["help"] and detail["meta"]["locale"] == "de"
+    copy = nodestro.copy_library_agent("summary", language="en")
+    assert copy["meta"]["origin"].startswith("builtin:") and copy["version"] == 1
+    nodestro.delete_agent_template(copy["id"])
 
 
 def test_examples_can_be_listed_and_copied(nodestro: NodestroClient) -> None:

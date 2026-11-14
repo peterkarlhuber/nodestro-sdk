@@ -190,9 +190,29 @@ describe("studio API", () => {
     expect(issues.length).toBeGreaterThan(0);
     const created = await nodestro.createAgentTemplate({ name: "SDK-Vorlage", agent: { name: "Prüfer", system_prompt: "Prüfe." } });
     expect((await nodestro.listAgentTemplates()).map((item) => item.id)).toContain(created.id);
+    await nodestro.updateAgentTemplate(created.id, { agent: { name: "Prüfer", system_prompt: "Prüfe genau." } });
+    expect((await nodestro.listAgentTemplateVersions(created.id)).map((item) => item.version)).toEqual([2, 1]);
+    expect((await nodestro.getAgentTemplateVersion(created.id, 1)).agent.system_prompt).toBe("Prüfe.");
+    expect((await nodestro.checkAgentTemplate(created.id)).issues).toEqual([]);
+    const exported = await nodestro.exportAgentTemplate(created.id);
+    expect(exported.format).toBe("nodestro-agent/1");
+    const imported = await nodestro.importAgentTemplate(exported);
+    expect(imported.template.meta?.origin?.startsWith("import:")).toBe(true);
+    await nodestro.deleteAgentTemplate(imported.template.id ?? "");
     await nodestro.deleteAgentTemplate(created.id);
     expect((await nodestro.listAgentTemplates()).map((item) => item.id)).not.toContain(created.id);
     expect((await nodestro.listTools()).map((tool) => tool.name)).toEqual(expect.arrayContaining(["calculator", "current_datetime"]));
+  });
+
+  it("lists and copies the library agents", async () => {
+    expect((await nodestro.listLibraryAgents("en")).map((item) => item.id)).toContain("summary");
+    const detail = await nodestro.getLibraryAgent("summary", "de");
+    expect(detail.help.length).toBeGreaterThan(0);
+    expect(detail.meta.locale).toBe("de");
+    const copy = await nodestro.copyLibraryAgent("summary", { language: "en" });
+    expect(copy.meta?.origin?.startsWith("builtin:")).toBe(true);
+    expect(copy.version).toBe(1);
+    await nodestro.deleteAgentTemplate(copy.id);
   });
 
   it("lists and copies the examples", async () => {

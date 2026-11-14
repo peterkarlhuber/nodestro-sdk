@@ -1216,6 +1216,12 @@ class LegacyReport(TypedDict):
     workflows: NotRequired[int]
 
 
+class LibraryAgentCopy(TypedDict):
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+    model: NotRequired[str | None]
+    services: NotRequired[dict[str, str]]
+
+
 class LibraryCopy(TypedDict):
     integrations: NotRequired[dict[str, str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
@@ -2648,6 +2654,10 @@ class TemplateAgent(TypedDict):
     tools: list[str]
 
 
+class TemplateCheck(TypedDict):
+    issues: NotRequired[list[ConfigIssue]]
+
+
 class TemplateIntegration(TypedDict):
     description: str
     id: str
@@ -2662,6 +2672,21 @@ class TemplateKnowledge(TypedDict):
     description: str
     id: str
     name: str
+
+
+class TemplateRef(TypedDict):
+    template_id: str
+    version: int
+
+
+class TemplateRequirements(TypedDict):
+    capabilities: NotRequired[
+        list[Literal['tools', 'vision', 'structured_output', 'long_context']]
+    ]
+    min_tier: NotRequired[Literal['fast', 'standard', 'strong'] | None]
+    offline_capable: NotRequired[bool]
+    services: NotRequired[list[str]]
+    tools: NotRequired[list[str]]
 
 
 class TemplateSummary(TypedDict):
@@ -2715,6 +2740,12 @@ class TemplateTeam(TypedDict):
     name: str
     parameters: list[str]
     part_id: str
+
+
+class TemplateTest(TypedDict):
+    expectations: NotRequired[list[str]]
+    input: str
+    name: str
 
 
 class TestCase(TypedDict):
@@ -4121,6 +4152,16 @@ class SuiteIn(TypedDict):
     workflow_id: str
 
 
+class TemplateMeta(TypedDict):
+    category: NotRequired[str]
+    examples: NotRequired[list[str]]
+    locale: NotRequired[str | None]
+    origin: NotRequired[str]
+    requirements: NotRequired[TemplateRequirements]
+    summary: NotRequired[str]
+    tests: NotRequired[list[TemplateTest]]
+
+
 class ToolApprovalRequest(TypedDict):
     arguments_hash: str
     call_id: str
@@ -4208,12 +4249,14 @@ class AgentConfig(TypedDict):
     model: NotRequired[str]
     name: NotRequired[str]
     on_refusal: NotRequired[Literal['raise', 'return']]
+    origin: NotRequired[TemplateRef | None]
     output: NotRequired[OutputConfig]
     quality: NotRequired[QualityConfig]
     raise_tool_errors: NotRequired[bool]
     request_options: NotRequired[dict[str, Any]]
     server_tools: NotRequired[list[str]]
     system_prompt: NotRequired[str]
+    task: NotRequired[str | None]
     task_template: NotRequired[str]
     thinking: NotRequired[Literal['adaptive', 'between_tools', 'disabled'] | None]
     thinking_budget: NotRequired[int | None]
@@ -4235,11 +4278,25 @@ class AgentTemplate(TypedDict):
     agent: AgentConfig
     created_at: NotRequired[str]
     id: NotRequired[str]
+    meta: NotRequired[TemplateMeta]
     updated_at: NotRequired[str]
+    version: NotRequired[int]
 
 
 class AgentTemplateIn(TypedDict):
     agent: AgentConfig
+    meta: NotRequired[TemplateMeta]
+    note: NotRequired[str]
+
+
+class AgentTemplateVersion(TypedDict):
+    agent: AgentConfig
+    created_at: NotRequired[str]
+    created_by: NotRequired[str]
+    meta: NotRequired[TemplateMeta]
+    note: NotRequired[str]
+    template_id: str
+    version: int
 
 
 class AgentTestIn(TypedDict):
@@ -4399,6 +4456,36 @@ class GateRecord(TypedDict):
     override_by: NotRequired[str | None]
     override_reason: NotRequired[str | None]
     report: GateReport
+
+
+class ImportResult(TypedDict):
+    check: TemplateCheck
+    removed: NotRequired[list[str]]
+    template: AgentTemplate
+
+
+class LibraryAgentDetail(TypedDict):
+    agent: AgentConfig
+    category: str
+    description: str
+    help: str
+    icon: str
+    id: str
+    meta: TemplateMeta
+    name: str
+    number: int
+    version: str
+
+
+class LibraryAgentSummary(TypedDict):
+    category: str
+    description: str
+    icon: str
+    id: str
+    meta: TemplateMeta
+    name: str
+    number: int
+    version: str
 
 
 class LocalOverview(TypedDict):

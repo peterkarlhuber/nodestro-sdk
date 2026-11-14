@@ -637,6 +637,35 @@ class NodestroClient:
     def delete_agent_template(self, template_id: str) -> None:
         self._http.request("DELETE", f"/api/agents/templates/{path_segment(template_id)}")
 
+    def list_agent_template_versions(self, template_id: str) -> list[models.AgentTemplateVersion]:
+        """Every saved version of a template, newest first (NAL-B1)."""
+        return cast(
+            list[models.AgentTemplateVersion],
+            self._http.json("GET", f"/api/agents/templates/{path_segment(template_id)}/versions"),
+        )
+
+    def get_agent_template_version(self, template_id: str, version: int) -> models.AgentTemplateVersion:
+        return cast(
+            models.AgentTemplateVersion,
+            self._http.json("GET", f"/api/agents/templates/{path_segment(template_id)}/versions/{int(version)}"),
+        )
+
+    def check_agent_template(self, template_id: str) -> models.TemplateCheck:
+        """What the template needs in this workspace (tools, model, service connections)."""
+        return cast(
+            models.TemplateCheck, self._http.json("GET", f"/api/agents/templates/{path_segment(template_id)}/check")
+        )
+
+    def export_agent_template(self, template_id: str) -> dict[str, Any]:
+        """The template as a ``nodestro-agent/1`` document, without connections, knowledge files or approval rules."""
+        return cast(dict[str, Any], self._http.json("GET", f"/api/agents/templates/{path_segment(template_id)}/export"))
+
+    def import_agent_template(self, document: Mapping[str, Any]) -> models.ImportResult:
+        """Store an exported template as a new one; approval rules are reset and connections dropped."""
+        return cast(
+            models.ImportResult, self._http.json("POST", "/api/agents/templates/import", json_body=dict(document))
+        )
+
     def list_tools(self) -> list[models.ToolInfo]:
         """The tools agents can use: built-in, custom and generated ones."""
         return cast(list[models.ToolInfo], self._http.json("GET", "/api/tools"))
@@ -972,6 +1001,38 @@ class NodestroClient:
         body: models.LibraryCopy = {"language": cast(Any, language), "tests": tests}
         return cast(
             models.Workflow, self._http.json("POST", f"/api/library/{path_segment(template_id)}/copy", json_body=body)
+        )
+
+    def list_library_agents(self, language: str | None = None) -> list[models.LibraryAgentSummary]:
+        """The shipped agent templates (NAL-B1); reading stores nothing."""
+        return cast(
+            list[models.LibraryAgentSummary],
+            self._http.json("GET", "/api/library/agents", params={"language": language}),
+        )
+
+    def get_library_agent(self, agent_id: str, language: str | None = None) -> models.LibraryAgentDetail:
+        return cast(
+            models.LibraryAgentDetail,
+            self._http.json("GET", f"/api/library/agents/{path_segment(agent_id)}", params={"language": language}),
+        )
+
+    def copy_library_agent(
+        self,
+        agent_id: str,
+        *,
+        language: str | None = None,
+        model: str | None = None,
+        services: Mapping[str, str] | None = None,
+    ) -> models.AgentTemplate:
+        """Store a shipped agent template as an own template (``services``: connection id per kind it needs)."""
+        body: models.LibraryAgentCopy = {
+            "language": cast(Any, language),
+            "model": model,
+            "services": dict(services or {}),
+        }
+        return cast(
+            models.AgentTemplate,
+            self._http.json("POST", f"/api/library/agents/{path_segment(agent_id)}/copy", json_body=body),
         )
 
     # ---- publishing ------------------------------------------------------------------------
