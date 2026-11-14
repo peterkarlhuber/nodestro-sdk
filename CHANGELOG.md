@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Contract (NAL-B2): `openapi/nodestro-api.json` from nodestro-api (copy route of library templates), types of both
+  SDKs regenerated. Additions only: `OutputField.source` gains `ledger_cited`, `ledger_list` and `ledger_range`;
+  `TemplateDetail.services` and `LibraryCopy.services` (kind -> service connection id when copying a template).
 - Contract (NAL-C1, NAL-A2): `openapi/nodestro-api.json` from nodestro-api #134, with the types of both SDKs
   regenerated. Additions only:
   - `GET /api/app` (app discovery): `AppDiscovery` and its parts.

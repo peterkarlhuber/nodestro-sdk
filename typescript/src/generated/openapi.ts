@@ -9582,6 +9582,10 @@ export interface components {
             models?: {
                 [key: string]: string;
             };
+            /** Services */
+            services?: {
+                [key: string]: string;
+            };
             /**
              * Tests
              * @default false
@@ -11069,7 +11073,7 @@ export interface components {
              * @default model
              * @enum {string}
              */
-            source: "model" | "tool" | "ledger";
+            source: "model" | "tool" | "ledger" | "ledger_cited" | "ledger_list" | "ledger_range";
             /**
              * Type
              * @default string
@@ -14657,6 +14661,8 @@ export interface components {
             samples?: components["schemas"]["SampleInfo"][];
             /** Sensitive */
             sensitive: boolean;
+            /** Services */
+            services?: string[];
             /** Team Details */
             team_details?: components["schemas"]["TemplateTeam"][];
             /**

@@ -1221,6 +1221,7 @@ class LibraryCopy(TypedDict):
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
     memory_space: NotRequired[str | None]
     models: NotRequired[dict[str, str]]
+    services: NotRequired[dict[str, str]]
     tests: NotRequired[bool]
 
 
@@ -1637,7 +1638,11 @@ class OutputField(TypedDict):
     description: NotRequired[str]
     name: str
     required: NotRequired[bool]
-    source: NotRequired[Literal['model', 'tool', 'ledger']]
+    source: NotRequired[
+        Literal[
+            'model', 'tool', 'ledger', 'ledger_cited', 'ledger_list', 'ledger_range'
+        ]
+    ]
     type: NotRequired[
         Literal['string', 'number', 'integer', 'boolean', 'string_list', 'number_list']
     ]
@@ -4698,6 +4703,7 @@ class TemplateDetail(TypedDict):
     pattern: Literal['sequential', 'parallel', 'branching', 'adaptive']
     samples: NotRequired[list[SampleInfo]]
     sensitive: bool
+    services: NotRequired[list[str]]
     team_details: NotRequired[list[TemplateTeam]]
     teams: NotRequired[int]
     tests: NotRequired[list[str]]
