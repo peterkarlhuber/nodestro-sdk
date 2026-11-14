@@ -1326,6 +1326,14 @@ class LockedPackage(TypedDict):
     version: str
 
 
+class MarkReadIn(TypedDict):
+    ids: NotRequired[list[str]]
+
+
+class MarkReadOut(TypedDict):
+    marked: int
+
+
 class McpDecision(TypedDict):
     access: NotRequired[Literal['read', 'write', 'destructive'] | None]
     approve: bool
@@ -1620,6 +1628,41 @@ class NewApiKey(TypedDict):
 
 class NewConversation(TypedDict):
     title: NotRequired[str]
+
+
+class Notification(TypedDict):
+    created_at: str
+    id: str
+    kind: str
+    level: NotRequired[str | None]
+    params: NotRequired[dict[str, str]]
+    read_at: str | None
+    run_id: NotRequired[str | None]
+    subject: str | None
+    text: str | None
+    workflow_id: NotRequired[str | None]
+    workflow_name: NotRequired[str | None]
+
+
+class NotificationPage(TypedDict):
+    items: list[Notification]
+    next_cursor: NotRequired[str | None]
+    unread: int
+
+
+class NotificationRules(TypedDict):
+    events: NotRequired[
+        list[
+            Literal[
+                'run_finished',
+                'run_failed',
+                'approval_pending',
+                'budget_pending',
+                'quality_failed',
+            ]
+        ]
+    ]
+    recipients: NotRequired[Literal['members', 'starter']]
 
 
 class OptionSupport(TypedDict):
@@ -4816,6 +4859,7 @@ class Workflow(TypedDict):
     limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
+    notifications: NotRequired[NotificationRules]
     origin: NotRequired[WorkflowOrigin | None]
     updated_at: NotRequired[str]
 
@@ -4828,6 +4872,7 @@ class WorkflowImport(TypedDict):
     limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
+    notifications: NotRequired[NotificationRules]
     python: NotRequired[ExportedDefinition | None]
 
 
@@ -4839,6 +4884,7 @@ class WorkflowIn(TypedDict):
     limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
+    notifications: NotRequired[NotificationRules]
 
 
 class WorkflowVersion(TypedDict):

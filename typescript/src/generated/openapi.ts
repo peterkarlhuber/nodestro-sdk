@@ -2841,6 +2841,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notifications
+         * @description The current member's notifications in the session's workspace, newest first.
+         */
+        get: operations["list_notifications_api_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Read
+         * @description Mark the current member's notifications as read (only their own; unknown ids change nothing).
+         */
+        post: operations["mark_read_api_notifications_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organize": {
         parameters: {
             query?: never;
@@ -10682,6 +10722,16 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** MarkReadIn */
+        MarkReadIn: {
+            /** Ids */
+            ids?: string[];
+        };
+        /** MarkReadOut */
+        MarkReadOut: {
+            /** Marked */
+            marked: number;
+        };
         /** McpDecision */
         McpDecision: {
             /** Access */
@@ -11696,6 +11746,61 @@ export interface components {
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCallRecord"][];
             usage?: components["schemas"]["Usage"];
+        };
+        /** Notification */
+        Notification: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Level */
+            level?: string | null;
+            /** Params */
+            params?: {
+                [key: string]: string;
+            };
+            /** Read At */
+            read_at: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Subject */
+            subject: string | null;
+            /** Text */
+            text: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /** Workflow Name */
+            workflow_name?: string | null;
+        };
+        /** NotificationPage */
+        NotificationPage: {
+            /** Items */
+            items: components["schemas"]["Notification"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Unread */
+            unread: number;
+        };
+        /**
+         * NotificationRules
+         * @description Which events of a workflow's top-level runs notify in the internal inbox, and whom (NAL-A3,
+         *     :mod:`nodestro_runtime.notifications`): ``members`` (everyone who may read the workspace) or ``starter`` (the
+         *     person who started the run; everyone when that is not known). An empty ``events`` list notifies nothing.
+         */
+        NotificationRules: {
+            /** Events */
+            events?: ("run_finished" | "run_failed" | "approval_pending" | "budget_pending" | "quality_failed")[];
+            /**
+             * Recipients
+             * @default members
+             * @enum {string}
+             */
+            recipients: "members" | "starter";
         };
         /**
          * OptionSupport
@@ -17313,6 +17418,7 @@ export interface components {
             name: string;
             /** Nodes */
             nodes?: components["schemas"]["Node"][];
+            notifications?: components["schemas"]["NotificationRules"];
             origin?: components["schemas"]["WorkflowOrigin"] | null;
             /**
              * Updated At
@@ -17366,6 +17472,7 @@ export interface components {
             name: string;
             /** Nodes */
             nodes?: components["schemas"]["Node"][];
+            notifications?: components["schemas"]["NotificationRules"];
             python?: components["schemas"]["ExportedDefinition"] | null;
         };
         /** WorkflowIn */
@@ -17389,6 +17496,7 @@ export interface components {
             name: string;
             /** Nodes */
             nodes?: components["schemas"]["Node"][];
+            notifications?: components["schemas"]["NotificationRules"];
         };
         /**
          * WorkflowLimits
@@ -23147,6 +23255,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelProfile"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_notifications_api_notifications_get: {
+        parameters: {
+            query?: {
+                unread_only?: boolean;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    mark_read_api_notifications_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkReadIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkReadOut"];
                 };
             };
             /** @description Error */

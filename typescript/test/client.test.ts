@@ -260,6 +260,16 @@ describe("studio API", () => {
     await nodestro.deleteSkill(skill.id ?? "");
   });
 
+  it("lists and marks notifications", async () => {
+    const page = await nodestro.listNotifications({ unreadOnly: true, limit: 5 });
+    expect(Array.isArray(page.items)).toBe(true);
+    expect(await nodestro.markNotificationsRead()).toBe(page.unread);
+    expect((await nodestro.listNotifications()).unread).toBe(0);
+    await expect(nodestro.listNotifications({ cursor: "bad!" })).rejects.toMatchObject({
+      code: "notifications.invalid_cursor",
+    });
+  });
+
   it("lists and copies the building blocks", async () => {
     const listed = await nodestro.listLibraryParts("de");
     expect(listed.length).toBeGreaterThanOrEqual(14);

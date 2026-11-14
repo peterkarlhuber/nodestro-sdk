@@ -235,6 +235,16 @@ def test_skill_groups_usage_and_script_drafts(nodestro: NodestroClient) -> None:
     nodestro.delete_skill(skill["id"])
 
 
+def test_notifications_can_be_listed_and_marked(nodestro: NodestroClient) -> None:
+    page = nodestro.list_notifications(unread_only=True, limit=5)
+    assert isinstance(page["items"], list) and isinstance(page["unread"], int)
+    assert nodestro.mark_notifications_read() == page["unread"]
+    assert nodestro.list_notifications()["unread"] == 0
+    with pytest.raises(NodestroAPIError) as refused:
+        nodestro.list_notifications(cursor="bad!")
+    assert refused.value.code == "notifications.invalid_cursor"
+
+
 def test_building_blocks_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
     listed = nodestro.list_library_parts("de")
     assert len(listed) >= 14 and all(item["templates"] for item in listed)
