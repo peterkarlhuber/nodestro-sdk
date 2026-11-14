@@ -102,6 +102,20 @@ class ApiLimits(TypedDict):
     sync_timeout_seconds: NotRequired[int]
 
 
+class AppLinks(TypedDict):
+    info: str
+    openapi: str
+
+
+class AppSummary(TypedDict):
+    description: NotRequired[str]
+    languages: NotRequired[list[str]]
+    links: AppLinks
+    name: str
+    release: int
+    slug: str
+
+
 class ApprovalConfig(TypedDict):
     allow_comment: NotRequired[bool]
     instructions: NotRequired[str]
@@ -181,8 +195,19 @@ class ArchiveEntry(TypedDict):
     status: NotRequired[Literal['ok', 'unsupported', 'nested', 'skipped']]
 
 
+class AuthInfo(TypedDict):
+    methods: NotRequired[list[Literal['api_key', 'session', 'launch_link', 'pairing']]]
+
+
 class AutostartIn(TypedDict):
     enabled: bool
+
+
+class BackendInfo(TypedDict):
+    id: str
+    name: NotRequired[str]
+    runtime_version: NotRequired[str | None]
+    version: NotRequired[str | None]
 
 
 class BackupContents(TypedDict):
@@ -626,6 +651,12 @@ class ContractFieldSummary(TypedDict):
     type: str
 
 
+class ContractInfo(TypedDict):
+    current: NotRequired[int]
+    name: NotRequired[Literal['nodestro-app']]
+    versions: NotRequired[list[int]]
+
+
 class ConversationFile(TypedDict):
     added_at: NotRequired[str]
     chars: NotRequired[int]
@@ -917,6 +948,21 @@ class FileView(TypedDict):
     size: int
 
 
+class FormField(TypedDict):
+    accept: NotRequired[list[str]]
+    accept_formats: NotRequired[list[str]]
+    default: NotRequired[Any]
+    help: NotRequired[str]
+    label: str
+    max_files: NotRequired[int | None]
+    max_mb: NotRequired[int | None]
+    multiple: NotRequired[bool]
+    name: str
+    options: NotRequired[list[str]]
+    required: NotRequired[bool]
+    type: str
+
+
 class FormatsInfo(TypedDict):
     formats: list[dict[str, Any]]
     limits: dict[str, int]
@@ -998,6 +1044,8 @@ class InfoOut(TypedDict):
     description: NotRequired[str]
     example_request: dict[str, Any]
     file_inputs: NotRequired[list[dict[str, Any]]]
+    form: NotRequired[list[FormField]]
+    form_version: NotRequired[int]
     input_schema: dict[str, Any]
     limits: dict[str, Any]
     missing_resources: NotRequired[list[str]]
@@ -1589,7 +1637,7 @@ class OutputField(TypedDict):
     description: NotRequired[str]
     name: str
     required: NotRequired[bool]
-    source: NotRequired[Literal['model', 'tool']]
+    source: NotRequired[Literal['model', 'tool', 'ledger']]
     type: NotRequired[
         Literal['string', 'number', 'integer', 'boolean', 'string_list', 'number_list']
     ]
@@ -2478,6 +2526,18 @@ class Snapshot(TypedDict):
     version: NotRequired[str | None]
 
 
+class SourceEntry(TypedDict):
+    final_url: NotRequired[str | None]
+    id: str
+    node_id: NotRequired[str | None]
+    origin: NotRequired[Literal['search', 'fetched']]
+    provider: NotRequired[str | None]
+    retrieved_at: NotRequired[str]
+    sha256: NotRequired[str | None]
+    title: NotRequired[str]
+    url: str
+
+
 class SourceReport(TypedDict):
     changes: NotRequired[int]
     error: NotRequired[str | None]
@@ -2674,6 +2734,10 @@ class TestResult(TypedDict):
     error: NotRequired[str | None]
     name: str
     ok: bool
+
+
+class TlsInfo(TypedDict):
+    enabled: NotRequired[bool]
 
 
 class ToolAdoptRequest(TypedDict):
@@ -3222,6 +3286,15 @@ class ApiGuide(TypedDict):
     release_id: str
     release_number: int
     usage: NotRequired[Usage]
+
+
+class AppDiscovery(TypedDict):
+    apps: NotRequired[list[AppSummary] | None]
+    auth: NotRequired[AuthInfo]
+    backend: BackendInfo
+    capabilities: NotRequired[list[str] | None]
+    contract: NotRequired[ContractInfo]
+    tls: NotRequired[TlsInfo]
 
 
 class Attachment(TypedDict):
@@ -4553,6 +4626,7 @@ class Run(TypedDict):
     resumed_from: NotRequired[str | None]
     sanitized: NotRequired[SanitizeReport | None]
     source_run_id: NotRequired[str | None]
+    sources: NotRequired[list[SourceEntry]]
     started_at: NotRequired[str | None]
     started_by: NotRequired[str | None]
     status: NotRequired[
