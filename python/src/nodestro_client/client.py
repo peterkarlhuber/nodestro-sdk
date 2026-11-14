@@ -1117,6 +1117,39 @@ class NodestroClient:
         """The workflows and agent templates whose agents have the skill."""
         return cast(list[models.SkillUser], self._http.json("GET", f"/api/skills/{path_segment(skill_id)}/usage"))
 
+    def list_skill_groups(self) -> list[models.SkillGroup]:
+        """The skill groups of the library (NAL-B4)."""
+        return cast(list[models.SkillGroup], self._http.json("GET", "/api/skill-groups"))
+
+    def create_skill_group(
+        self, name: str, skill_ids: Sequence[str] = (), *, description: str = ""
+    ) -> models.SkillGroup:
+        """A named set of skills; the editor assigns its members one by one, each in its current version."""
+        body = {"name": name, "description": description, "skill_ids": list(skill_ids)}
+        return cast(models.SkillGroup, self._http.json("POST", "/api/skill-groups", json_body=body))
+
+    def update_skill_group(
+        self, group_id: str, name: str, skill_ids: Sequence[str] = (), *, description: str = ""
+    ) -> models.SkillGroup:
+        body = {"name": name, "description": description, "skill_ids": list(skill_ids)}
+        url = f"/api/skill-groups/{path_segment(group_id)}"
+        return cast(models.SkillGroup, self._http.json("PUT", url, json_body=body))
+
+    def delete_skill_group(self, group_id: str) -> None:
+        """Delete a group; no skill and no agent changes."""
+        self._http.request("DELETE", f"/api/skill-groups/{path_segment(group_id)}")
+
+    def skill_stats(self, days: int = 30) -> list[models.SkillStats]:
+        """How skills were used in the runs of the last ``days`` days (at most the newest 2000 runs)."""
+        return cast(list[models.SkillStats], self._http.json("GET", "/api/skill-stats", params={"days": days}))
+
+    def draft_tool_from_skill_script(self, skill_id: str, version: int, path: str, *, note: str = "") -> models.ToolJob:
+        """Start a tool job that turns one script of a skill version into a tool draft. It goes through the tool
+        chain unchanged: tests only in the isolating sandbox (``sandbox.isolation_required`` without one) and a
+        person's approval."""
+        url = f"/api/skills/{path_segment(skill_id)}/versions/{int(version)}/script-draft"
+        return cast(models.ToolJob, self._http.json("POST", url, json_body={"path": path, "note": note}))
+
     def list_library_skills(self, language: str | None = None) -> list[models.LibrarySkill]:
         """The shipped skills in one language (English where one is missing)."""
         return cast(

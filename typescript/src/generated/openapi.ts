@@ -4466,6 +4466,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/skill-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Skill Groups */
+        get: operations["list_skill_groups_api_skill_groups_get"];
+        put?: never;
+        /**
+         * Create Skill Group
+         * @description A named set of skills of the library; assigning it to an agent adds its skills one by one (the editor does
+         *     that, each in its current version). Names are unique (``skill.group_name_taken``).
+         */
+        post: operations["create_skill_group_api_skill_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skill-groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Skill Group
+         * @description Change a group. Agents keep the skills they were given with it.
+         */
+        put: operations["update_skill_group_api_skill_groups__group_id__put"];
+        post?: never;
+        /**
+         * Delete Skill Group
+         * @description Delete a group; no skill and no agent changes.
+         */
+        delete: operations["delete_skill_group_api_skill_groups__group_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skill-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Skill Stats
+         * @description How skills were used in the runs of the last ``days`` days (at most the newest 2000 runs): offered, loaded,
+         *     files read, runs, outcomes of the steps that loaded them and quality checks passed.
+         */
+        get: operations["get_skill_stats_api_skill_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/skills": {
         parameters: {
             query?: never;
@@ -4695,6 +4762,31 @@ export interface paths {
         get: operations["read_skill_file_api_skills__skill_id__versions__version__file_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/versions/{version}/script-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Tool From Script
+         * @description Start a tool job that turns one script of a skill version into a tool draft (NAL-B4).
+         *
+         *     The Coding Agent writes a tool from the script's text (a description, never instructions), and the draft goes
+         *     through the unchanged tool chain: static check, tests in the isolating sandbox (without one:
+         *     ``sandbox.isolation_required``), and a person's approval in the job. Until then the script is text that is
+         *     never run. The job's ``origin`` is ``skill:<name>@<version>/<path>``. Same permission and model as any tool job.
+         */
+        post: operations["draft_tool_from_script_api_skills__skill_id__versions__version__script_draft_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11568,6 +11660,7 @@ export interface components {
             reasoning_reduced?: string | null;
             /** Reused From */
             reused_from?: string | null;
+            skill_selection?: components["schemas"]["SkillSelection"] | null;
             /** Skills */
             skills?: components["schemas"]["SkillUse"][];
             /** Started At */
@@ -13682,6 +13775,8 @@ export interface components {
             parent_node_id?: string | null;
             /** Parent Run Id */
             parent_run_id?: string | null;
+            /** Recommended Skills */
+            recommended_skills?: string[];
             /** Release Id */
             release_id?: string | null;
             /** Release Number */
@@ -14518,6 +14613,16 @@ export interface components {
             activation?: components["schemas"]["Activation"] | null;
             schedule: components["schemas"]["Schedule"];
         };
+        /** ScriptDraftIn */
+        ScriptDraftIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Path */
+            path: string;
+        };
         /** SearchHit */
         SearchHit: {
             /** File Id */
@@ -15004,6 +15109,8 @@ export interface components {
          * @description A skill assigned to an agent in one fixed version (NAL-B3). A newer version is never used automatically.
          */
         SkillBinding: {
+            /** Group Id */
+            group_id?: string | null;
             /**
              * Mode
              * @default on_demand
@@ -15014,6 +15121,21 @@ export interface components {
             skill_id: string;
             /** Version */
             version: number;
+        };
+        /**
+         * SkillCandidate
+         * @description One skill a preselection scored (NAL-B4).
+         */
+        SkillCandidate: {
+            /**
+             * Chosen
+             * @default false
+             */
+            chosen: boolean;
+            /** Name */
+            name: string;
+            /** Score */
+            score: number;
         };
         /**
          * SkillCheck
@@ -15115,6 +15237,47 @@ export interface components {
              */
             truncated: boolean;
         };
+        /**
+         * SkillGroup
+         * @description A named set of skills of the library (NAL-B4), e.g. "Quality methods". Assigning a group to an agent adds
+         *     each member as an ordinary binding in its version at that moment; the group itself is never resolved at run
+         *     time, so a change of the group never changes an agent or a release.
+         */
+        SkillGroup: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Id */
+            id?: string;
+            /** Name */
+            name: string;
+            /** Skill Ids */
+            skill_ids?: string[];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
+        };
+        /** SkillGroupIn */
+        SkillGroupIn: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Name */
+            name: string;
+            /** Skill Ids */
+            skill_ids?: string[];
+        };
         /** SkillImportResult */
         SkillImportResult: {
             check: components["schemas"]["SkillCheck"];
@@ -15154,6 +15317,35 @@ export interface components {
             severity: "error" | "warning";
         };
         /**
+         * SkillSelection
+         * @description How a step chose the skills it offered (NAL-B4): deterministic, recorded so the choice can be explained.
+         *
+         *     ``method`` ``all``: every assigned skill was offered (at most :data:`SKILL_SELECTION_THRESHOLD` on demand);
+         *     ``bm25``: the ``on_demand`` skills were ranked by name and description against the step's prompt and the best
+         *     :data:`SKILL_SELECTION_SIZE` offered, plus the ``always`` and recommended ones.
+         */
+        SkillSelection: {
+            /**
+             * Assigned
+             * @default 0
+             */
+            assigned: number;
+            /** Candidates */
+            candidates?: components["schemas"]["SkillCandidate"][];
+            /** Ignored */
+            ignored?: string[];
+            /**
+             * Method
+             * @default all
+             * @enum {string}
+             */
+            method: "all" | "bm25";
+            /** Offered */
+            offered?: string[];
+            /** Recommended */
+            recommended?: string[];
+        };
+        /**
          * SkillSnapshot
          * @description A skill frozen in a release bundle (NAL-B3): one version with every file, base64-encoded, and its digest.
          */
@@ -15175,6 +15367,63 @@ export interface components {
             skill_id: string;
             /** Version */
             version: number;
+        };
+        /**
+         * SkillStats
+         * @description The use of one skill (by name) in the runs looked at.
+         */
+        SkillStats: {
+            /**
+             * Checks
+             * @default 0
+             */
+            checks: number;
+            /**
+             * Checks Passed
+             * @default 0
+             */
+            checks_passed: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+            /**
+             * Files Read
+             * @default 0
+             */
+            files_read: number;
+            /** Last Used */
+            last_used?: string | null;
+            /**
+             * Loaded
+             * @default 0
+             */
+            loaded: number;
+            /** Name */
+            name: string;
+            /**
+             * Offered
+             * @default 0
+             */
+            offered: number;
+            /**
+             * Recommended
+             * @default 0
+             */
+            recommended: number;
+            /**
+             * Runs
+             * @default 0
+             */
+            runs: number;
+            /**
+             * Succeeded
+             * @default 0
+             */
+            succeeded: number;
+            /** Versions */
+            versions?: number[];
         };
         /** SkillStatusIn */
         SkillStatusIn: {
@@ -16385,6 +16634,8 @@ export interface components {
             mcp_name?: string | null;
             /** Name */
             name: string;
+            /** Origin */
+            origin?: string | null;
             /** Requirement */
             requirement?: string | null;
             /** Server Id */
@@ -16468,6 +16719,8 @@ export interface components {
             message_params?: {
                 [key: string]: unknown;
             };
+            /** Origin */
+            origin?: string | null;
             /** Requirement */
             requirement: string;
             /**
@@ -26768,6 +27021,163 @@ export interface operations {
             };
         };
     };
+    list_skill_groups_api_skill_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillGroup"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_skill_group_api_skill_groups_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillGroupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillGroup"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_skill_group_api_skill_groups__group_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillGroupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillGroup"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_skill_group_api_skill_groups__group_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_skill_stats_api_skill_stats_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillStats"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_skills_api_skills_get: {
         parameters: {
             query?: never;
@@ -27212,6 +27622,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SkillFileText"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    draft_tool_from_script_api_skills__skill_id__versions__version__script_draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScriptDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolJob"];
                 };
             };
             /** @description Error */
