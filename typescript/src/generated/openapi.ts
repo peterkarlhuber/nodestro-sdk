@@ -1976,6 +1976,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Library Parts
+         * @description The building blocks templates run as teams or sub-workflows, in one language; nothing is stored.
+         */
+        get: operations["list_library_parts_api_library_parts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/parts/{part_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Library Part
+         * @description One building block with the workflow a copy would get (a preview, never a run).
+         */
+        get: operations["get_library_part_api_library_parts__part_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/parts/{part_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Library Part
+         * @description Create an ordinary, independent workflow from a building block; agents get the workspace's model tiers.
+         *
+         *     The parts it runs are saved first, as workflows of their own, and pinned to their first version; a copy that
+         *     fails half-way leaves nothing behind. The copy can serve as a team in the editor's palette right away.
+         */
+        post: operations["copy_library_part_api_library_parts__part_id__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Library Skills
+         * @description The shipped skills in one language (default: the interface language; English where one is missing).
+         */
+        get: operations["list_library_skills_api_library_skills_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/skills/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Library Skill */
+        get: operations["get_library_skill_api_library_skills__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/skills/{name}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Library Skill
+         * @description Store a shipped skill as a skill of this workspace (version 1, origin ``builtin:...``); a newer package
+         *     never changes the copy. A skill of the same name already here is ``skill.name_taken``.
+         */
+        post: operations["copy_library_skill_api_library_skills__name__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/{template_id}": {
         parameters: {
             query?: never;
@@ -4345,6 +4466,241 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Skills
+         * @description Every skill in its latest version, by name.
+         */
+        get: operations["list_skills_api_skills_get"];
+        put?: never;
+        /**
+         * Create Skill
+         * @description A new skill made in the studio (version 1, origin ``user``).
+         */
+        post: operations["create_skill_api_skills_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Skill
+         * @description The findings for an edited package, without storing it (the editor's live check).
+         */
+        post: operations["check_skill_api_skills_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Skill
+         * @description Read a ZIP or a ``SKILL.md``. With ``dry_run`` nothing is stored: the answer is the validation report and the
+         *     preview. Otherwise the package becomes a new skill (origin ``import:<sha256>``) or, with ``skill_id``, the next
+         *     version of that skill. Errors refuse it (``skill.invalid``); warnings do not.
+         */
+        post: operations["import_skill_api_skills_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Skill
+         * @description A skill in its latest version (or ``version``) with instructions, files and findings.
+         */
+        get: operations["get_skill_api_skills__skill_id__get"];
+        /**
+         * Update Skill
+         * @description Store an edited package as the next version (unchanged files make none); the origin stays.
+         */
+        put: operations["update_skill_api_skills__skill_id__put"];
+        post?: never;
+        /**
+         * Delete Skill
+         * @description Delete a skill with all its versions; refused while an agent uses it (``skill.in_use``: archive it instead).
+         *     Published releases keep their frozen copy.
+         */
+        delete: operations["delete_skill_api_skills__skill_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Skill
+         * @description Archive a skill (it cannot run or be assigned; it stays for history). Activating it again is ``status``.
+         */
+        post: operations["archive_skill_api_skills__skill_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Skill
+         * @description A new skill from the latest version under another name (e.g. a copy in another language to translate).
+         */
+        post: operations["copy_skill_api_skills__skill_id__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Skill
+         * @description A version as a standard Agent Skills ZIP (a folder named after the skill, the files' exact bytes).
+         */
+        get: operations["export_skill_api_skills__skill_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Skill Status
+         * @description Activate or disable a skill; a disabled skill cannot run. Archiving needs ``admin`` (``.../archive``).
+         */
+        post: operations["set_skill_status_api_skills__skill_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Skill Usage
+         * @description The workflows and agent templates whose agents have this skill (any version).
+         */
+        get: operations["skill_usage_api_skills__skill_id__usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Skill Versions
+         * @description Every version, newest first.
+         */
+        get: operations["list_skill_versions_api_skills__skill_id__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_id}/versions/{version}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Skill File
+         * @description One text file of a version, for reading in the studio (binary files are listed, not shown).
+         */
+        get: operations["read_skill_file_api_skills__skill_id__versions__version__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tool-approvals": {
         parameters: {
             query?: never;
@@ -5368,6 +5724,8 @@ export interface components {
             };
             /** Server Tools */
             server_tools?: string[];
+            /** Skills */
+            skills?: components["schemas"]["SkillBinding"][];
             /**
              * System Prompt
              * @default You are a helpful assistant.
@@ -6989,6 +7347,18 @@ export interface components {
             refused: boolean;
             /** Run Id */
             run_id: string;
+        };
+        /** Body_import_skill_api_skills_import_post */
+        Body_import_skill_api_skills_import_post: {
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /** File */
+            file: string;
+            /** Skill Id */
+            skill_id?: string | null;
         };
         /** Body_inspect_api_backup_inspect_post */
         Body_inspect_api_backup_inspect_post: {
@@ -9897,6 +10267,43 @@ export interface components {
             /** Local */
             local: boolean;
         };
+        /** LibraryPartCopy */
+        LibraryPartCopy: {
+            /** Language */
+            language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+        };
+        /** LibrarySkill */
+        LibrarySkill: {
+            /** Description */
+            description: string;
+            /** Family */
+            family: string;
+            /** Files */
+            files: components["schemas"]["SkillFileInfo"][];
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
+        };
+        /** LibrarySkillDetail */
+        LibrarySkillDetail: {
+            /** Body */
+            body: string;
+            /** Description */
+            description: string;
+            /** Family */
+            family: string;
+            /** Files */
+            files: components["schemas"]["SkillFileInfo"][];
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
+        };
         /**
          * LiveAnswer
          * @description An answer being written in this process: what has arrived so far (shown live, never stored as such).
@@ -11161,6 +11568,8 @@ export interface components {
             reasoning_reduced?: string | null;
             /** Reused From */
             reused_from?: string | null;
+            /** Skills */
+            skills?: components["schemas"]["SkillUse"][];
             /** Started At */
             started_at?: string | null;
             /**
@@ -11447,6 +11856,48 @@ export interface components {
             rows: {
                 [key: string]: string;
             }[];
+        };
+        /** PartDetail */
+        PartDetail: {
+            /** Agents */
+            agents: number;
+            /** Capabilities */
+            capabilities: string[];
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Parts */
+            parts: string[];
+            /** Templates */
+            templates: string[];
+            workflow: components["schemas"]["WorkflowIn"];
+        };
+        /**
+         * PartSummary
+         * @description A building block as the gallery lists it: a small workflow that templates run as a team or sub-workflow.
+         */
+        PartSummary: {
+            /** Agents */
+            agents: number;
+            /** Capabilities */
+            capabilities: string[];
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Parts */
+            parts: string[];
+            /** Templates */
+            templates: string[];
         };
         /** PendingApproval */
         PendingApproval: {
@@ -12831,6 +13282,8 @@ export interface components {
             };
             /** Server Tools */
             server_tools?: string[];
+            /** Skills */
+            skills?: components["schemas"]["SkillSnapshot"][];
             /** Subworkflows */
             subworkflows?: components["schemas"]["SubworkflowSnapshot"][];
             /** Tool Trust */
@@ -14497,6 +14950,317 @@ export interface components {
              * @default false
              */
             download: boolean;
+        };
+        /**
+         * Skill
+         * @description A skill of the library in its latest version (NAL-B3). ``name`` is unique in a workspace.
+         */
+        Skill: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Has Scripts
+             * @default false
+             */
+            has_scripts: boolean;
+            /** Id */
+            id?: string;
+            /** Language */
+            language?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Origin
+             * @default user
+             */
+            origin: string;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "disabled" | "archived";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+        };
+        /**
+         * SkillBinding
+         * @description A skill assigned to an agent in one fixed version (NAL-B3). A newer version is never used automatically.
+         */
+        SkillBinding: {
+            /**
+             * Mode
+             * @default on_demand
+             * @enum {string}
+             */
+            mode: "always" | "on_demand";
+            /** Skill Id */
+            skill_id: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * SkillCheck
+         * @description The result of reading a package without storing it: what the import would store and its findings.
+         */
+        SkillCheck: {
+            /** Allowed Tools */
+            allowed_tools?: string | null;
+            /** Body */
+            body: string;
+            /** Compatibility */
+            compatibility?: string | null;
+            /** Description */
+            description: string;
+            existing?: components["schemas"]["Skill"] | null;
+            /** Files */
+            files: components["schemas"]["SkillFileInfo"][];
+            /** Issues */
+            issues: components["schemas"]["SkillIssue"][];
+            /** License */
+            license?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
+            /** Name */
+            name: string;
+        };
+        /** SkillCopyIn */
+        SkillCopyIn: {
+            /** Name */
+            name: string;
+        };
+        /**
+         * SkillDetail
+         * @description A skill with one of its versions: the front matter, the instructions and the file list, and the findings.
+         */
+        SkillDetail: {
+            /** Body */
+            body: string;
+            /** Files */
+            files: components["schemas"]["SkillFileInfo"][];
+            /** Issues */
+            issues?: components["schemas"]["SkillIssue"][];
+            skill: components["schemas"]["Skill"];
+            version: components["schemas"]["SkillVersion"];
+        };
+        /**
+         * SkillFileIn
+         * @description One file of an edited package: text, base64 bytes, or ``keep`` (the bytes of the skill's latest version).
+         */
+        SkillFileIn: {
+            /** Base64 */
+            base64?: string | null;
+            /**
+             * Keep
+             * @default false
+             */
+            keep: boolean;
+            /** Path */
+            path: string;
+            /** Text */
+            text?: string | null;
+        };
+        /** SkillFileInfo */
+        SkillFileInfo: {
+            /** Path */
+            path: string;
+            /** Script */
+            script: boolean;
+            /** Size */
+            size: number;
+            /** Text */
+            text: boolean;
+        };
+        /**
+         * SkillFileRef
+         * @description A file of a skill version: its path in the package, size and SHA-256 (the content is stored by hash).
+         */
+        SkillFileRef: {
+            /** Path */
+            path: string;
+            /** Sha256 */
+            sha256: string;
+            /** Size */
+            size: number;
+        };
+        /** SkillFileText */
+        SkillFileText: {
+            /** Path */
+            path: string;
+            /** Size */
+            size: number;
+            /** Text */
+            text: string;
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+        };
+        /** SkillImportResult */
+        SkillImportResult: {
+            check: components["schemas"]["SkillCheck"];
+            skill?: components["schemas"]["Skill"] | null;
+        };
+        /** SkillIn */
+        SkillIn: {
+            /** Files */
+            files: components["schemas"]["SkillFileIn"][];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * SkillIssue
+         * @description One finding of :func:`validate`. An ``error`` makes a package unusable; a ``warning`` names a risk.
+         */
+        SkillIssue: {
+            /** Code */
+            code: string;
+            /** Field */
+            field?: string | null;
+            /** Message */
+            message: string;
+            /** Params */
+            params?: {
+                [key: string]: string | number;
+            };
+            /** Path */
+            path?: string | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning";
+        };
+        /**
+         * SkillSnapshot
+         * @description A skill frozen in a release bundle (NAL-B3): one version with every file, base64-encoded, and its digest.
+         */
+        SkillSnapshot: {
+            /** Digest */
+            digest: string;
+            /** Files */
+            files?: {
+                [key: string]: string;
+            };
+            /** Name */
+            name: string;
+            /**
+             * Origin
+             * @default user
+             */
+            origin: string;
+            /** Skill Id */
+            skill_id: string;
+            /** Version */
+            version: number;
+        };
+        /** SkillStatusIn */
+        SkillStatusIn: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+        };
+        /**
+         * SkillUse
+         * @description A skill an agent loaded (``path`` ``None``) or one of its files it read, during one step (NAL-B3).
+         */
+        SkillUse: {
+            /** Name */
+            name: string;
+            /** Path */
+            path?: string | null;
+            /** Skill Id */
+            skill_id: string;
+            /** Version */
+            version: number;
+        };
+        /** SkillUser */
+        SkillUser: {
+            /** Agent */
+            agent: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * SkillVersion
+         * @description One version of a skill; never changed once stored. ``digest`` covers every path and its bytes.
+         */
+        SkillVersion: {
+            /** Allowed Tools */
+            allowed_tools?: string | null;
+            /** Compatibility */
+            compatibility?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Created By
+             * @default
+             */
+            created_by: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Digest */
+            digest: string;
+            /** Files */
+            files?: components["schemas"]["SkillFileRef"][];
+            /** License */
+            license?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
+            /** Name */
+            name: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Origin
+             * @default user
+             */
+            origin: string;
+            /** Skill Id */
+            skill_id: string;
+            /** Version */
+            version: number;
         };
         /**
          * Snapshot
@@ -20534,6 +21298,198 @@ export interface operations {
             };
         };
     };
+    list_library_parts_api_library_parts_get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartSummary"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_library_part_api_library_parts__part_id__get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path: {
+                part_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    copy_library_part_api_library_parts__part_id__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                part_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryPartCopy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_library_skills_api_library_skills_get: {
+        parameters: {
+            query?: {
+                language?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibrarySkill"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_library_skill_api_library_skills__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibrarySkillDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    copy_library_skill_api_library_skills__name__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     get_library_template_api_library__template_id__get: {
         parameters: {
             query?: {
@@ -25800,6 +26756,463 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_skills_api_skills_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_skill_api_skills_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    check_skill_api_skills_check_post: {
+        parameters: {
+            query?: {
+                skill_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillCheck"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    import_skill_api_skills_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_skill_api_skills_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillImportResult"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_skill_api_skills__skill_id__get: {
+        parameters: {
+            query?: {
+                version?: number | null;
+            };
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_skill_api_skills__skill_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_skill_api_skills__skill_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    archive_skill_api_skills__skill_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    copy_skill_api_skills__skill_id__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillCopyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_skill_api_skills__skill_id__export_get: {
+        parameters: {
+            query?: {
+                version?: number | null;
+            };
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_skill_status_api_skills__skill_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillStatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Skill"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    skill_usage_api_skills__skill_id__usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillUser"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_skill_versions_api_skills__skill_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                skill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillVersion"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_skill_file_api_skills__skill_id__versions__version__file_get: {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path: {
+                skill_id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillFileText"];
+                };
             };
             /** @description Error */
             "4XX": {

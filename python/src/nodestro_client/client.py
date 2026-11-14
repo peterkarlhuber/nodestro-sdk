@@ -7,6 +7,7 @@ API: :class:`~nodestro_client.published.PublishedWorkflow`.
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Generator, Mapping, Sequence
 import contextlib
 from dataclasses import dataclass
@@ -1035,6 +1036,122 @@ class NodestroClient:
             self._http.json("POST", f"/api/library/agents/{path_segment(agent_id)}/copy", json_body=body),
         )
 
+    # ---- skills (NAL-B3) -------------------------------------------------------------------
+
+    def list_skills(self) -> list[models.Skill]:
+        """The skill library: every skill in its latest version."""
+        return cast(list[models.Skill], self._http.json("GET", "/api/skills"))
+
+    def get_skill(self, skill_id: str, version: int | None = None) -> models.SkillDetail:
+        """A skill in its latest version (or ``version``): instructions, files and findings."""
+        path = f"/api/skills/{path_segment(skill_id)}"
+        return cast(models.SkillDetail, self._http.json("GET", path, params={"version": version}))
+
+    def list_skill_versions(self, skill_id: str) -> list[models.SkillVersion]:
+        """Every version of a skill, newest first."""
+        return cast(list[models.SkillVersion], self._http.json("GET", f"/api/skills/{path_segment(skill_id)}/versions"))
+
+    def read_skill_file(self, skill_id: str, version: int, path: str) -> models.SkillFileText:
+        """One text file of a skill version."""
+        url = f"/api/skills/{path_segment(skill_id)}/versions/{version}/file"
+        return cast(models.SkillFileText, self._http.json("GET", url, params={"path": path}))
+
+    def import_skill(
+        self,
+        file: str | os.PathLike[str] | bytes | IO[bytes],
+        *,
+        filename: str | None = None,
+        dry_run: bool = False,
+        skill_id: str | None = None,
+    ) -> models.SkillImportResult:
+        """Import a skill ZIP or a ``SKILL.md`` (at most 10 MB). ``dry_run`` only checks it (validation report and
+        preview); ``skill_id`` stores it as the next version of that skill. Errors refuse it, warnings do not."""
+        name, content = _upload(file, filename, "skill.zip")
+        data: dict[str, str] = {"dry_run": "true" if dry_run else "false"}
+        if skill_id is not None:
+            data["skill_id"] = skill_id
+        return cast(
+            models.SkillImportResult,
+            self._http.json("POST", "/api/skills/import", files={"file": (name, content)}, data=data),
+        )
+
+    def create_skill(self, files: Mapping[str, str | bytes], *, note: str = "") -> models.Skill:
+        """A new skill from its files (``SKILL.md`` required); text as ``str``, other files as ``bytes``."""
+        return cast(models.Skill, self._http.json("POST", "/api/skills", json_body=_skill_body(files, note)))
+
+    def update_skill(self, skill_id: str, files: Mapping[str, str | bytes | None], *, note: str = "") -> models.Skill:
+        """Store changed files as the next version; ``None`` keeps a file of the latest version as it is."""
+        path = f"/api/skills/{path_segment(skill_id)}"
+        return cast(models.Skill, self._http.json("PUT", path, json_body=_skill_body(files, note)))
+
+    def check_skill(self, files: Mapping[str, str | bytes | None], *, skill_id: str | None = None) -> models.SkillCheck:
+        """The findings for a package without storing it."""
+        return cast(
+            models.SkillCheck,
+            self._http.json("POST", "/api/skills/check", params={"skill_id": skill_id}, json_body=_skill_body(files)),
+        )
+
+    def export_skill(self, skill_id: str, version: int | None = None) -> bytes:
+        """A skill version as a standard Agent Skills ZIP with the exact bytes of its files."""
+        url = f"/api/skills/{path_segment(skill_id)}/export"
+        return self._http.request("GET", url, params={"version": version}).content
+
+    def copy_skill(self, skill_id: str, name: str) -> models.Skill:
+        """A new skill from the latest version under another name."""
+        url = f"/api/skills/{path_segment(skill_id)}/copy"
+        return cast(models.Skill, self._http.json("POST", url, json_body={"name": name}))
+
+    def set_skill_status(self, skill_id: str, status: Literal["active", "disabled"]) -> models.Skill:
+        url = f"/api/skills/{path_segment(skill_id)}/status"
+        return cast(models.Skill, self._http.json("POST", url, json_body={"status": status}))
+
+    def archive_skill(self, skill_id: str) -> models.Skill:
+        """Archive a skill (``admin``): it can no longer run or be assigned."""
+        return cast(models.Skill, self._http.json("POST", f"/api/skills/{path_segment(skill_id)}/archive"))
+
+    def delete_skill(self, skill_id: str) -> None:
+        """Delete a skill (``admin``); refused with ``skill.in_use`` while an agent uses it."""
+        self._http.request("DELETE", f"/api/skills/{path_segment(skill_id)}")
+
+    def skill_usage(self, skill_id: str) -> list[models.SkillUser]:
+        """The workflows and agent templates whose agents have the skill."""
+        return cast(list[models.SkillUser], self._http.json("GET", f"/api/skills/{path_segment(skill_id)}/usage"))
+
+    def list_library_skills(self, language: str | None = None) -> list[models.LibrarySkill]:
+        """The shipped skills in one language (English where one is missing)."""
+        return cast(
+            list[models.LibrarySkill], self._http.json("GET", "/api/library/skills", params={"language": language})
+        )
+
+    def get_library_skill(self, name: str) -> models.LibrarySkillDetail:
+        return cast(models.LibrarySkillDetail, self._http.json("GET", f"/api/library/skills/{path_segment(name)}"))
+
+    def copy_library_skill(self, name: str) -> models.Skill:
+        """Store a shipped skill as a skill of the workspace (origin ``builtin:...``)."""
+        return cast(models.Skill, self._http.json("POST", f"/api/library/skills/{path_segment(name)}/copy"))
+
+    def list_library_parts(self, language: str | None = None) -> list[models.PartSummary]:
+        """The building blocks (parts) templates run as teams or sub-workflows, as gallery entries."""
+        return cast(
+            list[models.PartSummary], self._http.json("GET", "/api/library/parts", params={"language": language})
+        )
+
+    def get_library_part(self, part_id: str, language: str | None = None) -> models.PartDetail:
+        """One building block with the workflow a copy would get."""
+        return cast(
+            models.PartDetail,
+            self._http.json("GET", f"/api/library/parts/{path_segment(part_id)}", params={"language": language}),
+        )
+
+    def copy_library_part(self, part_id: str, language: str | None = None) -> models.Workflow:
+        """Create an ordinary workflow from a building block (the parts it runs are saved first)."""
+        return cast(
+            models.Workflow,
+            self._http.json(
+                "POST", f"/api/library/parts/{path_segment(part_id)}/copy", json_body={"language": language}
+            ),
+        )
+
     # ---- publishing ------------------------------------------------------------------------
 
     def publish(self, workflow_id: str, **options: Any) -> models.PublishOut:
@@ -1424,6 +1541,19 @@ def _uploads(
     if not found:
         raise ValueError("files must name at least one file")
     return found
+
+
+def _skill_body(files: Mapping[str, str | bytes | None], note: str = "") -> dict[str, Any]:
+    """The body of a skill save: text files as ``text``, other files as ``base64``, ``None`` as ``keep``."""
+    entries: list[dict[str, Any]] = []
+    for path, value in files.items():
+        if value is None:
+            entries.append({"path": path, "keep": True})
+        elif isinstance(value, bytes):
+            entries.append({"path": path, "base64": base64.b64encode(value).decode("ascii")})
+        else:
+            entries.append({"path": path, "text": value})
+    return {"files": entries, "note": note}
 
 
 def _upload(

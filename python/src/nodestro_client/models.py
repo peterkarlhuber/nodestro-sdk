@@ -328,6 +328,12 @@ class BlockedRequest(TypedDict):
     run_id: str
 
 
+class BodyImportSkillApiSkillsImportPost(TypedDict):
+    dry_run: NotRequired[bool]
+    file: str
+    skill_id: NotRequired[str | None]
+
+
 class BodyInspectApiBackupInspectPost(TypedDict):
     file: str
 
@@ -1237,6 +1243,10 @@ class LibraryModelPlan(TypedDict):
     local: bool
 
 
+class LibraryPartCopy(TypedDict):
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+
+
 class LocalAdvice(TypedDict):
     code: str
     model: NotRequired[str | None]
@@ -1680,6 +1690,17 @@ class ParsedRows(TypedDict):
     columns: list[str]
     mapping: dict[str, str]
     rows: list[dict[str, str]]
+
+
+class PartSummary(TypedDict):
+    agents: int
+    capabilities: list[str]
+    description: str
+    id: str
+    language: str
+    name: str
+    parts: list[str]
+    templates: list[str]
 
 
 class PlaceholderInfo(TypedDict):
@@ -2520,6 +2541,115 @@ class SettingsIn(TypedDict):
 class SetupIn(TypedDict):
     archive: NotRequired[str | None]
     download: NotRequired[bool]
+
+
+class Skill(TypedDict):
+    created_at: NotRequired[str]
+    description: NotRequired[str]
+    has_scripts: NotRequired[bool]
+    id: NotRequired[str]
+    language: NotRequired[str | None]
+    name: str
+    origin: NotRequired[str]
+    status: NotRequired[Literal['active', 'disabled', 'archived']]
+    updated_at: NotRequired[str]
+    version: NotRequired[int]
+
+
+class SkillBinding(TypedDict):
+    mode: NotRequired[Literal['always', 'on_demand']]
+    skill_id: str
+    version: int
+
+
+class SkillCopyIn(TypedDict):
+    name: str
+
+
+class SkillFileIn(TypedDict):
+    base64: NotRequired[str | None]
+    keep: NotRequired[bool]
+    path: str
+    text: NotRequired[str | None]
+
+
+class SkillFileInfo(TypedDict):
+    path: str
+    script: bool
+    size: int
+    text: bool
+
+
+class SkillFileRef(TypedDict):
+    path: str
+    sha256: str
+    size: int
+
+
+class SkillFileText(TypedDict):
+    path: str
+    size: int
+    text: str
+    truncated: NotRequired[bool]
+
+
+class SkillIn(TypedDict):
+    files: list[SkillFileIn]
+    note: NotRequired[str]
+
+
+class SkillIssue(TypedDict):
+    code: str
+    field: NotRequired[str | None]
+    message: str
+    params: NotRequired[dict[str, str | int]]
+    path: NotRequired[str | None]
+    severity: Literal['error', 'warning']
+
+
+class SkillSnapshot(TypedDict):
+    digest: str
+    files: NotRequired[dict[str, str]]
+    name: str
+    origin: NotRequired[str]
+    skill_id: str
+    version: int
+
+
+class SkillStatusIn(TypedDict):
+    status: Literal['active', 'disabled']
+
+
+class SkillUse(TypedDict):
+    name: str
+    path: NotRequired[str | None]
+    skill_id: str
+    version: int
+
+
+class SkillUser(TypedDict):
+    agent: str
+    id: str
+    kind: str
+    name: str
+    version: int
+
+
+class SkillVersion(TypedDict):
+    allowed_tools: NotRequired[str | None]
+    compatibility: NotRequired[str | None]
+    created_at: NotRequired[str]
+    created_by: NotRequired[str]
+    description: NotRequired[str]
+    digest: str
+    files: NotRequired[list[SkillFileRef]]
+    license: NotRequired[str | None]
+    metadata: NotRequired[dict[str, str]]
+    name: str
+    note: NotRequired[str]
+    origin: NotRequired[str]
+    skill_id: str
+    version: int
 
 
 class Snapshot(TypedDict):
@@ -3618,6 +3748,25 @@ class KnowledgeIndexStatus(TypedDict):
     ]
 
 
+class LibrarySkill(TypedDict):
+    description: str
+    family: str
+    files: list[SkillFileInfo]
+    language: str
+    name: str
+    version: str
+
+
+class LibrarySkillDetail(TypedDict):
+    body: str
+    description: str
+    family: str
+    files: list[SkillFileInfo]
+    language: str
+    name: str
+    version: str
+
+
 class LiveAnswer(TypedDict):
     question_id: str
     reasoning: NotRequired[ReasoningTrace]
@@ -3775,6 +3924,7 @@ class NodeRun(TypedDict):
     proposals: NotRequired[list[KnowledgeProposal]]
     reasoning_reduced: NotRequired[str | None]
     reused_from: NotRequired[str | None]
+    skills: NotRequired[list[SkillUse]]
     started_at: NotRequired[str | None]
     status: NotRequired[
         Literal[
@@ -4137,6 +4287,32 @@ class Settings(TypedDict):
     strict_offline: NotRequired[bool]
 
 
+class SkillCheck(TypedDict):
+    allowed_tools: NotRequired[str | None]
+    body: str
+    compatibility: NotRequired[str | None]
+    description: str
+    existing: NotRequired[Skill | None]
+    files: list[SkillFileInfo]
+    issues: list[SkillIssue]
+    license: NotRequired[str | None]
+    metadata: NotRequired[dict[str, str]]
+    name: str
+
+
+class SkillDetail(TypedDict):
+    body: str
+    files: list[SkillFileInfo]
+    issues: NotRequired[list[SkillIssue]]
+    skill: Skill
+    version: SkillVersion
+
+
+class SkillImportResult(TypedDict):
+    check: SkillCheck
+    skill: NotRequired[Skill | None]
+
+
 class Suite(TypedDict):
     cases: NotRequired[list[TestCase]]
     created_at: NotRequired[str]
@@ -4259,6 +4435,7 @@ class AgentConfig(TypedDict):
     raise_tool_errors: NotRequired[bool]
     request_options: NotRequired[dict[str, Any]]
     server_tools: NotRequired[list[str]]
+    skills: NotRequired[list[SkillBinding]]
     system_prompt: NotRequired[str]
     task: NotRequired[str | None]
     task_template: NotRequired[str]
@@ -4683,6 +4860,18 @@ class AttachRequest(TypedDict):
     workflow: NotRequired[WorkflowIn | None]
 
 
+class PartDetail(TypedDict):
+    agents: int
+    capabilities: list[str]
+    description: str
+    id: str
+    language: str
+    name: str
+    parts: list[str]
+    templates: list[str]
+    workflow: WorkflowIn
+
+
 class PreviewRequest(TypedDict):
     input: NotRequired[str | None]
     node_id: str
@@ -4821,6 +5010,7 @@ class ReleaseBundle(TypedDict):
     required_connections: NotRequired[dict[str, str]]
     runtime: NotRequired[dict[str, str]]
     server_tools: NotRequired[list[str]]
+    skills: NotRequired[list[SkillSnapshot]]
     subworkflows: NotRequired[list[SubworkflowSnapshot]]
     tool_trust: NotRequired[dict[str, Literal['trusted', 'user-authored', 'untrusted']]]
     tools: NotRequired[dict[str, dict[str, Any]]]

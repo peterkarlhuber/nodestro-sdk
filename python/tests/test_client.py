@@ -187,6 +187,47 @@ def test_library_agents_can_be_listed_and_copied(nodestro: NodestroClient) -> No
     nodestro.delete_agent_template(copy["id"])
 
 
+SKILL_MD = "---\nname: sdk-skill\ndescription: Checks the SDK.\n---\nStep one.\n"
+
+
+def test_skills_can_be_imported_edited_exported_and_deleted(nodestro: NodestroClient) -> None:
+    checked = nodestro.import_skill(SKILL_MD.encode(), filename="SKILL.md", dry_run=True)
+    assert checked["skill"] is None and checked["check"]["name"] == "sdk-skill"
+    skill = nodestro.create_skill({"SKILL.md": SKILL_MD, "assets/logo.bin": b"\x00\x01"}, note="first")
+    assert skill["version"] == 1
+    changed = nodestro.update_skill(skill["id"], {"SKILL.md": SKILL_MD + "Step two.\n", "assets/logo.bin": None})
+    assert changed["version"] == 2
+    assert [item["version"] for item in nodestro.list_skill_versions(skill["id"])] == [2, 1]
+    detail = nodestro.get_skill(skill["id"], version=1)
+    assert detail["body"].strip() == "Step one."
+    assert nodestro.read_skill_file(skill["id"], 2, "SKILL.md")["text"].endswith("Step two.\n")
+    assert nodestro.export_skill(skill["id"])[:2] == b"PK"
+    assert nodestro.check_skill({"SKILL.md": "no front matter"})["issues"][0]["code"] == "skill.frontmatter_invalid"
+    assert nodestro.set_skill_status(skill["id"], "disabled")["status"] == "disabled"
+    assert nodestro.skill_usage(skill["id"]) == []
+    nodestro.delete_skill(skill["id"])
+    assert skill["id"] not in {item["id"] for item in nodestro.list_skills()}
+
+
+def test_library_skills_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
+    listed = nodestro.list_library_skills("de")
+    assert {item["family"] for item in listed} == {"8d-problem-solving", "research-method"}
+    name = next(item["name"] for item in listed if item["family"] == "research-method")
+    assert nodestro.get_library_skill(name)["body"]
+    copy = nodestro.copy_library_skill(name)
+    assert copy["origin"].startswith("builtin:") and copy["name"] == name
+    nodestro.delete_skill(copy["id"])
+
+
+def test_building_blocks_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
+    listed = nodestro.list_library_parts("de")
+    assert len(listed) >= 14 and all(item["templates"] for item in listed)
+    assert nodestro.get_library_part("idea-market", "en")["workflow"]["nodes"]
+    copy = nodestro.copy_library_part("idea-market", "fr")
+    assert copy["id"].startswith("wf_") and copy["capabilities"]
+    nodestro.delete_workflow(copy["id"])
+
+
 def test_examples_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
     examples = nodestro.list_examples("en")
     assert len(examples) >= 24  # the library grows (25 with the web research example)
