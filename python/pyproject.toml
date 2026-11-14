@@ -7,7 +7,7 @@ name = "nodestro-client"
 version = "0.3.0"
 description = "Nodestro Client – the Python SDK of the Nodestro API (studio API and published workflow APIs)."
 readme = "README.md"
-license = "MIT"
+license = "LicenseRef-Proprietary"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{ name = "Peter Karlhuber" }]

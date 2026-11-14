@@ -108,4 +108,4 @@ Open work (known bugs, follow-ups and planned improvements) is listed in [docs/T
 Part of the Nodestro platform; see the
 [platform overview](https://github.com/peterkarlhuber/nodestro-studio/blob/master/docs/PLATFORM.md).
 
-MIT, see [LICENSE](LICENSE).
+Proprietary: Copyright (c) 2026 Levuvo. All rights reserved. See [LICENSE](LICENSE).

@@ -2,7 +2,7 @@
   "name": "@nodestro/client",
   "version": "0.3.0",
   "description": "Nodestro Client - the TypeScript SDK of the Nodestro API (studio API and published workflow APIs).",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -295,4 +295,4 @@ API keys are secrets: keep them out of code and logs, and use `https://` for eve
 computer. The SDK never follows redirects, so a key is not sent to another address, and it never puts a key into
 an error message. The server decides what a key may do. See the [repository README](../README.md#security).
 
-MIT, see [LICENSE](LICENSE).
+Proprietary: Copyright (c) 2026 Levuvo. All rights reserved. See [LICENSE](LICENSE).
