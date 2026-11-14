@@ -84,6 +84,11 @@ export type VersionSummary = Schemas["VersionSummary"];
 export type ResultFile = Stored<Schemas["ResultFile"]>;
 export type AgentTemplate = Stored<Schemas["AgentTemplate"]>;
 export type AgentTemplateIn = Schemas["AgentTemplateIn"];
+export type AgentTemplateVersion = Schemas["AgentTemplateVersion"];
+export type TemplateCheck = Schemas["TemplateCheck"];
+export type AgentTemplateImport = Schemas["ImportResult"];
+export type LibraryAgentSummary = Schemas["LibraryAgentSummary"];
+export type LibraryAgentDetail = Schemas["LibraryAgentDetail"];
 export type ToolInfo = Schemas["ToolInfo"];
 export type LocalOverview = Schemas["LocalOverview"];
 export type LocalStatus = Schemas["LocalStatus"];
@@ -596,6 +601,30 @@ export class NodestroClient {
     await this.http.request("DELETE", `/api/agents/templates/${enc(templateId)}`);
   }
 
+  /** Every saved version of a template, newest first (NAL-B1). */
+  async listAgentTemplateVersions(templateId: string): Promise<AgentTemplateVersion[]> {
+    return this.http.json("GET", `/api/agents/templates/${enc(templateId)}/versions`);
+  }
+
+  async getAgentTemplateVersion(templateId: string, version: number): Promise<AgentTemplateVersion> {
+    return this.http.json("GET", `/api/agents/templates/${enc(templateId)}/versions/${Math.trunc(version)}`);
+  }
+
+  /** What the template needs in this workspace (tools, model, service connections). */
+  async checkAgentTemplate(templateId: string): Promise<TemplateCheck> {
+    return this.http.json("GET", `/api/agents/templates/${enc(templateId)}/check`);
+  }
+
+  /** The template as a `nodestro-agent/1` document, without connections, knowledge files or approval rules. */
+  async exportAgentTemplate(templateId: string): Promise<Record<string, unknown>> {
+    return this.http.json("GET", `/api/agents/templates/${enc(templateId)}/export`);
+  }
+
+  /** Store an exported template as a new one; approval rules are reset and connections dropped. */
+  async importAgentTemplate(document: Record<string, unknown>): Promise<AgentTemplateImport> {
+    return this.http.json("POST", "/api/agents/templates/import", { body: document });
+  }
+
   /** The tools agents can use: built-in, custom and generated ones. */
   async listTools(): Promise<ToolInfo[]> {
     return this.http.json("GET", "/api/tools");
@@ -934,6 +963,24 @@ export class NodestroClient {
   async copyExample(templateId: string, options: { language?: string; tests?: boolean } = {}): Promise<Workflow> {
     const body = { language: options.language ?? null, tests: options.tests ?? false };
     return this.http.json("POST", `/api/library/${enc(templateId)}/copy`, { body });
+  }
+
+  /** The shipped agent templates (NAL-B1); reading stores nothing. */
+  async listLibraryAgents(language?: string): Promise<LibraryAgentSummary[]> {
+    return this.http.json("GET", "/api/library/agents", { query: { language } });
+  }
+
+  async getLibraryAgent(agentId: string, language?: string): Promise<LibraryAgentDetail> {
+    return this.http.json("GET", `/api/library/agents/${enc(agentId)}`, { query: { language } });
+  }
+
+  /** Store a shipped agent template as an own template (`services`: connection id per kind it needs). */
+  async copyLibraryAgent(
+    agentId: string,
+    options: { language?: string; model?: string; services?: Record<string, string> } = {},
+  ): Promise<AgentTemplate> {
+    const body = { language: options.language ?? null, model: options.model ?? null, services: options.services ?? {} };
+    return this.http.json("POST", `/api/library/agents/${enc(agentId)}/copy`, { body });
   }
 
   // ---- usage and model prices

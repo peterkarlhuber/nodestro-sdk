@@ -50,11 +50,37 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Templates */
+        /**
+         * List Templates
+         * @description Every template in its latest version.
+         */
         get: operations["list_templates_api_agents_templates_get"];
         put?: never;
-        /** Create Template */
+        /**
+         * Create Template
+         * @description A new template (version 1); its origin is always ``user``: only copies and imports set another one.
+         */
         post: operations["create_template_api_agents_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/templates/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Template
+         * @description Store an exported template as a new template of this workspace (version 1, origin ``import:<sha256>``).
+         */
+        post: operations["import_template_api_agents_templates_import_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -69,11 +95,95 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update Template */
+        /**
+         * Update Template
+         * @description Store a change as the next version (an unchanged save makes none). A body without ``meta`` (an older client)
+         *     keeps the stored description; the origin never changes.
+         */
         put: operations["update_template_api_agents_templates__template_id__put"];
         post?: never;
-        /** Delete Template */
+        /**
+         * Delete Template
+         * @description Delete a template with all its versions; agents copied from it into workflows stay as they are.
+         */
         delete: operations["delete_template_api_agents_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/templates/{template_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Template
+         * @description What the template's latest version needs in this workspace: tools, service connections, a usable model.
+         */
+        get: operations["check_template_api_agents_templates__template_id__check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/templates/{template_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Template
+         * @description The latest version as a file to share; nothing of this workspace's secrets or connections is in it.
+         */
+        get: operations["export_template_api_agents_templates__template_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/templates/{template_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Template Versions
+         * @description Every version, newest first.
+         */
+        get: operations["list_template_versions_api_agents_templates__template_id__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/templates/{template_id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Template Version */
+        get: operations["get_template_version_api_agents_templates__template_id__versions__version__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1778,6 +1888,67 @@ export interface paths {
         get: operations["list_library_api_library_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Library Agents
+         * @description The shipped agent templates in one language (default: the interface language); nothing is stored.
+         */
+        get: operations["list_library_agents_api_library_agents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/agents/{agent_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Library Agent
+         * @description One shipped template with its help, example requests, test cases and the agent a copy would get.
+         */
+        get: operations["get_library_agent_api_library_agents__agent_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/agents/{agent_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Library Agent
+         * @description Store a shipped template as a template of the person's own (version 1, origin ``builtin:...``). The copy is
+         *     independent: a newer package never changes it.
+         */
+        post: operations["copy_library_agent_api_library_agents__agent_id__copy_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5162,6 +5333,7 @@ export interface components {
              * @enum {string}
              */
             on_refusal: "raise" | "return";
+            origin?: components["schemas"]["TemplateRef"] | null;
             output?: components["schemas"]["OutputConfig"];
             quality?: components["schemas"]["QualityConfig"];
             /**
@@ -5180,6 +5352,8 @@ export interface components {
              * @default You are a helpful assistant.
              */
             system_prompt: string;
+            /** Task */
+            task?: string | null;
             /**
              * Task Template
              * @default {{input}}
@@ -5256,7 +5430,12 @@ export interface components {
             /** Tier */
             tier: string;
         };
-        /** AgentTemplate */
+        /**
+         * AgentTemplate
+         * @description A saved agent template in its latest version; every save that changes it makes a new version (NAL-B1).
+         *
+         *     A template stored before versions existed has ``version`` 1 and ``meta`` with ``origin`` ``user``.
+         */
         AgentTemplate: {
             agent: components["schemas"]["AgentConfig"];
             /**
@@ -5266,15 +5445,54 @@ export interface components {
             created_at?: string;
             /** Id */
             id?: string;
+            meta?: components["schemas"]["TemplateMeta"];
             /**
              * Updated At
              * Format: date-time
              */
             updated_at?: string;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
         };
         /** AgentTemplateIn */
         AgentTemplateIn: {
             agent: components["schemas"]["AgentConfig"];
+            meta?: components["schemas"]["TemplateMeta"];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * AgentTemplateVersion
+         * @description One version of an agent template; never changed once stored.
+         */
+        AgentTemplateVersion: {
+            agent: components["schemas"]["AgentConfig"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Created By
+             * @default
+             */
+            created_by: string;
+            meta?: components["schemas"]["TemplateMeta"];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Template Id */
+            template_id: string;
+            /** Version */
+            version: number;
         };
         /** AgentTestIn */
         AgentTestIn: {
@@ -8976,6 +9194,13 @@ export interface components {
             /** Template */
             template?: string | null;
         };
+        /** ImportResult */
+        ImportResult: {
+            check: components["schemas"]["TemplateCheck"];
+            /** Removed */
+            removed?: string[];
+            template: components["schemas"]["AgentTemplate"];
+        };
         /** InfoOut */
         InfoOut: {
             /** Approvals */
@@ -9567,6 +9792,56 @@ export interface components {
              * @default 0
              */
             workflows: number;
+        };
+        /** LibraryAgentCopy */
+        LibraryAgentCopy: {
+            /** Language */
+            language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            /** Model */
+            model?: string | null;
+            /** Services */
+            services?: {
+                [key: string]: string;
+            };
+        };
+        /** LibraryAgentDetail */
+        LibraryAgentDetail: {
+            agent: components["schemas"]["AgentConfig"];
+            /** Category */
+            category: string;
+            /** Description */
+            description: string;
+            /** Help */
+            help: string;
+            /** Icon */
+            icon: string;
+            /** Id */
+            id: string;
+            meta: components["schemas"]["TemplateMeta"];
+            /** Name */
+            name: string;
+            /** Number */
+            number: number;
+            /** Version */
+            version: string;
+        };
+        /** LibraryAgentSummary */
+        LibraryAgentSummary: {
+            /** Category */
+            category: string;
+            /** Description */
+            description: string;
+            /** Icon */
+            icon: string;
+            /** Id */
+            id: string;
+            meta: components["schemas"]["TemplateMeta"];
+            /** Name */
+            name: string;
+            /** Number */
+            number: number;
+            /** Version */
+            version: string;
         };
         /** LibraryCopy */
         LibraryCopy: {
@@ -14611,6 +14886,14 @@ export interface components {
             /** Tools */
             tools: string[];
         };
+        /**
+         * TemplateCheck
+         * @description What a template needs that this workspace lacks; empty ``issues``: it can be used as it is.
+         */
+        TemplateCheck: {
+            /** Issues */
+            issues?: components["schemas"]["ConfigIssue"][];
+        };
         /** TemplateDetail */
         TemplateDetail: {
             /** Agent Details */
@@ -14702,6 +14985,63 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * TemplateMeta
+         * @description The description of an agent template besides its agent (NAL-B1).
+         */
+        TemplateMeta: {
+            /**
+             * Category
+             * @default
+             */
+            category: string;
+            /** Examples */
+            examples?: string[];
+            /** Locale */
+            locale?: string | null;
+            /**
+             * Origin
+             * @default user
+             */
+            origin: string;
+            requirements?: components["schemas"]["TemplateRequirements"];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Tests */
+            tests?: components["schemas"]["TemplateTest"][];
+        };
+        /**
+         * TemplateRef
+         * @description An agent template in one of its versions (NAL-B1): where an agent of a workflow was copied from.
+         */
+        TemplateRef: {
+            /** Template Id */
+            template_id: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * TemplateRequirements
+         * @description What an agent template needs to work; checked before it is used, never enforced by the runtime.
+         */
+        TemplateRequirements: {
+            /** Capabilities */
+            capabilities?: ("tools" | "vision" | "structured_output" | "long_context")[];
+            /** Min Tier */
+            min_tier?: ("fast" | "standard" | "strong") | null;
+            /**
+             * Offline Capable
+             * @default true
+             */
+            offline_capable: boolean;
+            /** Services */
+            services?: string[];
+            /** Tools */
+            tools?: string[];
+        };
         /** TemplateSummary */
         TemplateSummary: {
             /** Agents */
@@ -14770,6 +15110,18 @@ export interface components {
             parameters: string[];
             /** Part Id */
             part_id: string;
+        };
+        /**
+         * TemplateTest
+         * @description A test case of an agent template: an input and what a good answer does (checked by a judge or a person).
+         */
+        TemplateTest: {
+            /** Expectations */
+            expectations?: string[];
+            /** Input */
+            input: string;
+            /** Name */
+            name: string;
         };
         /** TestCase */
         TestCase: {
@@ -16298,6 +16650,41 @@ export interface operations {
             };
         };
     };
+    import_template_api_agents_templates_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     update_template_api_agents_templates__template_id__put: {
         parameters: {
             query?: never;
@@ -16350,6 +16737,131 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    check_template_api_agents_templates__template_id__check_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateCheck"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_template_api_agents_templates__template_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_template_versions_api_agents_templates__template_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTemplateVersion"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_template_version_api_agents_templates__template_id__versions__version__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTemplateVersion"];
+                };
             };
             /** @description Error */
             "4XX": {
@@ -19851,6 +20363,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemplateSummary"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_library_agents_api_library_agents_get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryAgentSummary"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_library_agent_api_library_agents__agent_id__get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryAgentDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    copy_library_agent_api_library_agents__agent_id__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryAgentCopy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTemplate"];
                 };
             };
             /** @description Error */
