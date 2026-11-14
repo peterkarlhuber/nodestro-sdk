@@ -215,6 +215,34 @@ describe("studio API", () => {
     await nodestro.deleteAgentTemplate(copy.id);
   });
 
+  it("imports, edits, exports and deletes a skill", async () => {
+    const skillMd = "---\nname: sdk-skill-ts\ndescription: Checks the SDK.\n---\nStep one.\n";
+    const checked = await nodestro.importSkill(skillMd, { filename: "SKILL.md", dryRun: true });
+    expect(checked.skill).toBeNull();
+    expect(checked.check.name).toBe("sdk-skill-ts");
+    const skill = await nodestro.createSkill({ "SKILL.md": skillMd, "assets/logo.bin": new Uint8Array([0, 1]) });
+    expect(skill.version).toBe(1);
+    const changed = await nodestro.updateSkill(skill.id ?? "", { "SKILL.md": `${skillMd}Step two.\n`, "assets/logo.bin": null });
+    expect(changed.version).toBe(2);
+    expect((await nodestro.listSkillVersions(skill.id ?? "")).map((item) => item.version)).toEqual([2, 1]);
+    expect((await nodestro.getSkill(skill.id ?? "", 1)).body.trim()).toBe("Step one.");
+    const zip = await nodestro.exportSkill(skill.id ?? "");
+    expect([zip[0], zip[1]]).toEqual([0x50, 0x4b]);
+    expect((await nodestro.checkSkill({ "SKILL.md": "no front matter" })).issues[0]?.code).toBe("skill.frontmatter_invalid");
+    await nodestro.deleteSkill(skill.id ?? "");
+    expect((await nodestro.listSkills()).map((item) => item.id)).not.toContain(skill.id);
+  });
+
+  it("lists and copies the library skills", async () => {
+    const listed = await nodestro.listLibrarySkills("de");
+    expect(new Set(listed.map((item) => item.family))).toEqual(new Set(["8d-problem-solving", "research-method"]));
+    const name = listed.find((item) => item.family === "research-method")?.name ?? "";
+    expect((await nodestro.getLibrarySkill(name)).body.length).toBeGreaterThan(0);
+    const copy = await nodestro.copyLibrarySkill(name);
+    expect(copy.origin?.startsWith("builtin:")).toBe(true);
+    await nodestro.deleteSkill(copy.id ?? "");
+  });
+
   it("lists and copies the examples", async () => {
     const examples = await nodestro.listExamples("en");
     expect(examples.length).toBeGreaterThanOrEqual(24); // the library grows (25 with the web research example)

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added (NAL-B3): the skill library in both SDKs.
+  - Python: `list_skills`, `get_skill`, `list_skill_versions`, `read_skill_file`, `import_skill` (ZIP or `SKILL.md`,
+    `dry_run`, `skill_id`), `create_skill`/`update_skill` (text, bytes, or `None` to keep a file), `check_skill`,
+    `export_skill` (ZIP bytes), `copy_skill`, `set_skill_status`, `archive_skill`, `delete_skill`, `skill_usage`,
+    `list_library_skills`, `get_library_skill` and `copy_library_skill`.
+  - TypeScript: the same methods in camelCase.
+  - Types are regenerated from the API contract (`Skill`, `SkillVersion`, `SkillDetail`, `SkillCheck`,
+    `SkillBinding`, ...).
+
 - Contract (MIG-NOD-9): `openapi/nodestro-api.json` from nodestro-api #136, types of both SDKs regenerated.
   Additions only: `POST /api/diagnostics/database-permissions/recovery` (restart the desktop app into its repair
   mode for the database's permissions) and `RecoveryRequest`. No client method: the desktop's diagnostics page

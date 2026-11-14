@@ -89,6 +89,18 @@ export type TemplateCheck = Schemas["TemplateCheck"];
 export type AgentTemplateImport = Schemas["ImportResult"];
 export type LibraryAgentSummary = Schemas["LibraryAgentSummary"];
 export type LibraryAgentDetail = Schemas["LibraryAgentDetail"];
+export type Skill = Schemas["Skill"];
+export type SkillVersion = Schemas["SkillVersion"];
+export type SkillDetail = Schemas["SkillDetail"];
+export type SkillCheck = Schemas["SkillCheck"];
+export type SkillImportResult = Schemas["SkillImportResult"];
+export type SkillFileText = Schemas["SkillFileText"];
+export type SkillUser = Schemas["SkillUser"];
+export type SkillBinding = Schemas["SkillBinding"];
+export type LibrarySkill = Schemas["LibrarySkill"];
+export type LibrarySkillDetail = Schemas["LibrarySkillDetail"];
+/** A skill file to save: text, bytes, or `null` to keep the file of the latest version. */
+export type SkillFiles = Record<string, string | Uint8Array | null>;
 export type ToolInfo = Schemas["ToolInfo"];
 export type LocalOverview = Schemas["LocalOverview"];
 export type LocalStatus = Schemas["LocalStatus"];
@@ -983,6 +995,102 @@ export class NodestroClient {
     return this.http.json("POST", `/api/library/agents/${enc(agentId)}/copy`, { body });
   }
 
+  // ---- skills (NAL-B3)
+
+  /** The skill library: every skill in its latest version. */
+  async listSkills(): Promise<Skill[]> {
+    return this.http.json("GET", "/api/skills");
+  }
+
+  /** A skill in its latest version (or `version`): instructions, files and findings. */
+  async getSkill(skillId: string, version?: number): Promise<SkillDetail> {
+    return this.http.json("GET", `/api/skills/${enc(skillId)}`, { query: { version } });
+  }
+
+  /** Every version of a skill, newest first. */
+  async listSkillVersions(skillId: string): Promise<SkillVersion[]> {
+    return this.http.json("GET", `/api/skills/${enc(skillId)}/versions`);
+  }
+
+  async readSkillFile(skillId: string, version: number, path: string): Promise<SkillFileText> {
+    return this.http.json("GET", `/api/skills/${enc(skillId)}/versions/${enc(String(version))}/file`, {
+      query: { path },
+    });
+  }
+
+  /**
+   * Import a skill ZIP or a `SKILL.md` (at most 10 MB). `dryRun` only checks it (validation report and preview);
+   * `skillId` stores it as the next version of that skill. Errors refuse it, warnings do not.
+   */
+  async importSkill(
+    file: Blob | Uint8Array | string,
+    options: { filename?: string; dryRun?: boolean; skillId?: string } = {},
+  ): Promise<SkillImportResult> {
+    const blob = file instanceof Blob ? file : new Blob([typeof file === "string" ? file : new Uint8Array(file)]);
+    const named = typeof File !== "undefined" && file instanceof File && file.name ? file.name : "skill.zip";
+    const form = new FormData();
+    form.append("file", blob, options.filename ?? named);
+    form.append("dry_run", options.dryRun ? "true" : "false");
+    if (options.skillId !== undefined) form.append("skill_id", options.skillId);
+    return this.http.json("POST", "/api/skills/import", { form });
+  }
+
+  /** A new skill from its files (`SKILL.md` required). */
+  async createSkill(files: SkillFiles, note = ""): Promise<Skill> {
+    return this.http.json("POST", "/api/skills", { body: skillBody(files, note) });
+  }
+
+  /** Store changed files as the next version; `null` keeps a file of the latest version. */
+  async updateSkill(skillId: string, files: SkillFiles, note = ""): Promise<Skill> {
+    return this.http.json("PUT", `/api/skills/${enc(skillId)}`, { body: skillBody(files, note) });
+  }
+
+  /** The findings for a package without storing it. */
+  async checkSkill(files: SkillFiles, skillId?: string): Promise<SkillCheck> {
+    return this.http.json("POST", "/api/skills/check", { query: { skill_id: skillId }, body: skillBody(files, "") });
+  }
+
+  /** A skill version as a standard Agent Skills ZIP. */
+  async exportSkill(skillId: string, version?: number): Promise<Uint8Array> {
+    return this.http.bytes("GET", `/api/skills/${enc(skillId)}/export`, { query: { version } });
+  }
+
+  async copySkill(skillId: string, name: string): Promise<Skill> {
+    return this.http.json("POST", `/api/skills/${enc(skillId)}/copy`, { body: { name } });
+  }
+
+  async setSkillStatus(skillId: string, status: "active" | "disabled"): Promise<Skill> {
+    return this.http.json("POST", `/api/skills/${enc(skillId)}/status`, { body: { status } });
+  }
+
+  /** Archive a skill (`admin`): it can no longer run or be assigned. */
+  async archiveSkill(skillId: string): Promise<Skill> {
+    return this.http.json("POST", `/api/skills/${enc(skillId)}/archive`);
+  }
+
+  /** Delete a skill (`admin`); refused with `skill.in_use` while an agent uses it. */
+  async deleteSkill(skillId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/skills/${enc(skillId)}`);
+  }
+
+  async skillUsage(skillId: string): Promise<SkillUser[]> {
+    return this.http.json("GET", `/api/skills/${enc(skillId)}/usage`);
+  }
+
+  /** The shipped skills in one language (English where one is missing). */
+  async listLibrarySkills(language?: string): Promise<LibrarySkill[]> {
+    return this.http.json("GET", "/api/library/skills", { query: { language } });
+  }
+
+  async getLibrarySkill(name: string): Promise<LibrarySkillDetail> {
+    return this.http.json("GET", `/api/library/skills/${enc(name)}`);
+  }
+
+  /** Store a shipped skill as a skill of the workspace (origin `builtin:...`). */
+  async copyLibrarySkill(name: string): Promise<Skill> {
+    return this.http.json("POST", `/api/library/skills/${enc(name)}/copy`);
+  }
+
   // ---- usage and model prices
 
   /** Tokens and costs of the last `days` days; `cost_state` tells known, partial and unknown costs apart. */
@@ -1418,6 +1526,18 @@ function modelPath(model: string): string {
 function amount(value: unknown): string {
   if (typeof value !== "string") throw new TypeError(`limitUsd must be a decimal string, not ${typeof value}`);
   return value;
+}
+
+/** The body of a skill save: text files as `text`, bytes as `base64`, `null` as `keep`. */
+function skillBody(files: SkillFiles, note: string): { files: Record<string, unknown>[]; note: string } {
+  const entries = Object.entries(files).map(([path, value]) => {
+    if (value === null) return { path, keep: true };
+    if (typeof value === "string") return { path, text: value };
+    let binary = "";
+    for (const byte of value) binary += String.fromCharCode(byte);
+    return { path, base64: btoa(binary) };
+  });
+  return { files: entries, note };
 }
 
 /** A multipart form with each file as `files`. */
