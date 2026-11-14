@@ -297,4 +297,4 @@ required yet.
   (`crypto.randomUUID` exists only in secure contexts). Still, use HTTPS for anything that is not on this
   computer.
 
-MIT, see [LICENSE](LICENSE).
+Proprietary: Copyright (c) 2026 Levuvo. All rights reserved. See [LICENSE](LICENSE).
