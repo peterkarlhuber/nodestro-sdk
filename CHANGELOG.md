@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added (NAL-B4) to both SDKs:
+  - Skill groups: Python `list_skill_groups`, `create_skill_group`, `update_skill_group`, `delete_skill_group`;
+    TypeScript `listSkillGroups`, `createSkillGroup`, `updateSkillGroup`, `deleteSkillGroup`.
+  - Skill usage: `skill_stats` / `skillStats`.
+  - Tool drafts from skill scripts: `draft_tool_from_skill_script` / `draftToolFromSkillScript`. They go through the
+    unchanged tool chain (isolation and a person's approval).
+  - Types `SkillGroup`, `SkillGroupIn`, `SkillStats` and `ToolJob`, regenerated from the API's OpenAPI document. The
+    new types include `SkillSelection`, `Run.recommended_skills`, `SkillBinding.group_id` and `ToolInfo.origin`.
 - Added the library's building blocks (NAL-B3): Python `list_library_parts`, `get_library_part`,
   `copy_library_part`; TypeScript `listLibraryParts`, `getLibraryPart`, `copyLibraryPart` (types `PartSummary`,
   `PartDetail`).

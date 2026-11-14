@@ -101,6 +101,10 @@ export type LibrarySkill = Schemas["LibrarySkill"];
 export type LibrarySkillDetail = Schemas["LibrarySkillDetail"];
 export type PartSummary = Schemas["PartSummary"];
 export type PartDetail = Schemas["PartDetail"];
+export type SkillGroup = Schemas["SkillGroup"];
+export type SkillGroupIn = Schemas["SkillGroupIn"];
+export type SkillStats = Schemas["SkillStats"];
+export type ToolJob = Schemas["ToolJob"];
 /** A skill file to save: text, bytes, or `null` to keep the file of the latest version. */
 export type SkillFiles = Record<string, string | Uint8Array | null>;
 export type ToolInfo = Schemas["ToolInfo"];
@@ -1077,6 +1081,40 @@ export class NodestroClient {
 
   async skillUsage(skillId: string): Promise<SkillUser[]> {
     return this.http.json("GET", `/api/skills/${enc(skillId)}/usage`);
+  }
+
+  /** The skill groups of the library (NAL-B4). */
+  async listSkillGroups(): Promise<SkillGroup[]> {
+    return this.http.json("GET", "/api/skill-groups");
+  }
+
+  /** A named set of skills; the editor assigns its members one by one, each in its current version. */
+  async createSkillGroup(group: SkillGroupIn): Promise<SkillGroup> {
+    return this.http.json("POST", "/api/skill-groups", { body: group });
+  }
+
+  async updateSkillGroup(groupId: string, group: SkillGroupIn): Promise<SkillGroup> {
+    return this.http.json("PUT", `/api/skill-groups/${enc(groupId)}`, { body: group });
+  }
+
+  /** Delete a group; no skill and no agent changes. */
+  async deleteSkillGroup(groupId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/skill-groups/${enc(groupId)}`);
+  }
+
+  /** How skills were used in the runs of the last `days` days (at most the newest 2000 runs). */
+  async skillStats(days = 30): Promise<SkillStats[]> {
+    return this.http.json("GET", "/api/skill-stats", { query: { days } });
+  }
+
+  /**
+   * Start a tool job that turns one script of a skill version into a tool draft. It goes through the tool chain
+   * unchanged: tests only in the isolating sandbox (`sandbox.isolation_required` without one) and a person's approval.
+   */
+  async draftToolFromSkillScript(skillId: string, version: number, path: string, note = ""): Promise<ToolJob> {
+    return this.http.json("POST", `/api/skills/${enc(skillId)}/versions/${version}/script-draft`, {
+      body: { path, note },
+    });
   }
 
   /** The shipped skills in one language (English where one is missing). */

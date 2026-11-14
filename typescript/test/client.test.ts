@@ -243,6 +243,23 @@ describe("studio API", () => {
     await nodestro.deleteSkill(copy.id ?? "");
   });
 
+  it("manages skill groups and reads the skill usage", async () => {
+    const skill = await nodestro.createSkill({
+      "SKILL.md": "---\nname: ts-group\ndescription: Checks groups.\n---\nStep one.\n",
+    });
+    const group = await nodestro.createSkillGroup({ name: "TS methods", description: "", skill_ids: [skill.id ?? ""] });
+    expect(group.skill_ids).toEqual([skill.id]);
+    const renamed = await nodestro.updateSkillGroup(group.id ?? "", { name: "TS", description: "", skill_ids: [] });
+    expect(renamed.name).toBe("TS");
+    expect((await nodestro.listSkillGroups()).map((item) => item.id)).toContain(group.id);
+    await nodestro.deleteSkillGroup(group.id ?? "");
+    expect(Array.isArray(await nodestro.skillStats(7))).toBe(true);
+    await expect(nodestro.draftToolFromSkillScript(skill.id ?? "", 1, "scripts/none.py")).rejects.toMatchObject({
+      code: "skill.script_not_found",
+    });
+    await nodestro.deleteSkill(skill.id ?? "");
+  });
+
   it("lists and copies the building blocks", async () => {
     const listed = await nodestro.listLibraryParts("de");
     expect(listed.length).toBeGreaterThanOrEqual(14);

@@ -219,6 +219,22 @@ def test_library_skills_can_be_listed_and_copied(nodestro: NodestroClient) -> No
     nodestro.delete_skill(copy["id"])
 
 
+def test_skill_groups_usage_and_script_drafts(nodestro: NodestroClient) -> None:
+    files = {"SKILL.md": SKILL_MD.replace("sdk-skill", "sdk-group"), "scripts/a.py": "print(1)\n"}
+    skill = nodestro.create_skill(files)
+    group = nodestro.create_skill_group("SDK methods", [skill["id"]], description="For the SDK test")
+    assert group["skill_ids"] == [skill["id"]]
+    renamed = nodestro.update_skill_group(group["id"], "SDK", [skill["id"]])
+    assert renamed["name"] == "SDK" and group["id"] in {item["id"] for item in nodestro.list_skill_groups()}
+    nodestro.delete_skill_group(group["id"])
+    assert isinstance(nodestro.skill_stats(7), list)
+    # Only a script of the version can become a draft (the API test covers isolation and approval).
+    with pytest.raises(NodestroAPIError) as refused:
+        nodestro.draft_tool_from_skill_script(skill["id"], 1, "scripts/none.py", note="test")
+    assert refused.value.status == 404 and refused.value.code == "skill.script_not_found"
+    nodestro.delete_skill(skill["id"])
+
+
 def test_building_blocks_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
     listed = nodestro.list_library_parts("de")
     assert len(listed) >= 14 and all(item["templates"] for item in listed)

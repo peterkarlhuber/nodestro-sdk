@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired
+from typing import Any, Literal, NotRequired, TypeAlias
 
 from typing_extensions import TypedDict
 
@@ -2441,6 +2441,11 @@ class ScheduleIn(TypedDict):
     workflow_id: str
 
 
+class ScriptDraftIn(TypedDict):
+    note: NotRequired[str]
+    path: str
+
+
 class SearchHit(TypedDict):
     file_id: str | None
     ranks: NotRequired[dict[str, int]]
@@ -2557,9 +2562,16 @@ class Skill(TypedDict):
 
 
 class SkillBinding(TypedDict):
+    group_id: NotRequired[str | None]
     mode: NotRequired[Literal['always', 'on_demand']]
     skill_id: str
     version: int
+
+
+class SkillCandidate(TypedDict):
+    chosen: NotRequired[bool]
+    name: str
+    score: float
 
 
 class SkillCopyIn(TypedDict):
@@ -2593,6 +2605,24 @@ class SkillFileText(TypedDict):
     truncated: NotRequired[bool]
 
 
+class SkillGroup(TypedDict):
+    created_at: NotRequired[str]
+    description: NotRequired[str]
+    id: NotRequired[str]
+    name: str
+    skill_ids: NotRequired[list[str]]
+    updated_at: NotRequired[str]
+
+
+SkillId: TypeAlias = str
+
+
+class SkillGroupIn(TypedDict):
+    description: NotRequired[str]
+    name: str
+    skill_ids: NotRequired[list[SkillId]]
+
+
 class SkillIn(TypedDict):
     files: list[SkillFileIn]
     note: NotRequired[str]
@@ -2607,6 +2637,15 @@ class SkillIssue(TypedDict):
     severity: Literal['error', 'warning']
 
 
+class SkillSelection(TypedDict):
+    assigned: NotRequired[int]
+    candidates: NotRequired[list[SkillCandidate]]
+    ignored: NotRequired[list[str]]
+    method: NotRequired[Literal['all', 'bm25']]
+    offered: NotRequired[list[str]]
+    recommended: NotRequired[list[str]]
+
+
 class SkillSnapshot(TypedDict):
     digest: str
     files: NotRequired[dict[str, str]]
@@ -2614,6 +2653,21 @@ class SkillSnapshot(TypedDict):
     origin: NotRequired[str]
     skill_id: str
     version: int
+
+
+class SkillStats(TypedDict):
+    checks: NotRequired[int]
+    checks_passed: NotRequired[int]
+    failed: NotRequired[int]
+    files_read: NotRequired[int]
+    last_used: NotRequired[str | None]
+    loaded: NotRequired[int]
+    name: str
+    offered: NotRequired[int]
+    recommended: NotRequired[int]
+    runs: NotRequired[int]
+    succeeded: NotRequired[int]
+    versions: NotRequired[list[int]]
 
 
 class SkillStatusIn(TypedDict):
@@ -3050,6 +3104,7 @@ class ToolJob(TypedDict):
     message: NotRequired[str]
     message_code: NotRequired[str]
     message_params: NotRequired[dict[str, Any]]
+    origin: NotRequired[str | None]
     requirement: str
     status: NotRequired[
         Literal[
@@ -3924,6 +3979,7 @@ class NodeRun(TypedDict):
     proposals: NotRequired[list[KnowledgeProposal]]
     reasoning_reduced: NotRequired[str | None]
     reused_from: NotRequired[str | None]
+    skill_selection: NotRequired[SkillSelection | None]
     skills: NotRequired[list[SkillUse]]
     started_at: NotRequired[str | None]
     status: NotRequired[
@@ -4398,6 +4454,7 @@ class ToolInfo(TypedDict):
     kind: Literal['builtin', 'custom', 'generated', 'mcp']
     mcp_name: NotRequired[str | None]
     name: str
+    origin: NotRequired[str | None]
     requirement: NotRequired[str | None]
     server_id: NotRequired[str | None]
     server_name: NotRequired[str | None]
@@ -4906,6 +4963,7 @@ class Run(TypedDict):
     output: NotRequired[Any]
     parent_node_id: NotRequired[str | None]
     parent_run_id: NotRequired[str | None]
+    recommended_skills: NotRequired[list[str]]
     release_id: NotRequired[str | None]
     release_number: NotRequired[int | None]
     resumed_from: NotRequired[str | None]
