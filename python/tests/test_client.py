@@ -219,6 +219,15 @@ def test_library_skills_can_be_listed_and_copied(nodestro: NodestroClient) -> No
     nodestro.delete_skill(copy["id"])
 
 
+def test_building_blocks_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
+    listed = nodestro.list_library_parts("de")
+    assert len(listed) >= 14 and all(item["templates"] for item in listed)
+    assert nodestro.get_library_part("idea-market", "en")["workflow"]["nodes"]
+    copy = nodestro.copy_library_part("idea-market", "fr")
+    assert copy["id"].startswith("wf_") and copy["capabilities"]
+    nodestro.delete_workflow(copy["id"])
+
+
 def test_examples_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
     examples = nodestro.list_examples("en")
     assert len(examples) >= 24  # the library grows (25 with the web research example)

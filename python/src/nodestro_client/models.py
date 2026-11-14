@@ -1243,6 +1243,10 @@ class LibraryModelPlan(TypedDict):
     local: bool
 
 
+class LibraryPartCopy(TypedDict):
+    language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
+
+
 class LocalAdvice(TypedDict):
     code: str
     model: NotRequired[str | None]
@@ -1686,6 +1690,17 @@ class ParsedRows(TypedDict):
     columns: list[str]
     mapping: dict[str, str]
     rows: list[dict[str, str]]
+
+
+class PartSummary(TypedDict):
+    agents: int
+    capabilities: list[str]
+    description: str
+    id: str
+    language: str
+    name: str
+    parts: list[str]
+    templates: list[str]
 
 
 class PlaceholderInfo(TypedDict):
@@ -4843,6 +4858,18 @@ class AttachRequest(TypedDict):
     ref_id: str
     variant: NotRequired[Literal['saved', 'draft']]
     workflow: NotRequired[WorkflowIn | None]
+
+
+class PartDetail(TypedDict):
+    agents: int
+    capabilities: list[str]
+    description: str
+    id: str
+    language: str
+    name: str
+    parts: list[str]
+    templates: list[str]
+    workflow: WorkflowIn
 
 
 class PreviewRequest(TypedDict):

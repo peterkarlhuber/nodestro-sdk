@@ -1130,6 +1130,28 @@ class NodestroClient:
         """Store a shipped skill as a skill of the workspace (origin ``builtin:...``)."""
         return cast(models.Skill, self._http.json("POST", f"/api/library/skills/{path_segment(name)}/copy"))
 
+    def list_library_parts(self, language: str | None = None) -> list[models.PartSummary]:
+        """The building blocks (parts) templates run as teams or sub-workflows, as gallery entries."""
+        return cast(
+            list[models.PartSummary], self._http.json("GET", "/api/library/parts", params={"language": language})
+        )
+
+    def get_library_part(self, part_id: str, language: str | None = None) -> models.PartDetail:
+        """One building block with the workflow a copy would get."""
+        return cast(
+            models.PartDetail,
+            self._http.json("GET", f"/api/library/parts/{path_segment(part_id)}", params={"language": language}),
+        )
+
+    def copy_library_part(self, part_id: str, language: str | None = None) -> models.Workflow:
+        """Create an ordinary workflow from a building block (the parts it runs are saved first)."""
+        return cast(
+            models.Workflow,
+            self._http.json(
+                "POST", f"/api/library/parts/{path_segment(part_id)}/copy", json_body={"language": language}
+            ),
+        )
+
     # ---- publishing ------------------------------------------------------------------------
 
     def publish(self, workflow_id: str, **options: Any) -> models.PublishOut:

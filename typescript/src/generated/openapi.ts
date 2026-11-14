@@ -1976,6 +1976,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Library Parts
+         * @description The building blocks templates run as teams or sub-workflows, in one language; nothing is stored.
+         */
+        get: operations["list_library_parts_api_library_parts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/parts/{part_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Library Part
+         * @description One building block with the workflow a copy would get (a preview, never a run).
+         */
+        get: operations["get_library_part_api_library_parts__part_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/parts/{part_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Library Part
+         * @description Create an ordinary, independent workflow from a building block; agents get the workspace's model tiers.
+         *
+         *     The parts it runs are saved first, as workflows of their own, and pinned to their first version; a copy that
+         *     fails half-way leaves nothing behind. The copy can serve as a team in the editor's palette right away.
+         */
+        post: operations["copy_library_part_api_library_parts__part_id__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/skills": {
         parameters: {
             query?: never;
@@ -10204,6 +10267,11 @@ export interface components {
             /** Local */
             local: boolean;
         };
+        /** LibraryPartCopy */
+        LibraryPartCopy: {
+            /** Language */
+            language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+        };
         /** LibrarySkill */
         LibrarySkill: {
             /** Description */
@@ -11788,6 +11856,48 @@ export interface components {
             rows: {
                 [key: string]: string;
             }[];
+        };
+        /** PartDetail */
+        PartDetail: {
+            /** Agents */
+            agents: number;
+            /** Capabilities */
+            capabilities: string[];
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Parts */
+            parts: string[];
+            /** Templates */
+            templates: string[];
+            workflow: components["schemas"]["WorkflowIn"];
+        };
+        /**
+         * PartSummary
+         * @description A building block as the gallery lists it: a small workflow that templates run as a team or sub-workflow.
+         */
+        PartSummary: {
+            /** Agents */
+            agents: number;
+            /** Capabilities */
+            capabilities: string[];
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Parts */
+            parts: string[];
+            /** Templates */
+            templates: string[];
         };
         /** PendingApproval */
         PendingApproval: {
@@ -21175,6 +21285,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTemplate"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_library_parts_api_library_parts_get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartSummary"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_library_part_api_library_parts__part_id__get: {
+        parameters: {
+            query?: {
+                language?: ("de" | "en" | "es" | "fr" | "pt-BR" | "it") | null;
+            };
+            header?: never;
+            path: {
+                part_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    copy_library_part_api_library_parts__part_id__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                part_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryPartCopy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Error */

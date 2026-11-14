@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added the library's building blocks (NAL-B3): Python `list_library_parts`, `get_library_part`,
+  `copy_library_part`; TypeScript `listLibraryParts`, `getLibraryPart`, `copyLibraryPart` (types `PartSummary`,
+  `PartDetail`).
 - Added (NAL-B3): the skill library in both SDKs.
   - Python: `list_skills`, `get_skill`, `list_skill_versions`, `read_skill_file`, `import_skill` (ZIP or `SKILL.md`,
     `dry_run`, `skill_id`), `create_skill`/`update_skill` (text, bytes, or `None` to keep a file), `check_skill`,

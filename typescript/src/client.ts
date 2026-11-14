@@ -99,6 +99,8 @@ export type SkillUser = Schemas["SkillUser"];
 export type SkillBinding = Schemas["SkillBinding"];
 export type LibrarySkill = Schemas["LibrarySkill"];
 export type LibrarySkillDetail = Schemas["LibrarySkillDetail"];
+export type PartSummary = Schemas["PartSummary"];
+export type PartDetail = Schemas["PartDetail"];
 /** A skill file to save: text, bytes, or `null` to keep the file of the latest version. */
 export type SkillFiles = Record<string, string | Uint8Array | null>;
 export type ToolInfo = Schemas["ToolInfo"];
@@ -1089,6 +1091,21 @@ export class NodestroClient {
   /** Store a shipped skill as a skill of the workspace (origin `builtin:...`). */
   async copyLibrarySkill(name: string): Promise<Skill> {
     return this.http.json("POST", `/api/library/skills/${enc(name)}/copy`);
+  }
+
+  /** The building blocks (parts) templates run as teams or sub-workflows, as gallery entries. */
+  async listLibraryParts(language?: string): Promise<PartSummary[]> {
+    return this.http.json("GET", "/api/library/parts", { query: { language } });
+  }
+
+  /** One building block with the workflow a copy would get. */
+  async getLibraryPart(partId: string, language?: string): Promise<PartDetail> {
+    return this.http.json("GET", `/api/library/parts/${enc(partId)}`, { query: { language } });
+  }
+
+  /** Create an ordinary workflow from a building block (the parts it runs are saved first). */
+  async copyLibraryPart(partId: string, language?: string): Promise<Workflow> {
+    return this.http.json("POST", `/api/library/parts/${enc(partId)}/copy`, { body: { language } });
   }
 
   // ---- usage and model prices
