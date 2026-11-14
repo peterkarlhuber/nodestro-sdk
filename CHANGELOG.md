@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Contract (NAL-C1, NAL-A2): `openapi/nodestro-api.json` from nodestro-api #134, with the types of both SDKs
+  regenerated. Additions only:
+  - `GET /api/app` (app discovery): `AppDiscovery` and its parts.
+  - `FormField` and `InfoOut.form` / `InfoOut.form_version` (the input form of a published app).
+  - The web tools' source ledger: `SourceEntry` and a run's `sources`.
+
+  A `discover()` method on the clients follows separately.
+
 ### Service connections and the built-in tool catalog (NAL-A1, 2026-11-13)
 
 - Both SDKs: `list_builtin_tools`/`listBuiltinTools` (tool specs) and service connections: status, types, list,

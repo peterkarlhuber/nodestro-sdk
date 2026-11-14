@@ -228,6 +228,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover the app contract, the backend and (signed in) its apps
+         * @description Without credentials: contract, backend id and name, sign-in methods, TLS. With an API key or a session: also versions, capabilities and the apps this credential may use (docs/app-api/v1.md).
+         */
+        get: operations["discover_api_app_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/approvals": {
         parameters: {
             query?: never;
@@ -5559,6 +5579,48 @@ export interface components {
             workflow_id: string;
         };
         /**
+         * AppDiscovery
+         * @description The answer of ``GET /api/app``. Without credentials only ``contract``, ``backend`` (id, name), ``auth`` and
+         *     ``tls``; with an API key or a session also ``capabilities`` and the ``apps`` that credential may use.
+         */
+        AppDiscovery: {
+            /** Apps */
+            apps?: components["schemas"]["AppSummary"][] | null;
+            auth?: components["schemas"]["AuthInfo"];
+            backend: components["schemas"]["BackendInfo"];
+            /** Capabilities */
+            capabilities?: string[] | null;
+            contract?: components["schemas"]["ContractInfo"];
+            tls?: components["schemas"]["TlsInfo"];
+        };
+        /** AppLinks */
+        AppLinks: {
+            /** Info */
+            info: string;
+            /** Openapi */
+            openapi: string;
+        };
+        /**
+         * AppSummary
+         * @description A published workflow the signed-in client may use.
+         */
+        AppSummary: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Languages */
+            languages?: string[];
+            links: components["schemas"]["AppLinks"];
+            /** Name */
+            name: string;
+            /** Release */
+            release: number;
+            /** Slug */
+            slug: string;
+        };
+        /**
          * ApprovalConfig
          * @description A pause for a person who approves or rejects the results that arrive here.
          */
@@ -6054,10 +6116,35 @@ export interface components {
             /** Version */
             version?: string | null;
         };
+        /**
+         * AuthInfo
+         * @description How a client can sign in to this backend.
+         */
+        AuthInfo: {
+            /** Methods */
+            methods?: ("api_key" | "session" | "launch_link" | "pairing")[];
+        };
         /** AutostartIn */
         AutostartIn: {
             /** Enabled */
             enabled: boolean;
+        };
+        /**
+         * BackendInfo
+         * @description The backend: a stable id per installation or package, the operator's name for it and (signed in) its versions.
+         */
+        BackendInfo: {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Runtime Version */
+            runtime_version?: string | null;
+            /** Version */
+            version?: string | null;
         };
         /** BackupContents */
         BackupContents: {
@@ -7712,6 +7799,22 @@ export interface components {
             /** Type */
             type: string;
         };
+        /**
+         * ContractInfo
+         * @description Which contract and versions the backend serves.
+         */
+        ContractInfo: {
+            /** Current */
+            current?: number;
+            /**
+             * Name
+             * @default nodestro-app
+             * @constant
+             */
+            name: "nodestro-app";
+            /** Versions */
+            versions?: number[];
+        };
         /** ConversationDetail */
         ConversationDetail: {
             /** Attachment States */
@@ -8624,6 +8727,48 @@ export interface components {
             /** Size */
             size: number;
         };
+        /**
+         * FormField
+         * @description One field of an app's input form, in the order the form shows them (``InfoOut.form``, form version 1).
+         *
+         *     ``type`` is one of :data:`FORM_FIELD_TYPES`; a later form version may add types, which a client that does not know
+         *     them renders as JSON input. A field's value goes into ``values.<name>`` of a run request.
+         */
+        FormField: {
+            /** Accept */
+            accept?: string[];
+            /** Accept Formats */
+            accept_formats?: string[];
+            /** Default */
+            default?: unknown;
+            /**
+             * Help
+             * @default
+             */
+            help: string;
+            /** Label */
+            label: string;
+            /** Max Files */
+            max_files?: number | null;
+            /** Max Mb */
+            max_mb?: number | null;
+            /**
+             * Multiple
+             * @default false
+             */
+            multiple: boolean;
+            /** Name */
+            name: string;
+            /** Options */
+            options?: string[];
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Type */
+            type: string;
+        };
         /** FormatsInfo */
         FormatsInfo: {
             /** Formats */
@@ -8848,6 +8993,13 @@ export interface components {
             file_inputs?: {
                 [key: string]: unknown;
             }[];
+            /** Form */
+            form?: components["schemas"]["FormField"][];
+            /**
+             * Form Version
+             * @default 1
+             */
+            form_version: number;
             /** Input Schema */
             input_schema: {
                 [key: string]: unknown;
@@ -10917,7 +11069,7 @@ export interface components {
              * @default model
              * @enum {string}
              */
-            source: "model" | "tool";
+            source: "model" | "tool" | "ledger";
             /**
              * Type
              * @default string
@@ -12781,6 +12933,8 @@ export interface components {
             sanitized?: components["schemas"]["SanitizeReport"] | null;
             /** Source Run Id */
             source_run_id?: string | null;
+            /** Sources */
+            sources?: components["schemas"]["SourceEntry"][];
             /** Started At */
             started_at?: string | null;
             /** Started By */
@@ -14104,6 +14258,42 @@ export interface components {
             /** Version */
             version?: string | null;
         };
+        /**
+         * SourceEntry
+         * @description One web source a run's tools saw (:mod:`nodestro_runtime.source_ledger`): a search hit or a page that was read.
+         *     The ledger holds addresses and metadata only, never the page text, and it lives in its run: nothing carries it to
+         *     another run (search providers' terms forbid storing results).
+         */
+        SourceEntry: {
+            /** Final Url */
+            final_url?: string | null;
+            /** Id */
+            id: string;
+            /** Node Id */
+            node_id?: string | null;
+            /**
+             * Origin
+             * @default search
+             * @enum {string}
+             */
+            origin: "search" | "fetched";
+            /** Provider */
+            provider?: string | null;
+            /**
+             * Retrieved At
+             * Format: date-time
+             */
+            retrieved_at?: string;
+            /** Sha256 */
+            sha256?: string | null;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Url */
+            url: string;
+        };
         /** SourceReport */
         SourceReport: {
             /**
@@ -14631,6 +14821,17 @@ export interface components {
             name: string;
             /** Ok */
             ok: boolean;
+        };
+        /**
+         * TlsInfo
+         * @description Whether the request reached the backend over HTTPS.
+         */
+        TlsInfo: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
         };
         /** ToolAdoptRequest */
         ToolAdoptRequest: {
@@ -16458,6 +16659,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NetworkStatus"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    discover_api_app_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The discovery */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDiscovery"];
+                };
+            };
+            /** @description An unknown, revoked or expired API key (auth.invalid) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description This port answers only this computer (lan.not_enabled) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
+                };
+            };
+            /** @description Too many requests or failed authentications (Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedError"];
                 };
             };
             /** @description Error */
