@@ -246,7 +246,7 @@ describe("studio API", () => {
   it("lists and copies the building blocks", async () => {
     const listed = await nodestro.listLibraryParts("de");
     expect(listed.length).toBeGreaterThanOrEqual(14);
-    expect((await nodestro.getLibraryPart("idea-market", "en")).workflow.nodes.length).toBeGreaterThan(0);
+    expect((await nodestro.getLibraryPart("idea-market", "en")).workflow.nodes?.length ?? 0).toBeGreaterThan(0);
     const copy = await nodestro.copyLibraryPart("idea-market", "fr");
     expect(copy.id.startsWith("wf_")).toBe(true);
     await nodestro.deleteWorkflow(copy.id);
