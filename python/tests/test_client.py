@@ -169,7 +169,7 @@ def test_agents_and_their_templates(nodestro: NodestroClient) -> None:
 
 def test_examples_can_be_listed_and_copied(nodestro: NodestroClient) -> None:
     examples = nodestro.list_examples("en")
-    assert len(examples) == 24
+    assert len(examples) >= 24  # the library grows (25 with the web research example)
     copy = nodestro.copy_example(examples[0]["id"], language="de")
     assert copy["id"].startswith("wf_")
 
@@ -335,8 +335,8 @@ def test_agent_templates_can_be_updated(nodestro: NodestroClient) -> None:
 
 
 def test_examples_exist_in_all_six_languages(nodestro: NodestroClient) -> None:
-    for language in ("de", "en", "es", "fr", "it", "pt-BR"):
-        assert len(nodestro.list_examples(language)) == 24
+    counts = {len(nodestro.list_examples(language)) for language in ("de", "en", "es", "fr", "it", "pt-BR")}
+    assert len(counts) == 1 and min(counts) >= 24
 
 
 def test_published_approvals_files_and_permissions(nodestro: NodestroClient, server: str) -> None:
