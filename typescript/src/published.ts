@@ -5,6 +5,7 @@
  * project, so this client works with both.
  */
 
+import { type Discovery, discoverWith } from "./app.js";
 import { enc, type Schemas } from "./client.js";
 import { type NodestroAPIError, NodestroRunFailed } from "./errors.js";
 import {
@@ -54,6 +55,11 @@ export class PublishedWorkflow {
     }
     this.http = new Transport(baseUrl, { ...rest, headers: { ...rest.headers, Authorization: `Bearer ${apiKey}` } });
     this.base = `${PREFIX}/${enc(slug)}`;
+  }
+
+  /** The backend's contract versions, capabilities and the apps this key may use (`GET /api/app`, see {@link discover}). */
+  async discover(): Promise<Discovery> {
+    return discoverWith(this.http);
   }
 
   /** What the API expects and returns: input fields, versions, limits, approvals. */

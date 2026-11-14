@@ -3,10 +3,12 @@
  *
  * - {@link NodestroClient}: the studio REST API of an installation.
  * - {@link PublishedWorkflow}: a published workflow API, authenticated with a Nodestro key.
+ * - {@link discover}: which app API contract version, capabilities and apps a backend serves (`GET /api/app`).
  *
  * The types are generated from the API's OpenAPI document (`npm run generate`).
  */
 
+export * from "./app.js";
 export * from "./client.js";
 export * from "./errors.js";
 export {

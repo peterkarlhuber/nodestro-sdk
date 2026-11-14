@@ -27,6 +27,7 @@ from ._http import (
     reconnect_policy,
     save_chunks,
 )
+from .app import Discovery, discover_with
 from .errors import NodestroRunFailed
 
 PREFIX = "/api/published"
@@ -76,6 +77,11 @@ class PublishedWorkflow:
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+    def discover(self) -> Discovery:
+        """The backend's contract versions, capabilities and the apps this key may use (``GET /api/app``, see
+        :func:`~nodestro_client.discover`)."""
+        return discover_with(self._http)
 
     def info(self) -> models.InfoOut:
         """What the API expects and returns: input fields, versions, limits, approvals."""

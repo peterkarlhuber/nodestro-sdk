@@ -18,7 +18,14 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from nodestro_client import NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow, RetryPolicy
+from nodestro_client import (
+    NodestroAPIError,
+    NodestroClient,
+    NodestroRunFailed,
+    PublishedWorkflow,
+    RetryPolicy,
+    discover,
+)
 
 
 def agent(node_id: str, prompt: str) -> dict[str, Any]:
@@ -195,6 +202,23 @@ def test_a_published_form_starts_with_its_values(nodestro: NodestroClient, serve
         assert refused.value.status == 422 and refused.value.code == "request.invalid"
         started = api.start({"values": {"customer": "ACME"}})
         assert api.wait_for_result(started["run_id"], timeout=30, poll=0.1)["status"] == "succeeded"
+
+
+def test_the_backend_is_discovered(nodestro: NodestroClient, server: str) -> None:
+    """NAL-C1: GET /api/app names the backend to anyone and the apps only to a key with read."""
+    anonymous = discover(server)
+    assert anonymous.compatible and anonymous.version == 1 and anonymous.backend_id
+    assert anonymous.capabilities == frozenset() and anonymous.apps == ()
+    workflow = nodestro.create_workflow(simple())
+    publication = nodestro.publish(workflow["id"], slug="sdk-discovered")["publication"]
+    key = nodestro.create_api_key("SDK discovery", ["run", "read"], [publication["id"]])
+    with PublishedWorkflow(server, publication["slug"], api_key=key["token"]) as api:
+        found = api.discover()
+    assert found.backend_id == anonymous.backend_id and found.supports("runs")
+    assert [app["slug"] for app in found.apps] == ["sdk-discovered"]
+    with pytest.raises(NodestroAPIError) as refused:
+        discover(server, api_key="ndk_not_a_key")
+    assert refused.value.status == 401
 
 
 def test_keys_and_publications_are_managed(nodestro: NodestroClient, server: str) -> None:

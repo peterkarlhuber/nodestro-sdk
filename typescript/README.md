@@ -253,6 +253,28 @@ if (model) await nodestro.pullLocalModel(model); // network; offline: importLoca
   `knowledge.embedding_model_missing` while none is chosen); searches keep the complete current index until the new
   one is finished, and `cancelKnowledgeIndex()` stops the build.
 
+## App discovery
+
+Any Nodestro backend that serves the app API contract (`nodestro-app`) answers `GET /api/app`. Call it first to learn
+which contract version to use, what the backend serves and which apps a key may use:
+
+```ts
+import { discover } from "@nodestro/client";
+
+const found = await discover("https://office.example", { apiKey: "ndk_..." });
+if (!found.compatible) {
+  // show "incompatible version"; with found.legacy the backend predates the contract
+}
+if (found.capabilities.has("runs.sync")) {
+  // ...
+}
+for (const app of found.apps) console.log(app.slug, app.name);
+```
+
+Without `apiKey` only the contract, the backend id and name, the sign-in methods and TLS are answered. A
+`PublishedWorkflow` discovers with its own key: `api.discover()`. `found.backendId` is stable per backend; use it to
+recognise a backend you have used before.
+
 ## Errors
 
 `NodestroAPIError` (`status`, `code`, `detail`, `params`) when the API answers with an error, in either of its two
