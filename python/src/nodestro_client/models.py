@@ -2087,6 +2087,10 @@ class ReconciliationRow(TypedDict):
     ]
 
 
+class RecoveryRequest(TypedDict):
+    confirm: bool
+
+
 class ReferenceUser(TypedDict):
     id: str
     kind: Literal['workflow', 'template', 'publication']

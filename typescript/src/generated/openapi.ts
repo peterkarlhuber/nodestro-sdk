@@ -1439,6 +1439,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/diagnostics/database-permissions/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Diagnostics Recovery
+         * @description Restart into recovery mode, where the user confirms the repair of the database's permissions (TABRION
+         *     MIG-NOD-9, :mod:`nodestro_api.recovery`); nothing is repaired here. Refused while runs are active.
+         */
+        post: operations["diagnostics_recovery_api_diagnostics_database_permissions_recovery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/error-codes": {
         parameters: {
             query?: never;
@@ -12651,6 +12672,11 @@ export interface components {
              */
             status: "ok" | "warning" | "incomplete" | "pending" | "not_comparable" | "unattributed";
         };
+        /** RecoveryRequest */
+        RecoveryRequest: {
+            /** Confirm */
+            confirm: boolean;
+        };
         /**
          * Reference
          * @description The users of one object.
@@ -19463,6 +19489,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiagnosticCheck"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    diagnostics_recovery_api_diagnostics_database_permissions_recovery_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Error */
