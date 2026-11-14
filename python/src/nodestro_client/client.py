@@ -1150,6 +1150,22 @@ class NodestroClient:
         url = f"/api/skills/{path_segment(skill_id)}/versions/{int(version)}/script-draft"
         return cast(models.ToolJob, self._http.json("POST", url, json_body={"path": path, "note": note}))
 
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 20, cursor: str | None = None
+    ) -> models.NotificationPage:
+        """The current member's notifications, newest first (NAL-A3): ``items``, ``unread`` and ``next_cursor``.
+
+        A ``message`` came from an agent (``notify_user``): its subject and text are model output, plain text."""
+        params: dict[str, Any] = {"unread_only": unread_only, "limit": limit}
+        if cursor:
+            params["cursor"] = cursor
+        return cast(models.NotificationPage, self._http.json("GET", "/api/notifications", params=params))
+
+    def mark_notifications_read(self, ids: list[str] | None = None) -> int:
+        """Mark the current member's notifications as read (``ids``: only these); returns how many."""
+        answer = self._http.json("POST", "/api/notifications/read", json_body={"ids": list(ids or [])})
+        return int(answer["marked"])
+
     def list_library_skills(self, language: str | None = None) -> list[models.LibrarySkill]:
         """The shipped skills in one language (English where one is missing)."""
         return cast(

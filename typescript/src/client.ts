@@ -104,6 +104,8 @@ export type PartDetail = Schemas["PartDetail"];
 export type SkillGroup = Schemas["SkillGroup"];
 export type SkillGroupIn = Schemas["SkillGroupIn"];
 export type SkillStats = Schemas["SkillStats"];
+export type Notification = Schemas["Notification"];
+export type NotificationPage = Schemas["NotificationPage"];
 export type ToolJob = Schemas["ToolJob"];
 /** A skill file to save: text, bytes, or `null` to keep the file of the latest version. */
 export type SkillFiles = Record<string, string | Uint8Array | null>;
@@ -1115,6 +1117,24 @@ export class NodestroClient {
     return this.http.json("POST", `/api/skills/${enc(skillId)}/versions/${version}/script-draft`, {
       body: { path, note },
     });
+  }
+
+  /**
+   * The current member's notifications, newest first (NAL-A3). A `message` came from an agent (`notify_user`): its
+   * subject and text are model output, plain text.
+   */
+  async listNotifications(
+    options: { unreadOnly?: boolean; limit?: number; cursor?: string } = {},
+  ): Promise<NotificationPage> {
+    return this.http.json("GET", "/api/notifications", {
+      query: { unread_only: options.unreadOnly ?? false, limit: options.limit ?? 20, cursor: options.cursor },
+    });
+  }
+
+  /** Mark the current member's notifications as read (`ids`: only these); returns how many. */
+  async markNotificationsRead(ids: string[] = []): Promise<number> {
+    const answer: { marked: number } = await this.http.json("POST", "/api/notifications/read", { body: { ids } });
+    return answer.marked;
   }
 
   /** The shipped skills in one language (English where one is missing). */

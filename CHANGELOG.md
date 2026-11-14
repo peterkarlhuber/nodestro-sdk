@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added (NAL-A3) to both SDKs: notifications. Python `list_notifications(unread_only=, limit=, cursor=)` and
+  `mark_notifications_read(ids)`; TypeScript `listNotifications({unreadOnly, limit, cursor})` and
+  `markNotificationsRead(ids)`; types `Notification` and `NotificationPage` (with `level`, `params`, `run_id`,
+  `workflow_id`, `workflow_name`) and `Workflow.notifications`, regenerated from the API's OpenAPI document. A
+  `message` comes from an agent (`notify_user`): model output, plain text.
+
 - Added (NAL-B4) to both SDKs:
   - Skill groups: Python `list_skill_groups`, `create_skill_group`, `update_skill_group`, `delete_skill_group`;
     TypeScript `listSkillGroups`, `createSkillGroup`, `updateSkillGroup`, `deleteSkillGroup`.
