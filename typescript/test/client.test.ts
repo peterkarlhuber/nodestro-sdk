@@ -6,7 +6,16 @@
 
 import { type AddressInfo, type Socket, connect, createServer as createNetServer } from "node:net";
 import { describe, expect, inject, it } from "vitest";
-import { API_VERSION, NodestroAPIError, NodestroClient, NodestroRunFailed, PublishedWorkflow, type ServerEvent, compatibility } from "../src/index.js";
+import {
+  API_VERSION,
+  NodestroAPIError,
+  NodestroClient,
+  NodestroRunFailed,
+  PublishedWorkflow,
+  type ServerEvent,
+  compatibility,
+  discover,
+} from "../src/index.js";
 
 const server = inject("server");
 const nodestro = new NodestroClient(server, { timeoutMs: 10_000 });
@@ -89,6 +98,22 @@ describe("studio API", () => {
     expect((conflict as NodestroAPIError).status).toBe(409);
     expect((conflict as NodestroAPIError).code).toBe("idempotency.conflict");
     await nodestro.waitForRun(first.id, fast);
+  });
+
+  it("discovers the backend (NAL-C1)", async () => {
+    const anonymous = await discover(server);
+    expect(anonymous.compatible && anonymous.version === 1 && anonymous.backendId !== "").toBe(true);
+    expect(anonymous.capabilities.size).toBe(0);
+    expect(anonymous.apps).toEqual([]);
+    const workflow = await nodestro.createWorkflow(simple());
+    const { publication } = await nodestro.publish(workflow.id, { slug: "ts-discovered" });
+    const key = await nodestro.createApiKey("TS discovery", ["run", "read"], [publication.id]);
+    const found = await new PublishedWorkflow(server, publication.slug, { apiKey: key.token }).discover();
+    expect(found.backendId).toBe(anonymous.backendId);
+    expect(found.capabilities.has("runs")).toBe(true);
+    expect(found.apps.map((app) => app.slug)).toEqual(["ts-discovered"]);
+    const refused = await discover(server, { apiKey: "ndk_not_a_key" }).catch((error: unknown) => error);
+    expect((refused as NodestroAPIError).status).toBe(401);
   });
 
   it("manages keys and publications (DX-25)", async () => {

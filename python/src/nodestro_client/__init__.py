@@ -4,6 +4,7 @@
   continued runs, agents, tools, examples, publishing).
 - :class:`PublishedWorkflow`: a published workflow API, authenticated with a Nodestro key
   (served by Nodestro or by an exported project).
+- :func:`discover`: which app API contract version, capabilities and apps a backend serves (``GET /api/app``).
 
 The client talks HTTP only; it needs neither the runtime nor the API installed. The request
 and response types (:mod:`nodestro_client.models`) are generated from the API's OpenAPI document.
@@ -12,6 +13,7 @@ and response types (:mod:`nodestro_client.models`) are generated from the API's 
 from __future__ import annotations
 
 from ._http import API_VERSION, DEFAULT_RECONNECT, SDK_VERSION, Event, RetryPolicy
+from .app import CONTRACT_VERSIONS, Discovery, discover, negotiate
 from .client import Compatibility, NodestroClient, RunPage
 from .errors import (
     NodestroAPIError,
@@ -26,8 +28,10 @@ __version__ = SDK_VERSION
 
 __all__ = [
     "API_VERSION",
+    "CONTRACT_VERSIONS",
     "DEFAULT_RECONNECT",
     "Compatibility",
+    "Discovery",
     "Event",
     "NodestroAPIError",
     "NodestroClient",
@@ -39,4 +43,6 @@ __all__ = [
     "RetryPolicy",
     "RunPage",
     "__version__",
+    "discover",
+    "negotiate",
 ]

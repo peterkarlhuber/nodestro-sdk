@@ -8,7 +8,13 @@
   - `FormField` and `InfoOut.form` / `InfoOut.form_version` (the input form of a published app).
   - The web tools' source ledger: `SourceEntry` and a run's `sources`.
 
-  A `discover()` method on the clients follows separately.
+- App discovery and contract version negotiation (NAL-C1), both SDKs: `discover(base_url, api_key=...)` /
+  `discover(baseUrl, { apiKey })` and `PublishedWorkflow.discover()` read `GET /api/app` and return a `Discovery`:
+  the negotiated contract version (the highest one in both `contract.versions` and `CONTRACT_VERSIONS`, currently
+  `[1]`), `compatible`, `legacy` (a backend older than the contract: 404/405 or an answer that is not a discovery),
+  backend id and name, sign-in methods, TLS, capabilities (`supports()` / `capabilities.has()`; unknown names kept)
+  and the key's apps. No common version is an answer, not an error; a wrong key raises/rejects with 401. Also
+  `negotiate()` on its own.
 
 ### Service connections and the built-in tool catalog (NAL-A1, 2026-11-13)
 

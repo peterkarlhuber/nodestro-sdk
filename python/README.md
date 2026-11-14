@@ -271,6 +271,27 @@ if model:
   `knowledge.embedding_model_missing` while none is chosen); searches keep the complete current index until the new
   one is finished, and `cancel_knowledge_index()` stops the build.
 
+## App discovery
+
+Any Nodestro backend that serves the app API contract (`nodestro-app`) answers `GET /api/app`. Call it first to learn
+which contract version to use, what the backend serves and which apps a key may use:
+
+```python
+from nodestro_client import discover
+
+found = discover("https://office.example", api_key="ndk_...")
+if not found.compatible:
+    ...  # show "incompatible version"; with found.legacy the backend predates the contract
+if found.supports("runs.sync"):
+    ...
+for app in found.apps:
+    print(app["slug"], app["name"])
+```
+
+Without `api_key` only the contract, the backend id and name, the sign-in methods and TLS are answered. A
+`PublishedWorkflow` discovers with its own key: `api.discover()`. `found.backend_id` is stable per backend; use it to
+recognise a backend you have used before.
+
 ## Errors
 
 | Exception | When |
