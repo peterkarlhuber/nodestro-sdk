@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Contract (MIG-NOD-9): `openapi/nodestro-api.json` from nodestro-api #136, types of both SDKs regenerated.
+  Additions only: `POST /api/diagnostics/database-permissions/recovery` (restart the desktop app into its repair
+  mode for the database's permissions) and `RecoveryRequest`. No client method: the desktop's diagnostics page
+  calls it.
 - Added (NAL-B1): agent template versions, check, export and import (`list_agent_template_versions`,
   `get_agent_template_version`, `check_agent_template`, `export_agent_template`, `import_agent_template`; TypeScript
   `listAgentTemplateVersions`, `getAgentTemplateVersion`, `checkAgentTemplate`, `exportAgentTemplate`,
