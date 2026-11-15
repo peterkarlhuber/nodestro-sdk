@@ -3312,6 +3312,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/publications/{publication_id}/export/libraries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Libraries
+         * @description The platform pre-check of a portable package: can every library be installed for the target platform? Runs
+         *     once per library set and platform (``uv pip compile``, downloads only with ``allow_downloads``); the export check
+         *     reports the remembered answer.
+         */
+        post: operations["export_libraries_api_publications__publication_id__export_libraries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publications/{publication_id}/exports": {
         parameters: {
             query?: never;
@@ -10389,6 +10411,28 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * LibraryCheck
+         * @description The platform pre-check (NAL-C3): can every library of the package be installed from a ready-built package
+         *     (wheel) for the target platform? ``ok`` and ``unavailable`` are remembered per requirement set and platform;
+         *     ``unchecked`` means it could not be decided here (no network, no uv): the build decides then.
+         */
+        LibraryCheck: {
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /** Libraries */
+            libraries?: string[];
+            /** Platform */
+            platform: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "unavailable" | "unchecked";
+        };
         /** LibraryCopy */
         LibraryCopy: {
             /** Integrations */
@@ -12297,6 +12341,7 @@ export interface components {
              * @default 0
              */
             estimated_bytes: number;
+            libraries?: components["schemas"]["LibraryCheck"] | null;
             /** Local Models */
             local_models?: components["schemas"]["LocalModelInfo"][];
             /** Memory Bytes */
@@ -12314,7 +12359,7 @@ export interface components {
             platform: string;
             /** Platforms */
             platforms?: {
-                [key: string]: string;
+                [key: string]: unknown;
             }[];
             /** Providers */
             providers?: string[];
@@ -24233,6 +24278,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExportCheck"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_libraries_api_publications__publication_id__export_libraries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCheck"];
                 };
             };
             /** @description Error */

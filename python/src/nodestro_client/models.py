@@ -1234,6 +1234,13 @@ class LibraryAgentCopy(TypedDict):
     services: NotRequired[dict[str, str]]
 
 
+class LibraryCheck(TypedDict):
+    detail: NotRequired[str]
+    libraries: NotRequired[list[str]]
+    platform: str
+    status: Literal['ok', 'unavailable', 'unchecked']
+
+
 class LibraryCopy(TypedDict):
     integrations: NotRequired[dict[str, str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it'] | None]
@@ -1779,13 +1786,14 @@ class PortableCheck(TypedDict):
     bundled_models: NotRequired[list[str]]
     downloads: NotRequired[list[dict[str, Any]]]
     estimated_bytes: NotRequired[int]
+    libraries: NotRequired[LibraryCheck | None]
     local_models: NotRequired[list[LocalModelInfo]]
     memory_bytes: NotRequired[int | None]
     models: NotRequired[list[ModelUse]]
     network_needs: NotRequired[list[NetworkNeed]]
     offline_capable: NotRequired[bool]
     platform: str
-    platforms: NotRequired[list[dict[str, str]]]
+    platforms: NotRequired[list[dict[str, Any]]]
     providers: NotRequired[list[str]]
     target_requirements: NotRequired[list[str]]
 

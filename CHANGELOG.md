@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- OpenAPI synced with nodestro-api 50dadbd (NAL-C3): `POST /api/publications/{id}/export/libraries` (platform
+  pre-check of a portable package's libraries), `PlatformSupport` and `LibraryCheck` in the export check, the
+  `program/` folder layout; types regenerated. No new client methods.
+
 - Added (NAL-A4): `send_connection_test(connection_id)` / `sendConnectionTest(connectionId)` (a person's test send
   of an `smtp` or `webhook` connection, `admin`); OpenAPI synced (run files: `source = "tool"`, `preview`, format `eml`).
 
