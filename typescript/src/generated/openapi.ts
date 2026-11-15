@@ -1396,6 +1396,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/connections/{connection_id}/test-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Connection Test
+         * @description Send one test (NAL-A4): ``smtp`` mails a fixed text to the connection's own ``test_address``, ``webhook``
+         *     posts a payload marked ``test: true``. Only a person with ``admin`` can do this; agents cannot. At most 5 per
+         *     connection and hour (``connection.test_send_limit``); every attempt is an audit event (``test_sent``). A failure
+         *     answers with its code only (``connection.*``), never the service's message.
+         */
+        post: operations["send_connection_test_api_connections__connection_id__test_send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diagnostics": {
         parameters: {
             query?: never;
@@ -8274,7 +8297,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "created" | "updated" | "deleted" | "secret_set" | "secret_cleared" | "checked";
+            kind: "created" | "updated" | "deleted" | "secret_set" | "secret_cleared" | "checked" | "test_sent";
         };
         /**
          * ConnectionIn
@@ -13644,7 +13667,7 @@ export interface components {
              * Format
              * @enum {string}
              */
-            format: "md" | "json" | "csv" | "html" | "pdf" | "docx" | "xlsx";
+            format: "md" | "json" | "csv" | "html" | "pdf" | "docx" | "xlsx" | "eml";
             /** Id */
             id?: string;
             /** Media Type */
@@ -13653,6 +13676,10 @@ export interface components {
             name: string;
             /** Node Id */
             node_id?: string | null;
+            /** Preview */
+            preview?: {
+                [key: string]: unknown;
+            };
             /** Run Id */
             run_id: string;
             /**
@@ -13670,7 +13697,7 @@ export interface components {
              * @default manual
              * @enum {string}
              */
-            source: "output" | "manual";
+            source: "output" | "manual" | "tool";
         };
         /**
          * ResultFileSpec
@@ -14814,6 +14841,26 @@ export interface components {
             language: "de" | "en" | "es" | "fr" | "pt-BR" | "it";
             /** Model */
             model?: string | null;
+        };
+        /**
+         * SendTestIn
+         * @description A person's explicit confirmation: the studio sends ``SEND`` only after its confirmation dialog.
+         */
+        SendTestIn: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: "SEND";
+        };
+        /** SendTestOut */
+        SendTestOut: {
+            /** Ok */
+            ok: boolean;
+            /** Size */
+            size?: number | null;
+            /** Status */
+            status?: number | null;
         };
         /**
          * SentFile
@@ -20554,6 +20601,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    send_connection_test_api_connections__connection_id__test_send_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendTestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendTestOut"];
                 };
             };
             /** @description Error */

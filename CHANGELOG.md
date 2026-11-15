@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added (NAL-A4): `send_connection_test(connection_id)` / `sendConnectionTest(connectionId)` (a person's test send
+  of an `smtp` or `webhook` connection, `admin`); OpenAPI synced (run files: `source = "tool"`, `preview`, format `eml`).
+
 - Added (NAL-A3) to both SDKs: notifications. Python `list_notifications(unread_only=, limit=, cursor=)` and
   `mark_notifications_read(ids)`; TypeScript `listNotifications({unreadOnly, limit, cursor})` and
   `markNotificationsRead(ids)`; types `Notification` and `NotificationPage` (with `level`, `params`, `run_id`,

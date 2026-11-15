@@ -618,6 +618,9 @@ def test_service_connections_and_the_builtin_catalog(nodestro: NodestroClient) -
     stored = nodestro.set_connection_secret(made["id"], "sdk-connection-secret")
     assert stored["secret_set"] is True and "sdk-connection-secret" not in str(stored)
     assert nodestro.check_connection(made["id"])["check"]["status"] == "ok"
+    with pytest.raises(NodestroAPIError) as no_test:
+        nodestro.send_connection_test(made["id"])  # a search connection has no test send (NAL-A4)
+    assert no_test.value.code == "connection.test_send_unsupported"
     changed = nodestro.update_connection(made["id"], {"description": "from the SDK"})
     assert changed["description"] == "from the SDK" and nodestro.get_connection(made["id"])["secret_set"] is True
     assert "sdk-connection-secret" not in str(nodestro.list_connection_events())
