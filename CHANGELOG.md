@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- OpenAPI synced with nodestro-api 2a0f4cf (NAL-C4): `TlsInfo` of the app discovery gains `mode` and `fingerprint`
+  (a portable package's TLS); types regenerated. No new client methods.
+
 - OpenAPI synced with nodestro-api 50dadbd (NAL-C3): `POST /api/publications/{id}/export/libraries` (platform
   pre-check of a portable package's libraries), `PlatformSupport` and `LibraryCheck` in the export check, the
   `program/` folder layout; types regenerated. No new client methods.

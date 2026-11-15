@@ -16418,7 +16418,7 @@ export interface components {
         };
         /**
          * TlsInfo
-         * @description Whether the request reached the backend over HTTPS.
+         * @description Whether the request reached the backend over HTTPS, and (a portable package, NAL-C4) how it serves TLS.
          */
         TlsInfo: {
             /**
@@ -16426,6 +16426,10 @@ export interface components {
              * @default false
              */
             enabled: boolean;
+            /** Fingerprint */
+            fingerprint?: string | null;
+            /** Mode */
+            mode?: ("certificate" | "proxy" | "self_signed" | "none") | null;
         };
         /** ToolAdoptRequest */
         ToolAdoptRequest: {
