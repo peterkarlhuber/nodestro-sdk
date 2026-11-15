@@ -578,7 +578,13 @@ class ConnectionEvent(TypedDict):
     details: NotRequired[dict[str, Any]]
     id: NotRequired[str]
     kind: Literal[
-        'created', 'updated', 'deleted', 'secret_set', 'secret_cleared', 'checked'
+        'created',
+        'updated',
+        'deleted',
+        'secret_set',
+        'secret_cleared',
+        'checked',
+        'test_sent',
     ]
 
 
@@ -2237,15 +2243,16 @@ class ResultFile(TypedDict):
     error: NotRequired[str | None]
     error_code: NotRequired[str | None]
     error_params: NotRequired[dict[str, Any]]
-    format: Literal['md', 'json', 'csv', 'html', 'pdf', 'docx', 'xlsx']
+    format: Literal['md', 'json', 'csv', 'html', 'pdf', 'docx', 'xlsx', 'eml']
     id: NotRequired[str]
     media_type: str
     name: str
     node_id: NotRequired[str | None]
+    preview: NotRequired[dict[str, Any]]
     run_id: str
     sanitized: NotRequired[bool]
     size: NotRequired[int]
-    source: NotRequired[Literal['output', 'manual']]
+    source: NotRequired[Literal['output', 'manual', 'tool']]
 
 
 class ResultFileSpec(TypedDict):
@@ -2522,6 +2529,16 @@ class SendRequest(TypedDict):
     file_ids: NotRequired[list[str]]
     language: NotRequired[Literal['de', 'en', 'es', 'fr', 'pt-BR', 'it']]
     model: NotRequired[str | None]
+
+
+class SendTestIn(TypedDict):
+    confirm: Literal['SEND']
+
+
+class SendTestOut(TypedDict):
+    ok: bool
+    size: NotRequired[int | None]
+    status: NotRequired[int | None]
 
 
 class SentFile(TypedDict):

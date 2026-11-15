@@ -718,6 +718,12 @@ class NodestroClient:
         path = f"/api/connections/{path_segment(connection_id)}/check"
         return cast(models.ConnectionView, self._http.json("POST", path))
 
+    def send_connection_test(self, connection_id: str) -> models.SendTestOut:
+        """Send one test as a person (``admin``): ``smtp`` mails the connection's own ``test_address``, ``webhook``
+        posts a payload with ``test: true``. At most 5 per connection and hour; failures raise with a code only."""
+        path = f"/api/connections/{path_segment(connection_id)}/test-send"
+        return cast(models.SendTestOut, self._http.json("POST", path, json_body={"confirm": "SEND"}))
+
     def list_connection_events(self, *, limit: int = 200) -> list[models.ConnectionEvent]:
         """Administration events, newest first (never secrets or settings values); needs ``admin``."""
         return cast(

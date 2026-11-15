@@ -120,6 +120,7 @@ export type BuiltinToolInfo = Schemas["BuiltinToolInfo"];
 export type ConnectionStatus = Schemas["ConnectionStatus"];
 export type ConnectionTypeInfo = Schemas["ConnectionTypeInfo"];
 export type ConnectionView = Schemas["ConnectionView"];
+export type SendTestOut = Schemas["SendTestOut"];
 export type ConnectionIn = Schemas["ConnectionIn"];
 export type ConnectionPatch = Schemas["ConnectionPatch"];
 export type ConnectionEvent = Schemas["ConnectionEvent"];
@@ -698,6 +699,14 @@ export class NodestroClient {
   /** Check the connection; the result holds a status and an error code, never the service's message. */
   async checkConnection(connectionId: string): Promise<ConnectionView> {
     return this.http.json("POST", `/api/connections/${enc(connectionId)}/check`);
+  }
+
+  /**
+   * Send one test as a person (`admin`): `smtp` mails the connection's own `test_address`, `webhook` posts a payload
+   * with `test: true`. At most 5 per connection and hour; failures throw with a code only.
+   */
+  async sendConnectionTest(connectionId: string): Promise<SendTestOut> {
+    return this.http.json("POST", `/api/connections/${enc(connectionId)}/test-send`, { body: { confirm: "SEND" } });
   }
 
   /** Administration events, newest first (never secrets or settings values); needs `admin`. */

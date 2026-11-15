@@ -591,6 +591,8 @@ describe("service connections", () => {
     expect(stored.secret_set).toBe(true);
     expect(JSON.stringify(stored)).not.toContain("ts-connection-secret");
     expect((await nodestro.checkConnection(made.id)).check.status).toBe("ok");
+    // A search connection has no test send (NAL-A4).
+    await expect(nodestro.sendConnectionTest(made.id)).rejects.toMatchObject({ code: "connection.test_send_unsupported" });
     expect((await nodestro.updateConnection(made.id, { description: "from TS" })).description).toBe("from TS");
     expect((await nodestro.getConnection(made.id)).secret_set).toBe(true);
     expect(JSON.stringify(await nodestro.listConnectionEvents())).not.toContain("ts-connection-secret");
