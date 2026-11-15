@@ -6896,7 +6896,7 @@ export interface components {
          */
         AuthInfo: {
             /** Methods */
-            methods?: ("api_key" | "session" | "launch_link" | "pairing")[];
+            methods?: ("api_key" | "session" | "launch_link" | "pairing" | "token")[];
         };
         /** AutostartIn */
         AutostartIn: {
