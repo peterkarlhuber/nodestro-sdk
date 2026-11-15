@@ -3030,6 +3030,8 @@ class TestResult(TypedDict):
 
 class TlsInfo(TypedDict):
     enabled: NotRequired[bool]
+    fingerprint: NotRequired[str | None]
+    mode: NotRequired[Literal['certificate', 'proxy', 'self_signed', 'none'] | None]
 
 
 class ToolAdoptRequest(TypedDict):
