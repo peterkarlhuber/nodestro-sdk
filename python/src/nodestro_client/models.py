@@ -196,7 +196,9 @@ class ArchiveEntry(TypedDict):
 
 
 class AuthInfo(TypedDict):
-    methods: NotRequired[list[Literal['api_key', 'session', 'launch_link', 'pairing']]]
+    methods: NotRequired[
+        list[Literal['api_key', 'session', 'launch_link', 'pairing', 'token']]
+    ]
 
 
 class AutostartIn(TypedDict):
