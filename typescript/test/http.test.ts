@@ -14,6 +14,7 @@ import {
   PublishedWorkflow,
   SDK_VERSION,
   newIdempotencyKey,
+  type AccessGrantIn,
   type ServerEvent,
 } from "../src/index.js";
 
@@ -274,6 +275,22 @@ describe("access grants and denies (N-06)", () => {
       ["GET", "/api/access/who-may", { resource_type: "tool", resource_id: "x", mode: "unattended" }, null],
       ["GET", "/api/access/explain", { resource_type: "cloud_provider", resource_id: "anthropic", agent: "wf/a", mode: "supervised" }, null],
     ]);
+  });
+});
+
+describe("access grants (N-06 lows)", () => {
+  it("sends the tool as it was shown with a grant, so the server can refuse a changed one", async () => {
+    const { calls, fetcher } = recording(() => json(200, {}));
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    const grant: AccessGrantIn = {
+      resource_type: "tool",
+      resource_id: "search_web",
+      actions: ["execute"],
+      duration: "until_revoked",
+      expected: { version: 3, definition_hash: null },
+    };
+    await client.grantAccess(grant);
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual(grant);
   });
 });
 

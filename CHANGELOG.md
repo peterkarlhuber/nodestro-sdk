@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Changed (N-06 lows): the OpenAPI document is synced with the nodestro-api follow-up, and the types are
+  regenerated.
+  - A grant can carry `expected` (`version`, `definition_hash`), the tool as the approval request showed it. If
+    the tool changed in the meantime, the server answers 409 `access.tool_changed`.
+  - `who_may`, `explain_access`, `whoMay` and `explainAccess` now return `AccessRow`. A tool row has
+    `connections_considered`, which says whether an agent's connection was counted.
+  - In TypeScript, `AccessExplanation` stays as a deprecated alias of `AccessRow`. In Python, the model
+    `models.AccessExplanation` is now `models.AccessRow`.
+
 - Added (N-06) to both SDKs: access grants and denies of the access model v2. They work only where the installation
   switched `NODESTRO_ACCESS_GRANTS` on, which is off by default.
   - Python: `access_state`, `list_access_grants`, `list_access_denies`, `grant_access`, `deny_access`,

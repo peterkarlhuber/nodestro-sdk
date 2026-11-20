@@ -1073,22 +1073,6 @@ class GateOverride(TypedDict):
     reason: str
 
 
-class GrantIn(TypedDict):
-    actions: list[
-        Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
-    ]
-    agents: NotRequired[list[str]]
-    conversation_id: NotRequired[str | None]
-    duration: Literal['once', 'conversation', 'until', 'until_revoked']
-    expires_at: NotRequired[str | None]
-    mode: NotRequired[Literal['supervised', 'unattended']]
-    resource_id: str
-    resource_type: Literal[
-        'tool', 'folder', 'workflow', 'mcp_server', 'connection', 'cloud_provider'
-    ]
-    scope: NotRequired[Literal['agent', 'agents', 'all']]
-
-
 class GuidanceRef(TypedDict):
     message_id: str
     seq: NotRequired[int]
@@ -3251,6 +3235,11 @@ class ToolDependencyRequest(TypedDict):
     tests: NotRequired[str]
 
 
+class ToolExpected(TypedDict):
+    definition_hash: NotRequired[str | None]
+    version: NotRequired[int | None]
+
+
 class ToolFacts(TypedDict):
     access: Literal['read', 'write', 'destructive']
     definition_hash: NotRequired[str | None]
@@ -3955,6 +3944,23 @@ class Grant(TypedDict):
     scope: NotRequired[Literal['agent', 'agents', 'all']]
     status: NotRequired[Literal['active', 'used', 'revoked']]
     tool: NotRequired[ToolFacts | None]
+
+
+class GrantIn(TypedDict):
+    actions: list[
+        Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
+    ]
+    agents: NotRequired[list[str]]
+    conversation_id: NotRequired[str | None]
+    duration: Literal['once', 'conversation', 'until', 'until_revoked']
+    expected: NotRequired[ToolExpected | None]
+    expires_at: NotRequired[str | None]
+    mode: NotRequired[Literal['supervised', 'unattended']]
+    resource_id: str
+    resource_type: Literal[
+        'tool', 'folder', 'workflow', 'mcp_server', 'connection', 'cloud_provider'
+    ]
+    scope: NotRequired[Literal['agent', 'agents', 'all']]
 
 
 class InstallState(TypedDict):
@@ -4665,7 +4671,7 @@ class TraceImport(TypedDict):
     run: RunSummary
 
 
-class AccessExplanation(TypedDict):
+class AccessRow(TypedDict):
     action: Literal[
         'read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit'
     ]
@@ -4673,6 +4679,7 @@ class AccessExplanation(TypedDict):
     allowed: bool
     also: NotRequired[list[str]]
     code: NotRequired[str | None]
+    connections_considered: NotRequired[bool | None]
     default_rule: NotRequired[str | None]
     deny: NotRequired[Deny | None]
     effect: Literal[
