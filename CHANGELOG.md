@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added (N-06) to both SDKs: access grants and denies of the access model v2. They work only where the installation
+  switched `NODESTRO_ACCESS_GRANTS` on, which is off by default.
+  - Python: `access_state`, `list_access_grants`, `list_access_denies`, `grant_access`, `deny_access`,
+    `revoke_access_grant`, `revoke_access_deny`, `who_may` and `explain_access`.
+  - TypeScript: `accessState`, `listAccessGrants`, `listAccessDenies`, `grantAccess`, `denyAccess`,
+    `revokeAccessGrant`, `revokeAccessDeny`, `whoMay` and `explainAccess`.
+  - The OpenAPI document is synced with nodestro-api #161, and the types are regenerated. That brings the new
+    access schemas and the `access_*` audit kinds of `ToolApprovalEvent`.
+
 - OpenAPI synced with nodestro-api 2a0f4cf (NAL-C4): `TlsInfo` of the app discovery gains `mode` and `fingerprint`
   (a portable package's TLS); types regenerated. No new client methods.
 

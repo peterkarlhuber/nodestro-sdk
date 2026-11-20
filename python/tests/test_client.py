@@ -1130,6 +1130,25 @@ def test_tool_approvals_are_read_and_decided_only_where_switched_on(nodestro: No
         nodestro.decide_tool_approval(run["id"], "tap_missing", "maybe", arguments_hash="x")  # type: ignore[arg-type]
 
 
+def test_access_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> None:
+    """N-06: the test server keeps ``NODESTRO_ACCESS_GRANTS`` off (the default). The state answers, and every other
+    route is not found with its own code, so nothing is read or written."""
+    state = nodestro.access_state()
+    assert state["enabled"] is False and state["safety_limits"]
+    calls = [
+        nodestro.list_access_grants,
+        nodestro.list_access_denies,
+        nodestro.who_may,
+        lambda: nodestro.explain_access("tool", "search_web"),
+        lambda: nodestro.deny_access({"resource_type": "workflow", "resource_id": "wf_x", "actions": ["execute"]}),
+        lambda: nodestro.revoke_access_grant("grt_missing"),
+    ]
+    for call in calls:
+        with pytest.raises(NodestroAPIError) as off:
+            call()
+        assert (off.value.status, off.value.code) == (404, "access.grants_disabled")
+
+
 def test_exports_are_checked_built_downloaded_and_deleted(nodestro: NodestroClient, tmp_path: Path) -> None:
     """SDK-003: standalone exports of a publication; portable packages are export jobs (their build downloads
     Python and libraries, so this test only checks how a job is refused and looked up)."""

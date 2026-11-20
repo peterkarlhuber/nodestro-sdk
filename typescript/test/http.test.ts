@@ -243,6 +243,40 @@ function recording(answer: (url: string, init: RequestInit, call: number) => Res
   return { calls, fetcher };
 }
 
+describe("access grants and denies (N-06)", () => {
+  it("calls each route with only the given filters", async () => {
+    const { calls, fetcher } = recording((url) => json(200, /who-may|grants$|denies$/.test(new URL(url).pathname) ? [] : {}));
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    const grant = { resource_type: "tool" as const, resource_id: "x", actions: ["execute" as const], duration: "once" as const };
+    await client.accessState();
+    await client.listAccessGrants();
+    await client.listAccessDenies();
+    await client.grantAccess(grant);
+    await client.denyAccess({ resource_type: "workflow", resource_id: "wf 1", actions: ["execute"] });
+    await client.revokeAccessGrant("grt/1");
+    await client.revokeAccessDeny("dny_1");
+    await client.whoMay();
+    await client.whoMay({ resourceType: "tool", resourceId: "x", mode: "unattended" });
+    await client.explainAccess("cloud_provider", "anthropic", { agent: "wf/a" });
+    const seen = calls.map(({ url, init }) => {
+      const parsed = new URL(url);
+      return [init.method, parsed.pathname, Object.fromEntries(parsed.searchParams), init.body ? JSON.parse(String(init.body)) : null];
+    });
+    expect(seen).toEqual([
+      ["GET", "/api/access/state", {}, null],
+      ["GET", "/api/access/grants", {}, null],
+      ["GET", "/api/access/denies", {}, null],
+      ["POST", "/api/access/grants", {}, grant],
+      ["POST", "/api/access/denies", {}, { resource_type: "workflow", resource_id: "wf 1", actions: ["execute"] }],
+      ["DELETE", "/api/access/grants/grt%2F1", {}, null],
+      ["DELETE", "/api/access/denies/dny_1", {}, null],
+      ["GET", "/api/access/who-may", {}, null],
+      ["GET", "/api/access/who-may", { resource_type: "tool", resource_id: "x", mode: "unattended" }, null],
+      ["GET", "/api/access/explain", { resource_type: "cloud_provider", resource_id: "anthropic", agent: "wf/a", mode: "supervised" }, null],
+    ]);
+  });
+});
+
 describe("approval decisions", () => {
   it("sends the note to the agent only when given, so older servers keep working (E-0R-1 A)", async () => {
     const { calls, fetcher } = recording(() => json(200, { id: "run_1", run_id: "run_1", status: "queued" }));

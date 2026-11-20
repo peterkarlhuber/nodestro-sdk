@@ -26,6 +26,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/access/denies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Denies */
+        get: operations["list_denies_api_access_denies_get"];
+        put?: never;
+        /**
+         * Create Deny
+         * @description Block an access, whatever is granted (a deny for a folder also blocks every folder below it).
+         */
+        post: operations["create_deny_api_access_denies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/access/denies/{deny_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Deny */
+        delete: operations["revoke_deny_api_access_denies__deny_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/access/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Explain Route
+         * @description Why one access is allowed or refused at its call site now (default action: the one the runtime checks there,
+         *     ``read`` for folders). A tool is taken as it is now, with its MCP server.
+         */
+        get: operations["explain_route_api_access_explain_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/access/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Grants */
+        get: operations["list_grants_api_access_grants_get"];
+        put?: never;
+        /**
+         * Create Grant
+         * @description Grant an access. A tool grant holds for the tool as it is now and ends with a new version, another
+         *     classification or another MCP definition; deleting for good is never granted (``access.grant_destructive``).
+         */
+        post: operations["create_grant_api_access_grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/access/grants/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Grant
+         * @description Revoke a grant; it no longer applies from the next access on, also for running tasks.
+         */
+        delete: operations["revoke_grant_api_access_grants__grant_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/access/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access State */
+        get: operations["access_state_api_access_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/access/who-may": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who May Route
+         * @description "Who may do what and why": what decides each access an active grant or deny names, and its source.
+         */
+        get: operations["who_may_route_api_access_who_may_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/activity": {
         parameters: {
             query?: never;
@@ -5714,6 +5852,96 @@ export interface components {
              */
             target_type: "user" | "api_key" | "tenant" | "session";
         };
+        /**
+         * AccessExplanation
+         * @description Why an access is allowed or refused at its call site (BER-1, spec 7.3 (8)): the request, what the access model
+         *     does there (``outcome``) and what decided it.
+         *
+         *     For the person and the administration only; a model never gets it (N-07).
+         */
+        AccessExplanation: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "read" | "write" | "move" | "trash" | "delete" | "execute" | "send" | "submit";
+            /** Agent */
+            agent?: string | null;
+            /** Allowed */
+            allowed: boolean;
+            /**
+             * Also
+             * @default []
+             */
+            also: string[];
+            /** Code */
+            code?: string | null;
+            /** Default Rule */
+            default_rule?: string | null;
+            deny?: components["schemas"]["Deny"] | null;
+            /**
+             * Effect
+             * @enum {string}
+             */
+            effect: "read_internal" | "write_internal" | "read_external" | "write_external" | "destructive";
+            grant?: components["schemas"]["Grant"] | null;
+            /**
+             * Grant Enforced
+             * @default false
+             */
+            grant_enforced: boolean;
+            /** Kind */
+            kind?: ("missing_grant" | "denied" | "safety_limit") | null;
+            /** Limit */
+            limit?: string | null;
+            /** Limit Text */
+            limit_text?: string | null;
+            /**
+             * Mode
+             * @default supervised
+             * @enum {string}
+             */
+            mode: "supervised" | "unattended";
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "refused" | "granted" | "allowed" | "per_call_rules";
+            resource: components["schemas"]["AccessResource"];
+            /**
+             * Source
+             * @default none
+             */
+            source: string;
+            /**
+             * Stale
+             * @default []
+             */
+            stale: string[];
+        };
+        /**
+         * AccessResource
+         * @description What a record or a request is about: a type and its id (a tool name, an absolute folder path, a workflow id,
+         *     an MCP server id, a connection id, a provider name).
+         */
+        AccessResource: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider";
+        };
+        /** AccessState */
+        AccessState: {
+            /** Enabled */
+            enabled: boolean;
+            /** Safety Limits */
+            safety_limits: {
+                [key: string]: string;
+            };
+        };
         /** ActivateIn */
         ActivateIn: {
             /** Number */
@@ -8913,6 +9141,87 @@ export interface components {
             /** Value */
             value?: unknown;
         };
+        /**
+         * Deny
+         * @description An explicit block (spec 7.1), addressed like a :class:`Grant`. Holds for a folder and every folder below it,
+         *     also against a grant of a subfolder; folders compare case-insensitively here, so a deny never misses because of
+         *     the spelling. A tool deny holds for every version of the tool. ``mode`` ``None`` blocks in both modes.
+         */
+        Deny: {
+            /** Actions */
+            actions: ("read" | "write" | "move" | "trash" | "delete" | "execute" | "send" | "submit")[];
+            /**
+             * Agents
+             * @default []
+             */
+            agents: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Denied By */
+            denied_by: string;
+            /**
+             * Duration
+             * @default until_revoked
+             * @enum {string}
+             */
+            duration: "until" | "until_revoked";
+            /** Expires At */
+            expires_at?: string | null;
+            /** Id */
+            id: string;
+            /** Mode */
+            mode?: ("supervised" | "unattended") | null;
+            resource: components["schemas"]["AccessResource"];
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Revoked By */
+            revoked_by?: string | null;
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "agent" | "agents" | "all";
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "revoked";
+        };
+        /** DenyIn */
+        DenyIn: {
+            /** Actions */
+            actions: ("read" | "write" | "move" | "trash" | "delete" | "execute" | "send" | "submit")[];
+            /** Agents */
+            agents?: string[];
+            /**
+             * Duration
+             * @default until_revoked
+             * @enum {string}
+             */
+            duration: "until" | "until_revoked";
+            /** Expires At */
+            expires_at?: string | null;
+            /** Mode */
+            mode?: ("supervised" | "unattended") | null;
+            /** Resource Id */
+            resource_id: string;
+            /**
+             * Resource Type
+             * @enum {string}
+             */
+            resource_type: "tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider";
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "agent" | "agents" | "all";
+        };
         /** DependencyDecision */
         DependencyDecision: {
             /**
@@ -9770,6 +10079,102 @@ export interface components {
             status: "off" | "passed" | "overridable" | "blocked";
             /** Workflow Version */
             workflow_version?: number | null;
+        };
+        /**
+         * Grant
+         * @description A person's permission (spec 7.1): resource, actions, scope, duration and mode. Written only by a person
+         *     (through the rule store of :mod:`~nodestro_runtime.tool_approvals`), never by a model. Holds for a folder and
+         *     every folder below it; a subfolder can be granted without its parent. A tool grant holds only for the tool as it
+         *     was (``tool``).
+         */
+        Grant: {
+            /** Actions */
+            actions: ("read" | "write" | "move" | "trash" | "delete" | "execute" | "send" | "submit")[];
+            /**
+             * Agents
+             * @default []
+             */
+            agents: string[];
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Duration
+             * @enum {string}
+             */
+            duration: "once" | "conversation" | "until" | "until_revoked";
+            /** Expires At */
+            expires_at?: string | null;
+            /** Granted By */
+            granted_by: string;
+            /** Id */
+            id: string;
+            /**
+             * Mode
+             * @default supervised
+             * @enum {string}
+             */
+            mode: "supervised" | "unattended";
+            resource: components["schemas"]["AccessResource"];
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Revoked By */
+            revoked_by?: string | null;
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "agent" | "agents" | "all";
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "used" | "revoked";
+            tool?: components["schemas"]["ToolFacts"] | null;
+        };
+        /**
+         * GrantIn
+         * @description A grant as a person gives it. The writer, the time and (for a tool) the tool's facts come from the server.
+         */
+        GrantIn: {
+            /** Actions */
+            actions: ("read" | "write" | "move" | "trash" | "delete" | "execute" | "send" | "submit")[];
+            /** Agents */
+            agents?: string[];
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /**
+             * Duration
+             * @enum {string}
+             */
+            duration: "once" | "conversation" | "until" | "until_revoked";
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Mode
+             * @default supervised
+             * @enum {string}
+             */
+            mode: "supervised" | "unattended";
+            /** Resource Id */
+            resource_id: string;
+            /**
+             * Resource Type
+             * @enum {string}
+             */
+            resource_type: "tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider";
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "agent" | "agents" | "all";
         };
         /**
          * GuidanceRef
@@ -16629,7 +17034,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off" | "tool_adopted" | "tool_adoption_refused" | "tool_adoption_revoked" | "access_granted" | "access_grant_revoked" | "access_denied" | "access_deny_revoked";
+            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off" | "tool_adopted" | "tool_adoption_refused" | "tool_adoption_revoked" | "access_granted" | "access_grant_revoked" | "access_denied" | "access_deny_revoked" | "access_refused";
             /** Outcome */
             outcome?: string | null;
             /** Pre Grant Id */
@@ -16932,6 +17337,28 @@ export interface components {
         ToolDraftDecision: {
             draft: components["schemas"]["ToolDraft"];
             tool?: components["schemas"]["ToolInfo"] | null;
+        };
+        /**
+         * ToolFacts
+         * @description The tool a grant was given for: its version, classification and MCP definition hash. A tool grant matches only
+         *     while the tool is still exactly this one, like a pre-grant (:func:`matching_pre_grant`): a new version, a changed
+         *     classification or another MCP definition ends it.
+         */
+        ToolFacts: {
+            /**
+             * Access
+             * @enum {string}
+             */
+            access: "read" | "write" | "destructive";
+            /** Definition Hash */
+            definition_hash?: string | null;
+            /**
+             * Reach
+             * @enum {string}
+             */
+            reach: "internal" | "external";
+            /** Version */
+            version?: number | null;
         };
         /** ToolInfo */
         ToolInfo: {
@@ -17923,6 +18350,290 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessEvent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_denies_api_access_denies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deny"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_deny_api_access_denies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DenyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deny"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_deny_api_access_denies__deny_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deny_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deny"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    explain_route_api_access_explain_get: {
+        parameters: {
+            query: {
+                resource_type: "tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider";
+                resource_id: string;
+                action?: ("read" | "write" | "move" | "trash" | "delete" | "execute" | "send" | "submit") | null;
+                agent?: string | null;
+                mode?: "supervised" | "unattended";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessExplanation"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_grants_api_access_grants_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Grant"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_grant_api_access_grants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Grant"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_grant_api_access_grants__grant_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Grant"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    access_state_api_access_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessState"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    who_may_route_api_access_who_may_get: {
+        parameters: {
+            query?: {
+                resource_type?: ("tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider") | null;
+                resource_id?: string | null;
+                agent?: string | null;
+                mode?: ("supervised" | "unattended") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessExplanation"][];
                 };
             };
             /** @description Error */

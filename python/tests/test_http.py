@@ -695,3 +695,49 @@ def test_the_note_to_the_agent_is_sent_only_when_given() -> None:
         {"decision": "approved", "comment": "for people"},
         {"decision": "rejected", "comment": "for people", "approval_id": "run_1:check", "agent_note": "for the agent"},
     ]
+
+
+# ---- access grants and denies (N-06) ---------------------------------------------------------
+
+
+def test_access_methods_call_their_routes_with_only_the_given_filters() -> None:
+    import json as jsonlib
+
+    sent: list[tuple[str, str, dict[str, str], Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = jsonlib.loads(request.content) if request.content else None
+        path = request.url.raw_path.decode().split("?")[0]
+        sent.append((request.method, path, dict(request.url.params), body))
+        return httpx.Response(200, json=[] if request.url.path.endswith(("who-may", "grants", "denies")) else {})
+
+    nodestro = client_with(handler)
+    grant = {"resource_type": "tool", "resource_id": "x", "actions": ["execute"], "duration": "once"}
+    nodestro.access_state()
+    nodestro.list_access_grants()
+    nodestro.list_access_denies()
+    nodestro.grant_access(grant)  # type: ignore[arg-type]
+    deny = {"resource_type": "workflow", "resource_id": "wf 1", "actions": ["execute"]}
+    nodestro.deny_access(deny)  # type: ignore[arg-type]
+    nodestro.revoke_access_grant("grt/1")
+    nodestro.revoke_access_deny("dny_1")
+    nodestro.who_may()
+    nodestro.who_may(resource_type="tool", resource_id="x", mode="unattended")
+    nodestro.explain_access("cloud_provider", "anthropic", agent="wf/a")
+    assert sent == [
+        ("GET", "/api/access/state", {}, None),
+        ("GET", "/api/access/grants", {}, None),
+        ("GET", "/api/access/denies", {}, None),
+        ("POST", "/api/access/grants", {}, grant),
+        ("POST", "/api/access/denies", {}, deny),
+        ("DELETE", "/api/access/grants/grt%2F1", {}, None),
+        ("DELETE", "/api/access/denies/dny_1", {}, None),
+        ("GET", "/api/access/who-may", {}, None),
+        ("GET", "/api/access/who-may", {"resource_type": "tool", "resource_id": "x", "mode": "unattended"}, None),
+        (
+            "GET",
+            "/api/access/explain",
+            {"resource_type": "cloud_provider", "resource_id": "anthropic", "agent": "wf/a", "mode": "supervised"},
+            None,
+        ),
+    ]

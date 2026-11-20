@@ -206,6 +206,18 @@ export type FileText = Schemas["FileText"];
 export type InputCleanupResult = Schemas["InputCleanupResult"];
 export type ToolApprovalRequest = Schemas["ToolApprovalRequest"];
 export type ToolApprovalEvent = Schemas["ToolApprovalEvent"];
+export type AccessState = Schemas["AccessState"];
+export type AccessGrant = Schemas["Grant"];
+export type AccessDeny = Schemas["Deny"];
+export type AccessExplanation = Schemas["AccessExplanation"];
+type Defaulted<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+/** A grant as a person gives it (the server fills in who, when and the tool's facts; `scope` `all`, `supervised`). */
+export type AccessGrantIn = Defaulted<Schemas["GrantIn"], "scope" | "agents" | "mode" | "expires_at" | "conversation_id">;
+/** A deny as a person gives it (`scope` `all`, both modes, `until_revoked` unless given). */
+export type AccessDenyIn = Defaulted<Schemas["DenyIn"], "scope" | "agents" | "mode" | "duration" | "expires_at">;
+export type AccessResourceType = Schemas["GrantIn"]["resource_type"];
+export type AccessAction = Schemas["GrantIn"]["actions"][number];
+export type AccessMode = "supervised" | "unattended";
 /** Export options as sent (every field has a server default; `kind` is `standard` unless given). */
 export type ExportOptions = Partial<Schemas["ExportOptions"]>;
 export type ExportCheck = Schemas["ExportCheck"];
@@ -1539,6 +1551,87 @@ export class NodestroClient {
   /** The audit trail of tool approval questions and decisions, newest first. */
   async toolApprovalAudit(limit = 200): Promise<ToolApprovalEvent[]> {
     return this.http.json("GET", "/api/tool-approvals/audit", { query: { limit } });
+  }
+
+  // ---- access grants and denies (only while the installation switched them on)
+
+  /**
+   * Whether the access model v2 is on (`NODESTRO_ACCESS_GRANTS` with per-call tool approvals; both off by default,
+   * and the SDK never switches them on) and the global safety limits no grant lifts. Always answers.
+   */
+  async accessState(): Promise<AccessState> {
+    return this.http.json("GET", "/api/access/state");
+  }
+
+  /**
+   * Every grant (`admin`), newest first, revoked, expired and used ones included. `404 access.grants_disabled` while
+   * the switch is off, like every method below.
+   */
+  async listAccessGrants(): Promise<AccessGrant[]> {
+    return this.http.json("GET", "/api/access/grants");
+  }
+
+  /** Every deny (`admin`), newest first, revoked and expired ones included. */
+  async listAccessDenies(): Promise<AccessDeny[]> {
+    return this.http.json("GET", "/api/access/denies");
+  }
+
+  /**
+   * Grant an access (`admin`, a signed-in person only: an API key is refused with `access.person_required`). The
+   * server records who granted it and, for a tool, the tool as it is now; deleting for good is never granted.
+   */
+  async grantAccess(grant: AccessGrantIn): Promise<AccessGrant> {
+    return this.http.json("POST", "/api/access/grants", { body: grant });
+  }
+
+  /** Block an access whatever is granted (`admin`, a signed-in person only). */
+  async denyAccess(deny: AccessDenyIn): Promise<AccessDeny> {
+    return this.http.json("POST", "/api/access/denies", { body: deny });
+  }
+
+  /** Revoke a grant; it no longer applies from the next access on. Revoking twice changes nothing. */
+  async revokeAccessGrant(grantId: string): Promise<AccessGrant> {
+    return this.http.json("DELETE", `/api/access/grants/${enc(grantId)}`);
+  }
+
+  /** Revoke a deny. */
+  async revokeAccessDeny(denyId: string): Promise<AccessDeny> {
+    return this.http.json("DELETE", `/api/access/denies/${enc(denyId)}`);
+  }
+
+  /**
+   * "Who may do what and why" (`admin`): for every resource, action, agent and mode an active grant or deny names,
+   * what the call site does now and what decides it. A resource is named by its type and id together.
+   */
+  async whoMay(
+    filter: { resourceType?: AccessResourceType; resourceId?: string; agent?: string; mode?: AccessMode } = {},
+  ): Promise<AccessExplanation[]> {
+    const query = {
+      resource_type: filter.resourceType,
+      resource_id: filter.resourceId,
+      agent: filter.agent,
+      mode: filter.mode,
+    };
+    return this.http.json("GET", "/api/access/who-may", { query });
+  }
+
+  /**
+   * Why one access is allowed or refused now (`admin`; `action` defaults to the one the runtime checks there,
+   * `read` for folders).
+   */
+  async explainAccess(
+    resourceType: AccessResourceType,
+    resourceId: string,
+    options: { action?: AccessAction; agent?: string; mode?: AccessMode } = {},
+  ): Promise<AccessExplanation> {
+    const query = {
+      resource_type: resourceType,
+      resource_id: resourceId,
+      action: options.action,
+      agent: options.agent,
+      mode: options.mode ?? "supervised",
+    };
+    return this.http.json("GET", "/api/access/explain", { query });
   }
 
   // ---- exports of published workflows
