@@ -243,6 +243,24 @@ function recording(answer: (url: string, init: RequestInit, call: number) => Res
   return { calls, fetcher };
 }
 
+describe("approval decisions", () => {
+  it("sends the note to the agent only when given, so older servers keep working (E-0R-1 A)", async () => {
+    const { calls, fetcher } = recording(() => json(200, { id: "run_1", run_id: "run_1", status: "queued" }));
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    const api = new PublishedWorkflow("http://nodestro.test", "slug", { apiKey: "ndk_test", fetch: fetcher });
+    await client.decideApproval("run_1", "check", "approved", "for people");
+    await client.decideApproval("run_1", "check", "rejected", "for people", { agentNote: "for the agent" });
+    await api.approve("run_1", "approved", { comment: "for people" });
+    await api.approve("run_1", "rejected", { comment: "for people", approvalId: "run_1:check", agentNote: "for the agent" });
+    expect(calls.map((call) => JSON.parse(String(call.init.body)))).toEqual([
+      { decision: "approved", comment: "for people" },
+      { decision: "rejected", comment: "for people", agent_note: "for the agent" },
+      { decision: "approved", comment: "for people" },
+      { decision: "rejected", comment: "for people", approval_id: "run_1:check", agent_note: "for the agent" },
+    ]);
+  });
+});
+
 describe("ids, base URLs and options", () => {
   it("refuses ids that URL normalization would change, before sending anything", async () => {
     const { calls, fetcher } = recording(() => json(200, {}));

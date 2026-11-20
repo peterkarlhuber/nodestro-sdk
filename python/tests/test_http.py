@@ -673,3 +673,25 @@ def test_batch_files_are_sent_as_multipart_and_batches_are_never_started_twice()
     with pytest.raises(NodestroAPIError):
         client.create_batch({"workflow_id": "wf_1", "rows": [{"input": "x"}]})
     assert [request.url.path for request in seen].count("/api/batches") == 1
+
+
+def test_the_note_to_the_agent_is_sent_only_when_given() -> None:
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"id": "run_1", "run_id": "run_1", "status": "queued"})
+
+    client = client_with(handler)
+    client.decide_approval("run_1", "check", "approved", "for people")
+    client.decide_approval("run_1", "check", "rejected", "for people", agent_note="for the agent")
+    with published_with(handler) as api:
+        api.approve("run_1", comment="for people")
+        api.approve("run_1", "rejected", comment="for people", agent_note="for the agent", approval_id="run_1:check")
+    # Older servers refuse unknown fields: an empty note stays out of the request (E-0R-1 A).
+    assert bodies == [
+        {"decision": "approved", "comment": "for people"},
+        {"decision": "rejected", "comment": "for people", "agent_note": "for the agent"},
+        {"decision": "approved", "comment": "for people"},
+        {"decision": "rejected", "comment": "for people", "approval_id": "run_1:check", "agent_note": "for the agent"},
+    ]

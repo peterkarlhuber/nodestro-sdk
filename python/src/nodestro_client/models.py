@@ -141,6 +141,7 @@ class AppSummary(TypedDict):
 
 
 class ApprovalConfig(TypedDict):
+    allow_agent_note: NotRequired[bool | None]
     allow_comment: NotRequired[bool]
     instructions: NotRequired[str]
     on_reject: NotRequired[Literal['branch', 'stop']]
@@ -149,11 +150,13 @@ class ApprovalConfig(TypedDict):
 
 
 class ApprovalDecision(TypedDict):
+    agent_note: NotRequired[str]
     comment: NotRequired[str]
     decision: Literal['approved', 'rejected']
 
 
 class ApprovalDecisionIn(TypedDict, closed=True):
+    agent_note: NotRequired[str]
     approval_id: NotRequired[str | None]
     comment: NotRequired[str]
     decision: Literal['approved', 'rejected']
@@ -165,6 +168,7 @@ class ApprovalItemOut(TypedDict):
 
 
 class ApprovalOut(TypedDict):
+    allow_agent_note: NotRequired[bool]
     allow_comment: NotRequired[bool]
     approval_id: str
     instructions: NotRequired[str]
@@ -177,6 +181,7 @@ class ApprovalOut(TypedDict):
 
 
 class ApprovalRecord(TypedDict):
+    agent_note: NotRequired[str]
     comment: NotRequired[str]
     decided_at: NotRequired[str]
     decided_by: NotRequired[str]
@@ -4128,6 +4133,7 @@ class OutputNodeConfig(TypedDict):
 
 
 class PendingApproval(TypedDict):
+    allow_agent_note: NotRequired[bool]
     allow_comment: NotRequired[bool]
     has_approved_branch: NotRequired[bool]
     has_rejected_branch: NotRequired[bool]

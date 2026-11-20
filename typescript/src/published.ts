@@ -165,14 +165,25 @@ export class PublishedWorkflow {
     return this.http.json("GET", `${this.base}/runs/${enc(runId)}/approvals`);
   }
 
-  /** Decide the waiting approval (`approvalId` chooses one when several wait). */
+  /**
+   * Decide the waiting approval (`approvalId` chooses one when several wait).
+   *
+   * `comment` is for people only: no model reads it. `agentNote` (at most 2,000 characters) is the only text of the
+   * decision that later agents read; send it only where the approval says `allow_agent_note` (else
+   * `422 approval.agent_note_disabled`). Left out of the request when empty, so older servers keep working.
+   */
   async approve(
     runId: string,
     decision: "approved" | "rejected" = "approved",
-    options: { comment?: string; approvalId?: string } = {},
+    options: { comment?: string; approvalId?: string; agentNote?: string } = {},
   ): Promise<RunStatusOut> {
-    const body: ApprovalDecisionIn = { decision, comment: options.comment ?? "" };
+    // `agent_note` only when given: an older server refuses the field (its request model forbids unknown fields).
+    const body: Omit<ApprovalDecisionIn, "agent_note"> & { agent_note?: string } = {
+      decision,
+      comment: options.comment ?? "",
+    };
     if (options.approvalId !== undefined) body.approval_id = options.approvalId;
+    if (options.agentNote) body.agent_note = options.agentNote;
     return this.http.json("POST", `${this.base}/runs/${enc(runId)}/approve`, { body });
   }
 

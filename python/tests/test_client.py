@@ -135,7 +135,47 @@ def test_approvals_wait_for_a_person(nodestro: NodestroClient) -> None:
     assert paused["status"] == "paused"
     pending = [item for item in nodestro.list_approvals() if item["run_id"] == run["id"]]
     assert [item["node_id"] for item in pending] == ["check"]
+    assert pending[0]["allow_agent_note"] is True
     nodestro.decide_approval(run["id"], "check", "approved", "passt")
+    assert nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)["status"] == "succeeded"
+
+
+def test_a_decision_carries_a_note_to_the_agent(nodestro: NodestroClient) -> None:
+    # The comment is for people only; agent_note is the only text later agents read (E-0R-1 A).
+    def flow(name: str, **approval: Any) -> dict[str, Any]:
+        return {
+            "name": name,
+            "nodes": [
+                {"id": "start", "type": "start"},
+                agent("writer", "WRITER"),
+                {"id": "check", "type": "approval", "label": "Prüfen", "approval": {"instructions": "Ok?", **approval}},
+                {"id": "out", "type": "output"},
+            ],
+            "edges": [edge("start", "writer"), edge("writer", "check"), edge("check", "out", "approved")],
+        }
+
+    workflow = nodestro.create_workflow(flow("SDK note", allow_agent_note=True))
+    assert workflow["nodes"][2]["approval"]["allow_agent_note"] is True
+    run = nodestro.start_run(workflow["id"], input="x")
+    assert nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)["status"] == "paused"
+    with pytest.raises(NodestroAPIError) as too_long:
+        nodestro.decide_approval(run["id"], "check", "approved", agent_note="\ufdfa" * 200)
+    assert (too_long.value.status, too_long.value.code) == (422, "approval.agent_note_too_long")
+    assert too_long.value.params == {"limit": 2000}
+    decided = nodestro.decide_approval(run["id"], "check", "approved", "for people", agent_note="for the agent")
+    assert decided["nodes"]["check"]["approval"]["comment"] == "for people"
+    assert decided["nodes"]["check"]["approval"]["agent_note"] == "for the agent"
+    assert nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)["status"] == "succeeded"
+
+    closed = nodestro.create_workflow(flow("SDK no note", allow_agent_note=False))
+    run = nodestro.start_run(closed["id"], input="x")
+    assert nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)["status"] == "paused"
+    pending = [item for item in nodestro.list_approvals() if item["run_id"] == run["id"]]
+    assert pending[0]["allow_agent_note"] is False
+    with pytest.raises(NodestroAPIError) as disabled:
+        nodestro.decide_approval(run["id"], "check", "approved", agent_note="for the agent")
+    assert (disabled.value.status, disabled.value.code) == (422, "approval.agent_note_disabled")
+    nodestro.decide_approval(run["id"], "check", "approved", "for people")
     assert nodestro.wait_for_run(run["id"], timeout=30, poll=0.1)["status"] == "succeeded"
 
 
@@ -445,8 +485,16 @@ def test_published_approvals_files_and_permissions(nodestro: NodestroClient, ser
     assert foreign.value.status in (401, 403, 404)
     key = nodestro.create_api_key("approver", ["run", "read", "approve"], [publication_id])["token"]
     with PublishedWorkflow(server, slug, api_key=key) as api:
-        decided = api.approve(run["run_id"], comment="passt", approval_id=approvals[0]["approval_id"])
+        assert approvals[0]["allow_agent_note"] is True
+        with pytest.raises(NodestroAPIError) as too_long:
+            api.approve(run["run_id"], agent_note="\ufdfa" * 200)
+        assert (too_long.value.status, too_long.value.code) == (422, "approval.agent_note_too_long")
+        decided = api.approve(
+            run["run_id"], comment="passt", approval_id=approvals[0]["approval_id"], agent_note="for the agent"
+        )
         assert decided["run_id"] == run["run_id"]
+        record = nodestro.get_run(run["run_id"])["nodes"]["check"]["approval"]
+        assert (record["comment"], record["agent_note"]) == ("passt", "for the agent")
         with pytest.raises(NodestroAPIError) as twice:
             api.approve(run["run_id"])
         assert twice.value.status in (404, 409)
