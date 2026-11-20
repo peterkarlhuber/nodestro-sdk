@@ -1038,6 +1038,24 @@ describe("test series, knowledge, input files, tool approvals and exports (SDK-0
     await expect(nodestro.decideToolApproval(run.id, "tap_missing", "maybe" as never, { argumentsHash: "x" })).rejects.toThrow(TypeError);
   });
 
+  it("keeps access grants off on the test server: the state answers, every other route is not found (N-06)", async () => {
+    const state = await nodestro.accessState();
+    expect(state.enabled).toBe(false);
+    expect(Object.keys(state.safety_limits).length).toBeGreaterThan(0);
+    const calls: Array<() => Promise<unknown>> = [
+      () => nodestro.listAccessGrants(),
+      () => nodestro.listAccessDenies(),
+      () => nodestro.whoMay(),
+      () => nodestro.explainAccess("tool", "search_web"),
+      () => nodestro.denyAccess({ resource_type: "workflow", resource_id: "wf_x", actions: ["execute"] }),
+      () => nodestro.revokeAccessDeny("dny_missing"),
+    ];
+    for (const call of calls) {
+      const off = await failure(call());
+      expect([off?.status, off?.code]).toEqual([404, "access.grants_disabled"]);
+    }
+  });
+
   it("checks, builds, downloads and deletes an export", async () => {
     const workflow = await nodestro.createWorkflow(simple());
     const { publication } = await nodestro.publish(workflow.id, { slug: `sdk-ts-export-${Date.now()}` });

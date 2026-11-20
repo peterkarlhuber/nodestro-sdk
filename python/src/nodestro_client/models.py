@@ -36,6 +36,18 @@ class AccessEvent(TypedDict):
     target_type: Literal['user', 'api_key', 'tenant', 'session']
 
 
+class AccessResource(TypedDict):
+    id: str
+    type: Literal[
+        'tool', 'folder', 'workflow', 'mcp_server', 'connection', 'cloud_provider'
+    ]
+
+
+class AccessState(TypedDict):
+    enabled: bool
+    safety_limits: dict[str, str]
+
+
 class ActivateIn(TypedDict):
     number: int
 
@@ -754,6 +766,39 @@ class DecisionRecord(TypedDict):
     value: NotRequired[Any]
 
 
+class Deny(TypedDict):
+    actions: list[
+        Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
+    ]
+    agents: NotRequired[list[str]]
+    created_at: str
+    denied_by: str
+    duration: NotRequired[Literal['until', 'until_revoked']]
+    expires_at: NotRequired[str | None]
+    id: str
+    mode: NotRequired[Literal['supervised', 'unattended'] | None]
+    resource: AccessResource
+    revoked_at: NotRequired[str | None]
+    revoked_by: NotRequired[str | None]
+    scope: NotRequired[Literal['agent', 'agents', 'all']]
+    status: NotRequired[Literal['active', 'revoked']]
+
+
+class DenyIn(TypedDict):
+    actions: list[
+        Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
+    ]
+    agents: NotRequired[list[str]]
+    duration: NotRequired[Literal['until', 'until_revoked']]
+    expires_at: NotRequired[str | None]
+    mode: NotRequired[Literal['supervised', 'unattended'] | None]
+    resource_id: str
+    resource_type: Literal[
+        'tool', 'folder', 'workflow', 'mcp_server', 'connection', 'cloud_provider'
+    ]
+    scope: NotRequired[Literal['agent', 'agents', 'all']]
+
+
 class DependencyDecision(TypedDict):
     choice: Literal['approve', 'without', 'cancel']
 
@@ -1026,6 +1071,22 @@ class GateItem(TypedDict):
 
 class GateOverride(TypedDict):
     reason: str
+
+
+class GrantIn(TypedDict):
+    actions: list[
+        Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
+    ]
+    agents: NotRequired[list[str]]
+    conversation_id: NotRequired[str | None]
+    duration: Literal['once', 'conversation', 'until', 'until_revoked']
+    expires_at: NotRequired[str | None]
+    mode: NotRequired[Literal['supervised', 'unattended']]
+    resource_id: str
+    resource_type: Literal[
+        'tool', 'folder', 'workflow', 'mcp_server', 'connection', 'cloud_provider'
+    ]
+    scope: NotRequired[Literal['agent', 'agents', 'all']]
 
 
 class GuidanceRef(TypedDict):
@@ -3109,6 +3170,7 @@ class ToolApprovalEvent(TypedDict):
         'access_grant_revoked',
         'access_denied',
         'access_deny_revoked',
+        'access_refused',
     ]
     outcome: NotRequired[str | None]
     pre_grant_id: NotRequired[str | None]
@@ -3187,6 +3249,13 @@ class ToolDefinition(TypedDict):
 class ToolDependencyRequest(TypedDict):
     code: str
     tests: NotRequired[str]
+
+
+class ToolFacts(TypedDict):
+    access: Literal['read', 'write', 'destructive']
+    definition_hash: NotRequired[str | None]
+    reach: Literal['internal', 'external']
+    version: NotRequired[int | None]
 
 
 class ToolIssue(TypedDict):
@@ -3866,6 +3935,26 @@ class GateReport(TypedDict):
     items: NotRequired[list[GateItem]]
     status: Literal['off', 'passed', 'overridable', 'blocked']
     workflow_version: NotRequired[int | None]
+
+
+class Grant(TypedDict):
+    actions: list[
+        Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
+    ]
+    agents: NotRequired[list[str]]
+    conversation_id: NotRequired[str | None]
+    created_at: str
+    duration: Literal['once', 'conversation', 'until', 'until_revoked']
+    expires_at: NotRequired[str | None]
+    granted_by: str
+    id: str
+    mode: NotRequired[Literal['supervised', 'unattended']]
+    resource: AccessResource
+    revoked_at: NotRequired[str | None]
+    revoked_by: NotRequired[str | None]
+    scope: NotRequired[Literal['agent', 'agents', 'all']]
+    status: NotRequired[Literal['active', 'used', 'revoked']]
+    tool: NotRequired[ToolFacts | None]
 
 
 class InstallState(TypedDict):
@@ -4574,6 +4663,35 @@ class ToolInfo(TypedDict):
 class TraceImport(TypedDict):
     duplicate: bool
     run: RunSummary
+
+
+class AccessExplanation(TypedDict):
+    action: Literal[
+        'read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit'
+    ]
+    agent: NotRequired[str | None]
+    allowed: bool
+    also: NotRequired[list[str]]
+    code: NotRequired[str | None]
+    default_rule: NotRequired[str | None]
+    deny: NotRequired[Deny | None]
+    effect: Literal[
+        'read_internal',
+        'write_internal',
+        'read_external',
+        'write_external',
+        'destructive',
+    ]
+    grant: NotRequired[Grant | None]
+    grant_enforced: NotRequired[bool]
+    kind: NotRequired[Literal['missing_grant', 'denied', 'safety_limit'] | None]
+    limit: NotRequired[str | None]
+    limit_text: NotRequired[str | None]
+    mode: NotRequired[Literal['supervised', 'unattended']]
+    outcome: Literal['refused', 'granted', 'allowed', 'per_call_rules']
+    resource: AccessResource
+    source: NotRequired[str]
+    stale: NotRequired[list[str]]
 
 
 class AgentConfig(TypedDict):

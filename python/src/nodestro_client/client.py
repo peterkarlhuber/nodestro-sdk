@@ -1522,6 +1522,73 @@ class NodestroClient:
             list[models.ToolApprovalEvent], self._http.json("GET", "/api/tool-approvals/audit", params={"limit": limit})
         )
 
+    # ---- access grants and denies (only while the installation switched them on) -----------------
+
+    def access_state(self) -> models.AccessState:
+        """Whether the access model v2 is on (``NODESTRO_ACCESS_GRANTS`` with per-call tool approvals; both off by
+        default, and the SDK never switches them on) and the global safety limits no grant lifts. Always answers."""
+        return cast(models.AccessState, self._http.json("GET", "/api/access/state"))
+
+    def list_access_grants(self) -> list[models.Grant]:
+        """Every grant of the installation (``admin``), newest first, revoked, expired and used ones included.
+        ``404 access.grants_disabled`` while the switch is off, like every route below."""
+        return cast(list[models.Grant], self._http.json("GET", "/api/access/grants"))
+
+    def list_access_denies(self) -> list[models.Deny]:
+        """Every deny of the installation (``admin``), newest first, revoked and expired ones included."""
+        return cast(list[models.Deny], self._http.json("GET", "/api/access/denies"))
+
+    def grant_access(self, grant: models.GrantIn | Mapping[str, Any]) -> models.Grant:
+        """Grant an access (``admin``, a signed-in person only: an API key is refused with ``access.person_required``).
+        The server records who granted it and, for a tool, the tool as it is now; deleting for good is never granted
+        (``access.grant_destructive``)."""
+        return cast(models.Grant, self._http.json("POST", "/api/access/grants", json_body=dict(grant)))
+
+    def deny_access(self, deny: models.DenyIn | Mapping[str, Any]) -> models.Deny:
+        """Block an access whatever is granted (``admin``, a signed-in person only)."""
+        return cast(models.Deny, self._http.json("POST", "/api/access/denies", json_body=dict(deny)))
+
+    def revoke_access_grant(self, grant_id: str) -> models.Grant:
+        """Revoke a grant; it no longer applies from the next access on. Revoking twice changes nothing."""
+        return cast(models.Grant, self._http.json("DELETE", f"/api/access/grants/{path_segment(grant_id)}"))
+
+    def revoke_access_deny(self, deny_id: str) -> models.Deny:
+        """Revoke a deny."""
+        return cast(models.Deny, self._http.json("DELETE", f"/api/access/denies/{path_segment(deny_id)}"))
+
+    def who_may(
+        self,
+        *,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        agent: str | None = None,
+        mode: Literal["supervised", "unattended"] | None = None,
+    ) -> list[models.AccessExplanation]:
+        """ "Who may do what and why" (``admin``): for every resource, action, agent and mode an active grant or deny
+        names, what the call site does now and what decides it. A resource is named by its type and id together."""
+        params = {"resource_type": resource_type, "resource_id": resource_id, "agent": agent, "mode": mode}
+        return cast(list[models.AccessExplanation], self._http.json("GET", "/api/access/who-may", params=params))
+
+    def explain_access(
+        self,
+        resource_type: str,
+        resource_id: str,
+        *,
+        action: str | None = None,
+        agent: str | None = None,
+        mode: Literal["supervised", "unattended"] = "supervised",
+    ) -> models.AccessExplanation:
+        """Why one access is allowed or refused now (``admin``; ``action`` defaults to the one the runtime checks
+        there, ``read`` for folders)."""
+        params = {
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "action": action,
+            "agent": agent,
+            "mode": mode,
+        }
+        return cast(models.AccessExplanation, self._http.json("GET", "/api/access/explain", params=params))
+
     # ---- exports of published workflows ---------------------------------------------------------
 
     def check_export(

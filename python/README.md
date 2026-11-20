@@ -239,6 +239,12 @@ Per-call tool approvals (`list_tool_approvals`, `run_tool_approvals`, `decide_to
 `NODESTRO_TOOL_APPROVALS` on (off by default); the SDK never switches it on. On a server, portable export jobs wait in
 the job queue (`queued`) until a worker builds them.
 
+Access grants and denies (`access_state`; for `admin`: `list_access_grants`, `list_access_denies`, `grant_access`,
+`deny_access`, `revoke_access_grant`, `revoke_access_deny`, `who_may`, `explain_access`) only work where the
+installation switched `NODESTRO_ACCESS_GRANTS` on together with tool approvals (off by default). Elsewhere every
+method except `access_state` raises `404 access.grants_disabled`. Only a signed-in person writes them. An API key is
+refused with `access.person_required`.
+
 ## Local models and the knowledge index
 
 On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as
