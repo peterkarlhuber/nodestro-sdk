@@ -40,6 +40,30 @@ class ActivateIn(TypedDict):
     number: int
 
 
+class ActivityEvent(TypedDict, closed=True):
+    action: str
+    actor: NotRequired[str | None]
+    agent: NotRequired[str | None]
+    at: NotRequired[str]
+    code: NotRequired[str | None]
+    conversation_id: NotRequired[str | None]
+    id: NotRequired[str]
+    node_id: NotRequired[str | None]
+    outcome: NotRequired[Literal['success', 'failure', 'denied']]
+    resource_id: NotRequired[str]
+    resource_type: NotRequired[str]
+    run_id: NotRequired[str | None]
+    source: Literal[
+        'tool_call', 'tool_approval', 'mcp', 'connection', 'workflow', 'agent', 'file'
+    ]
+    source_event: NotRequired[str | None]
+
+
+class ActivityPage(TypedDict):
+    events: list[ActivityEvent]
+    next_before: NotRequired[str | None]
+
+
 class AdoptSource(TypedDict):
     content_kind: NotRequired[Literal['extracted', 'generated', 'assumption'] | None]
     file_id: NotRequired[str | None]

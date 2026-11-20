@@ -26,6 +26,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Activity Events
+         * @description The activity log of this workspace (on a server: of the tenant), newest first (N-13): every file, tool,
+         *     workflow and agent action, with who, which agent, the resource, the outcome and the run. Read only; it never holds
+         *     contents or secrets. Filters combine (all must match); ``source`` and ``action`` may be repeated.
+         */
+        get: operations["activity_events_api_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Activity
+         * @description The complete activity log that matches the filters (no page limit), newest first, as a download: JSON Lines
+         *     (one object per event) or CSV (a header, then one row per event; a cell a spreadsheet would read as a formula
+         *     starts with ``'``). The columns are the runtime's ``activity.FIELDS``.
+         */
+        get: operations["export_activity_api_activity_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents/design": {
         parameters: {
             query?: never;
@@ -5689,6 +5733,66 @@ export interface components {
             ok: boolean;
             /** Problems */
             problems?: components["schemas"]["Problem"][];
+        };
+        /**
+         * ActivityEvent
+         * @description One action: who, with which agent, did what to which resource, and how it ended. Never contents or secrets.
+         */
+        ActivityEvent: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor?: string | null;
+            /** Agent */
+            agent?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Code */
+            code?: string | null;
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /** Id */
+            id?: string;
+            /** Node Id */
+            node_id?: string | null;
+            /**
+             * Outcome
+             * @default success
+             * @enum {string}
+             */
+            outcome: "success" | "failure" | "denied";
+            /**
+             * Resource Id
+             * @default
+             */
+            resource_id: string;
+            /**
+             * Resource Type
+             * @default
+             */
+            resource_type: string;
+            /** Run Id */
+            run_id?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file";
+            /** Source Event */
+            source_event?: string | null;
+        };
+        /**
+         * ActivityPage
+         * @description One page of activity events, newest first.
+         */
+        ActivityPage: {
+            /** Events */
+            events: components["schemas"]["ActivityEvent"][];
+            /** Next Before */
+            next_before?: string | null;
         };
         /**
          * AdoptCheck
@@ -17789,6 +17893,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessEvent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    activity_events_api_activity_get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                limit?: number;
+                since?: string | null;
+                until?: string | null;
+                source?: ("tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file")[] | null;
+                action?: string[] | null;
+                actor?: string | null;
+                agent?: string | null;
+                resource_type?: string | null;
+                resource_id?: string | null;
+                outcome?: ("success" | "failure" | "denied") | null;
+                run_id?: string | null;
+                conversation_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_activity_api_activity_export_get: {
+        parameters: {
+            query?: {
+                format?: "jsonl" | "csv";
+                since?: string | null;
+                until?: string | null;
+                source?: ("tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file")[] | null;
+                action?: string[] | null;
+                actor?: string | null;
+                agent?: string | null;
+                resource_type?: string | null;
+                resource_id?: string | null;
+                outcome?: ("success" | "failure" | "denied") | null;
+                run_id?: string | null;
+                conversation_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every matching event, newest first, as JSON Lines or CSV (a download) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/x-ndjson": unknown;
+                    "text/csv": unknown;
                 };
             };
             /** @description Error */
