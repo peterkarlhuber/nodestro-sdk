@@ -5806,7 +5806,8 @@ export interface paths {
         put?: never;
         /**
          * Preview
-         * @description What an agent would receive: prompt with filled placeholders, inputs and context.
+         * @description What an agent would receive: prompt with filled placeholders, inputs and context. A run of another user's
+         *     conversation with an own agent is not found (N-04: its input and outputs are the conversation).
          */
         post: operations["preview_api_workflows_preview_post"];
         delete?: never;
