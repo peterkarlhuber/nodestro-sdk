@@ -16629,7 +16629,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off" | "tool_adopted" | "tool_adoption_refused" | "tool_adoption_revoked";
+            kind: "decided" | "decision_refused" | "pre_granted" | "pre_grant_revoked" | "legacy_stamped" | "suspended" | "resumed" | "executed" | "stale" | "result_lost" | "switch_off" | "tool_adopted" | "tool_adoption_refused" | "tool_adoption_revoked" | "access_granted" | "access_grant_revoked" | "access_denied" | "access_deny_revoked";
             /** Outcome */
             outcome?: string | null;
             /** Pre Grant Id */
@@ -16757,6 +16757,8 @@ export interface components {
          * @description What the per-call approval rules did with one call.
          */
         ToolCallApproval: {
+            /** Access Source */
+            access_source?: string | null;
             /** Capability */
             capability?: {
                 [key: string]: string;
