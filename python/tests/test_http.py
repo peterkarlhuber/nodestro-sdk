@@ -22,6 +22,7 @@ from nodestro_client import (
     NodestroTimeoutError,
     PublishedWorkflow,
     RetryPolicy,
+    models,
 )
 from nodestro_client._http import parse_events
 
@@ -741,3 +742,23 @@ def test_access_methods_call_their_routes_with_only_the_given_filters() -> None:
             None,
         ),
     ]
+
+
+def test_a_tool_grant_sends_the_tool_as_it_was_shown() -> None:
+    import json as jsonlib
+
+    sent: list[Any] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(jsonlib.loads(request.content))
+        return httpx.Response(200, json={})
+
+    grant: models.GrantIn = {
+        "resource_type": "tool",
+        "resource_id": "search_web",
+        "actions": ["execute"],
+        "duration": "until_revoked",
+        "expected": {"version": 3, "definition_hash": None},
+    }
+    client_with(handler).grant_access(grant)
+    assert sent == [grant]

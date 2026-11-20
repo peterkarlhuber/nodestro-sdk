@@ -1563,11 +1563,11 @@ class NodestroClient:
         resource_id: str | None = None,
         agent: str | None = None,
         mode: Literal["supervised", "unattended"] | None = None,
-    ) -> list[models.AccessExplanation]:
+    ) -> list[models.AccessRow]:
         """ "Who may do what and why" (``admin``): for every resource, action, agent and mode an active grant or deny
         names, what the call site does now and what decides it. A resource is named by its type and id together."""
         params = {"resource_type": resource_type, "resource_id": resource_id, "agent": agent, "mode": mode}
-        return cast(list[models.AccessExplanation], self._http.json("GET", "/api/access/who-may", params=params))
+        return cast(list[models.AccessRow], self._http.json("GET", "/api/access/who-may", params=params))
 
     def explain_access(
         self,
@@ -1577,7 +1577,7 @@ class NodestroClient:
         action: str | None = None,
         agent: str | None = None,
         mode: Literal["supervised", "unattended"] = "supervised",
-    ) -> models.AccessExplanation:
+    ) -> models.AccessRow:
         """Why one access is allowed or refused now (``admin``; ``action`` defaults to the one the runtime checks
         there, ``read`` for folders)."""
         params = {
@@ -1587,7 +1587,7 @@ class NodestroClient:
             "agent": agent,
             "mode": mode,
         }
-        return cast(models.AccessExplanation, self._http.json("GET", "/api/access/explain", params=params))
+        return cast(models.AccessRow, self._http.json("GET", "/api/access/explain", params=params))
 
     # ---- exports of published workflows ---------------------------------------------------------
 

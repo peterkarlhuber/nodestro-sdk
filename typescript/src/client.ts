@@ -209,10 +209,13 @@ export type ToolApprovalEvent = Schemas["ToolApprovalEvent"];
 export type AccessState = Schemas["AccessState"];
 export type AccessGrant = Schemas["Grant"];
 export type AccessDeny = Schemas["Deny"];
-export type AccessExplanation = Schemas["AccessExplanation"];
+/** One row of `who-may` or `explain`; `connections_considered` (tools only) says whether an agent's connection was counted. */
+export type AccessRow = Schemas["AccessRow"];
+/** @deprecated Use {@link AccessRow}. */
+export type AccessExplanation = AccessRow;
 type Defaulted<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 /** A grant as a person gives it (the server fills in who, when and the tool's facts; `scope` `all`, `supervised`). */
-export type AccessGrantIn = Defaulted<Schemas["GrantIn"], "scope" | "agents" | "mode" | "expires_at" | "conversation_id">;
+export type AccessGrantIn = Defaulted<Schemas["GrantIn"], "scope" | "agents" | "mode" | "expires_at" | "conversation_id" | "expected">;
 /** A deny as a person gives it (`scope` `all`, both modes, `until_revoked` unless given). */
 export type AccessDenyIn = Defaulted<Schemas["DenyIn"], "scope" | "agents" | "mode" | "duration" | "expires_at">;
 export type AccessResourceType = Schemas["GrantIn"]["resource_type"];
@@ -1605,7 +1608,7 @@ export class NodestroClient {
    */
   async whoMay(
     filter: { resourceType?: AccessResourceType; resourceId?: string; agent?: string; mode?: AccessMode } = {},
-  ): Promise<AccessExplanation[]> {
+  ): Promise<AccessRow[]> {
     const query = {
       resource_type: filter.resourceType,
       resource_id: filter.resourceId,
@@ -1623,7 +1626,7 @@ export class NodestroClient {
     resourceType: AccessResourceType,
     resourceId: string,
     options: { action?: AccessAction; agent?: string; mode?: AccessMode } = {},
-  ): Promise<AccessExplanation> {
+  ): Promise<AccessRow> {
     const query = {
       resource_type: resourceType,
       resource_id: resourceId,

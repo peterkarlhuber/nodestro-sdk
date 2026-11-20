@@ -153,7 +153,8 @@ export interface paths {
         };
         /**
          * Who May Route
-         * @description "Who may do what and why": what decides each access an active grant or deny names, and its source.
+         * @description "Who may do what and why": what decides each access an active grant or deny names, and its source. A tool's
+         *     MCP server always counts; the connection of its agent only when ``agent`` names one (``connections_considered``).
          */
         get: operations["who_may_route_api_access_who_may_get"];
         put?: never;
@@ -5853,13 +5854,26 @@ export interface components {
             target_type: "user" | "api_key" | "tenant" | "session";
         };
         /**
-         * AccessExplanation
-         * @description Why an access is allowed or refused at its call site (BER-1, spec 7.3 (8)): the request, what the access model
-         *     does there (``outcome``) and what decided it.
-         *
-         *     For the person and the administration only; a model never gets it (N-07).
+         * AccessResource
+         * @description What a record or a request is about: a type and its id (a tool name, an absolute folder path, a workflow id,
+         *     an MCP server id, a connection id, a provider name).
          */
-        AccessExplanation: {
+        AccessResource: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider";
+        };
+        /**
+         * AccessRow
+         * @description An explanation as this API serves it. ``connections_considered`` (tools only): whether the connection the
+         *     agent's tool settings name was counted. It is only known for one agent (``agent``); without it a deny on a
+         *     connection does not show in a tool's row (L-3).
+         */
+        AccessRow: {
             /**
              * Action
              * @enum {string}
@@ -5876,6 +5890,8 @@ export interface components {
             also: string[];
             /** Code */
             code?: string | null;
+            /** Connections Considered */
+            connections_considered?: boolean | null;
             /** Default Rule */
             default_rule?: string | null;
             deny?: components["schemas"]["Deny"] | null;
@@ -5918,20 +5934,6 @@ export interface components {
              * @default []
              */
             stale: string[];
-        };
-        /**
-         * AccessResource
-         * @description What a record or a request is about: a type and its id (a tool name, an absolute folder path, a workflow id,
-         *     an MCP server id, a connection id, a provider name).
-         */
-        AccessResource: {
-            /** Id */
-            id: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "tool" | "folder" | "workflow" | "mcp_server" | "connection" | "cloud_provider";
         };
         /** AccessState */
         AccessState: {
@@ -10154,6 +10156,7 @@ export interface components {
              * @enum {string}
              */
             duration: "once" | "conversation" | "until" | "until_revoked";
+            expected?: components["schemas"]["ToolExpected"] | null;
             /** Expires At */
             expires_at?: string | null;
             /**
@@ -17339,6 +17342,16 @@ export interface components {
             tool?: components["schemas"]["ToolInfo"] | null;
         };
         /**
+         * ToolExpected
+         * @description The tool as the person saw it (an approval request's ``version`` and ``definition_hash``).
+         */
+        ToolExpected: {
+            /** Definition Hash */
+            definition_hash?: string | null;
+            /** Version */
+            version?: number | null;
+        };
+        /**
          * ToolFacts
          * @description The tool a grant was given for: its version, classification and MCP definition hash. A tool grant matches only
          *     while the tool is still exactly this one, like a pre-grant (:func:`matching_pre_grant`): a new version, a changed
@@ -18477,7 +18490,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccessExplanation"];
+                    "application/json": components["schemas"]["AccessRow"];
                 };
             };
             /** @description Error */
@@ -18633,7 +18646,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccessExplanation"][];
+                    "application/json": components["schemas"]["AccessRow"][];
                 };
             };
             /** @description Error */
