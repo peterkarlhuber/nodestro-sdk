@@ -3105,6 +3105,10 @@ class ToolApprovalEvent(TypedDict):
         'tool_adopted',
         'tool_adoption_refused',
         'tool_adoption_revoked',
+        'access_granted',
+        'access_grant_revoked',
+        'access_denied',
+        'access_deny_revoked',
     ]
     outcome: NotRequired[str | None]
     pre_grant_id: NotRequired[str | None]
@@ -3134,6 +3138,7 @@ class ToolBinding(TypedDict):
 
 
 class ToolCallApproval(TypedDict):
+    access_source: NotRequired[str | None]
     capability: NotRequired[dict[str, str]]
     code: NotRequired[str | None]
     comment: NotRequired[str | None]
