@@ -210,11 +210,19 @@ class PublishedWorkflow:
         *,
         comment: str = "",
         approval_id: str | None = None,
+        agent_note: str = "",
     ) -> models.RunStatusOut:
-        """Decide the waiting approval (``approval_id`` chooses one when several wait)."""
+        """Decide the waiting approval (``approval_id`` chooses one when several wait).
+
+        ``comment`` is for people only: no model reads it. ``agent_note`` (at most 2,000 characters) is the only text
+        of the decision that later agents read; send it only where the approval says ``allow_agent_note`` (else
+        ``422 approval.agent_note_disabled``). Left out of the request when empty, so older servers keep working.
+        """
         body: dict[str, Any] = {"decision": decision, "comment": comment}
         if approval_id is not None:
             body["approval_id"] = approval_id
+        if agent_note:
+            body["agent_note"] = agent_note
         return cast(
             models.RunStatusOut,
             self._http.json("POST", f"{self._base}/runs/{path_segment(run_id)}/approve", json_body=body),

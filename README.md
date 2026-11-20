@@ -41,6 +41,10 @@ Both clients offer the same operations under language-typical names (`wait_for_r
   nothing twice), a new snapshot on the studio streams, and a stop (`threading.Event` / `AbortSignal`) that also
   ends the pause before a reconnect. `stream_file`/`save_file` and `streamFile` read result files piece by piece
   instead of holding them in memory; a download that breaks off is an error, never a silently short file.
+- **Approval decisions.** `decide_approval`/`decideApproval` and `approve` take a `comment`, which is for people
+  only (no model reads it), and an optional note to the agent (`agent_note=` / `{ agentNote }`, at most 2,000
+  characters), the only text of a decision that later agents read. An approval whose `allow_agent_note` is false
+  refuses a note (`422 approval.agent_note_disabled`); an empty note is not sent, so older servers keep working.
 - **No redirects.** A redirect is reported as `NodestroAPIError` with code `http_redirect`, so a key is never sent
   to another address; use the final address as the base URL.
 

@@ -4011,7 +4011,8 @@ export interface paths {
          * @description Approve or reject at an approval node; the run (its top-level run) continues right away.
          *
          *     Answers the top-level run as it goes on: ``queued`` (or already ``running``/finished), never the ``paused`` state
-         *     the decision ended (X-01).
+         *     the decision ended (X-01). ``comment`` is for people only; ``agent_note`` is the only text later agents read
+         *     (E-0R-1 A): a note the approval does not take, or one too long once cleaned, answers ``422``.
          */
         post: operations["decide_approval_api_runs__run_id__approvals__node_id__post"];
         delete?: never;
@@ -6503,6 +6504,8 @@ export interface components {
          * @description A pause for a person who approves or rejects the results that arrive here.
          */
         ApprovalConfig: {
+            /** Allow Agent Note */
+            allow_agent_note?: boolean | null;
             /**
              * Allow Comment
              * @default true
@@ -6530,6 +6533,11 @@ export interface components {
         /** ApprovalDecision */
         ApprovalDecision: {
             /**
+             * Agent Note
+             * @default
+             */
+            agent_note: string;
+            /**
              * Comment
              * @default
              */
@@ -6542,6 +6550,11 @@ export interface components {
         };
         /** ApprovalDecisionIn */
         ApprovalDecisionIn: {
+            /**
+             * Agent Note
+             * @default
+             */
+            agent_note: string;
             /** Approval Id */
             approval_id?: string | null;
             /**
@@ -6567,6 +6580,11 @@ export interface components {
          * @description An approval that waits for a decision: what to review and how to answer.
          */
         ApprovalOut: {
+            /**
+             * Allow Agent Note
+             * @default true
+             */
+            allow_agent_note: boolean;
             /**
              * Allow Comment
              * @default true
@@ -6603,6 +6621,11 @@ export interface components {
          * @description A person's decision at an approval node; nothing is ever approved automatically.
          */
         ApprovalRecord: {
+            /**
+             * Agent Note
+             * @default
+             */
+            agent_note: string;
             /**
              * Comment
              * @default
@@ -12270,6 +12293,11 @@ export interface components {
         };
         /** PendingApproval */
         PendingApproval: {
+            /**
+             * Allow Agent Note
+             * @default true
+             */
+            allow_agent_note: boolean;
             /**
              * Allow Comment
              * @default true

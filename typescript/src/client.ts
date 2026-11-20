@@ -486,8 +486,22 @@ export class NodestroClient {
     return this.http.json("GET", "/api/approvals");
   }
 
-  async decideApproval(runId: string, nodeId: string, decision: "approved" | "rejected", comment = ""): Promise<Run> {
-    const body: Schemas["ApprovalDecision"] = { decision, comment };
+  /**
+   * Approve or reject at an approval node; the run continues by itself.
+   *
+   * `comment` is for people only (the run's view, the audit trail): no model reads it. `agentNote` (at most 2,000
+   * characters) is the only text of the decision that later agents read; an approval whose `allow_agent_note` is
+   * `false` refuses one (`422 approval.agent_note_disabled`). Sent only when given, so older servers keep working.
+   */
+  async decideApproval(
+    runId: string,
+    nodeId: string,
+    decision: "approved" | "rejected",
+    comment = "",
+    options: { agentNote?: string } = {},
+  ): Promise<Run> {
+    const body: Omit<Schemas["ApprovalDecision"], "agent_note"> & { agent_note?: string } = { decision, comment };
+    if (options.agentNote) body.agent_note = options.agentNote;
     return this.http.json("POST", `/api/runs/${enc(runId)}/approvals/${enc(nodeId)}`, { body });
   }
 

@@ -166,8 +166,44 @@ describe("studio API", () => {
     expect((await nodestro.waitForRun(run.id, fast)).status).toBe("paused");
     const pending = (await nodestro.listApprovals()).filter((item) => item.run_id === run.id);
     expect(pending.map((item) => item.node_id)).toEqual(["check"]);
+    expect(pending[0]!.allow_agent_note).toBe(true);
     await nodestro.decideApproval(run.id, "check", "approved", "passt");
     expect((await nodestro.waitForRun(run.id, fast)).status).toBe("succeeded");
+  });
+
+  it("sends a note to the agent with a decision; the comment stays with people (E-0R-1 A)", async () => {
+    const flow = (name: string, allowAgentNote: boolean) => ({
+      name,
+      nodes: [
+        { id: "start", type: "start" },
+        agent("writer", "WRITER"),
+        { id: "check", type: "approval", label: "Prüfen", approval: { instructions: "Ok?", allow_agent_note: allowAgentNote } },
+        { id: "out", type: "output" },
+      ],
+      edges: [edge("start", "writer"), edge("writer", "check"), edge("check", "out", "approved")],
+    });
+    const open = await nodestro.createWorkflow(flow("SDK TS note", true));
+    expect(open.nodes![2]!.approval?.allow_agent_note).toBe(true);
+    const run = await nodestro.startRun(open.id, { input: "x" });
+    expect((await nodestro.waitForRun(run.id, fast)).status).toBe("paused");
+    const tooLong = await failure(nodestro.decideApproval(run.id, "check", "approved", "", { agentNote: "\ufdfa".repeat(200) }));
+    expect([tooLong?.status, tooLong?.code, tooLong?.params]).toEqual([422, "approval.agent_note_too_long", { limit: 2000 }]);
+    const decided = await nodestro.decideApproval(run.id, "check", "approved", "for people", { agentNote: "for the agent" });
+    expect([decided.nodes!["check"]!.approval?.comment, decided.nodes!["check"]!.approval?.agent_note]).toEqual([
+      "for people",
+      "for the agent",
+    ]);
+    expect((await nodestro.waitForRun(run.id, fast)).status).toBe("succeeded");
+
+    const closed = await nodestro.createWorkflow(flow("SDK TS no note", false));
+    const second = await nodestro.startRun(closed.id, { input: "x" });
+    expect((await nodestro.waitForRun(second.id, fast)).status).toBe("paused");
+    const pending = (await nodestro.listApprovals()).filter((item) => item.run_id === second.id);
+    expect(pending[0]!.allow_agent_note).toBe(false);
+    const disabled = await failure(nodestro.decideApproval(second.id, "check", "approved", "", { agentNote: "for the agent" }));
+    expect([disabled?.status, disabled?.code]).toEqual([422, "approval.agent_note_disabled"]);
+    await nodestro.decideApproval(second.id, "check", "approved", "for people");
+    expect((await nodestro.waitForRun(second.id, fast)).status).toBe("succeeded");
   });
 
   it("continues a failed run", async () => {
@@ -422,8 +458,17 @@ describe("published workflow API, further operations", () => {
     expect([401, 403, 404]).toContain((await failure(other.status(run.run_id)))?.status);
     const key = await nodestro.createApiKey("approver", ["run", "read", "approve"], [publicationId]);
     const approver = new PublishedWorkflow(server, slug, { apiKey: key.token });
-    const decided = await approver.approve(run.run_id, "approved", { comment: "passt", approvalId: approvals[0]!.approval_id });
+    expect(approvals[0]!.allow_agent_note).toBe(true);
+    const tooLong = await failure(approver.approve(run.run_id, "approved", { agentNote: "\ufdfa".repeat(200) }));
+    expect([tooLong?.status, tooLong?.code]).toEqual([422, "approval.agent_note_too_long"]);
+    const decided = await approver.approve(run.run_id, "approved", {
+      comment: "passt",
+      approvalId: approvals[0]!.approval_id,
+      agentNote: "for the agent",
+    });
     expect(decided.run_id).toBe(run.run_id);
+    const record = (await nodestro.getRun(run.run_id)).nodes!["check"]!.approval;
+    expect([record?.comment, record?.agent_note]).toEqual(["passt", "for the agent"]);
     expect([404, 409]).toContain((await failure(approver.approve(run.run_id)))?.status);
     expect((await approver.waitForResult(run.run_id, fast)).status).toBe("succeeded");
     const files = await approver.files(run.run_id);

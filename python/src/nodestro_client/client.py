@@ -458,9 +458,24 @@ class NodestroClient:
         return cast(list[models.PendingApproval], self._http.json("GET", "/api/approvals"))
 
     def decide_approval(
-        self, run_id: str, node_id: str, decision: Literal["approved", "rejected"], comment: str = ""
+        self,
+        run_id: str,
+        node_id: str,
+        decision: Literal["approved", "rejected"],
+        comment: str = "",
+        *,
+        agent_note: str = "",
     ) -> models.Run:
+        """Approve or reject at an approval node; the run continues by itself.
+
+        ``comment`` is for people only (the run's view, the audit trail): no model reads it. ``agent_note`` (at most
+        2,000 characters) is the only text of the decision that later agents read; an approval whose
+        ``allow_agent_note`` is ``False`` refuses one (``422 approval.agent_note_disabled``). Sent only when given, so
+        older servers keep working.
+        """
         body: models.ApprovalDecision = {"decision": decision, "comment": comment}
+        if agent_note:
+            body["agent_note"] = agent_note
         return cast(
             models.Run,
             self._http.json(
