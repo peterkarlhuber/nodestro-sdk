@@ -294,6 +294,65 @@ describe("access grants (N-06 lows)", () => {
   });
 });
 
+describe("conversations with own agents (N-04)", () => {
+  it("calls each route", async () => {
+    const { calls, fetcher } = recording((url, init) => {
+      const path = new URL(url).pathname;
+      if (path.endsWith("/export")) return new Response("# Notes\n", { headers: { "Content-Type": "text/markdown" } });
+      if (path.endsWith("/content")) return new Response(new Uint8Array([114, 97, 119]));
+      if (init.method === "DELETE" && path.split("/").length === 4) return new Response(null, { status: 204 });
+      return json(200, /conversations$|files$/.test(path) ? [] : {});
+    });
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    await client.listConversations();
+    await client.createConversation({ agent: { template_id: "tpl_1" }, model: "ollama:llama3.2" });
+    await client.getConversation("conv/1");
+    await client.updateConversation("conv_1", { title: "Plans" });
+    expect(await client.exportConversation("conv_1")).toBe("# Notes\n");
+    await client.uploadConversationFiles("conv_1", [{ name: "notes.txt", content: "hello" }]);
+    expect(await client.conversationFileContent("conv_1", "inp_1")).toEqual(new Uint8Array([114, 97, 119]));
+    await client.removeConversationFile("conv_1", "inp_1");
+    await client.sendConversationMessage("conv_1", "Hi", { fileIds: ["inp_1"] });
+    await client.sendConversationMessage("conv_1", "Again");
+    await client.getConversationMessage("conv_1", "conv_1:000002");
+    await client.cancelConversationMessage("conv_1", "conv_1:000002");
+    await client.deleteConversation("conv_1");
+    const seen = calls.map(({ url, init }) => {
+      const body = init.body instanceof FormData ? [...new Set(Array.from(init.body as unknown as Iterable<[string, unknown]>, ([key]) => key))] : init.body ? JSON.parse(String(init.body)) : null;
+      return [init.method, new URL(url).pathname, body];
+    });
+    expect(seen).toEqual([
+      ["GET", "/api/conversations", null],
+      ["POST", "/api/conversations", { agent: { template_id: "tpl_1" }, model: "ollama:llama3.2" }],
+      ["GET", "/api/conversations/conv%2F1", null],
+      ["PATCH", "/api/conversations/conv_1", { title: "Plans" }],
+      ["GET", "/api/conversations/conv_1/export", null],
+      ["POST", "/api/conversations/conv_1/files", ["files"]],
+      ["GET", "/api/conversations/conv_1/files/inp_1/content", null],
+      ["DELETE", "/api/conversations/conv_1/files/inp_1", null],
+      ["POST", "/api/conversations/conv_1/messages", { content: "Hi", file_ids: ["inp_1"] }],
+      ["POST", "/api/conversations/conv_1/messages", { content: "Again", file_ids: [] }],
+      ["GET", "/api/conversations/conv_1/messages/conv_1%3A000002", null],
+      ["POST", "/api/conversations/conv_1/messages/conv_1%3A000002/cancel", null],
+      ["DELETE", "/api/conversations/conv_1", null],
+    ]);
+  });
+
+  it("follows an answer's events", async () => {
+    const stream =
+      'event: snapshot\ndata: {"id": "conv_1:000002", "status": "running"}\n\n' +
+      'event: event\ndata: {"seq": 1, "type": "agent_text"}\n\n' +
+      'event: end\ndata: {"status": "succeeded"}\n\n';
+    const { calls, fetcher } = recording(() => new Response(stream, { headers: { "Content-Type": "text/event-stream" } }));
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    const events = [];
+    for await (const event of client.conversationMessageEvents("conv_1", "conv_1:000002")) events.push(event);
+    expect(events.map((event) => event.event)).toEqual(["snapshot", "event", "end"]);
+    expect(events[2]?.data).toEqual({ status: "succeeded" });
+    expect(new URL(calls[0]?.url ?? "").pathname).toBe("/api/conversations/conv_1/messages/conv_1%3A000002/events");
+  });
+});
+
 describe("approval decisions", () => {
   it("sends the note to the agent only when given, so older servers keep working (E-0R-1 A)", async () => {
     const { calls, fetcher } = recording(() => json(200, { id: "run_1", run_id: "run_1", status: "queued" }));

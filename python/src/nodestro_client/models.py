@@ -89,6 +89,20 @@ class AdoptSource(TypedDict):
     title: NotRequired[str]
 
 
+class AgentChoice(TypedDict):
+    template_id: str
+    version: NotRequired[int | None]
+
+
+class AgentConversationFile(TypedDict):
+    added_at: NotRequired[str]
+    format: str
+    id: str
+    media_type: str
+    name: str
+    size: int
+
+
 class AgentModel(TypedDict):
     alternatives: NotRequired[list[str]]
     installed: NotRequired[bool]
@@ -387,6 +401,10 @@ class BodyParseBatchFileApiBatchesParsePost(TypedDict):
 
 
 class BodyUploadFilesApiAssistantConversationsConversationIdFilesPost(TypedDict):
+    files: list[str]
+
+
+class BodyUploadFilesApiConversationsConversationIdFilesPost(TypedDict):
     files: list[str]
 
 
@@ -712,6 +730,14 @@ class ContractInfo(TypedDict):
     versions: NotRequired[list[int]]
 
 
+class ConversationChange(TypedDict):
+    agent: NotRequired[AgentChoice | None]
+    budget_usd: NotRequired[float | None]
+    model: NotRequired[str | None]
+    offline: NotRequired[bool | None]
+    title: NotRequired[str | None]
+
+
 class ConversationFile(TypedDict):
     added_at: NotRequired[str]
     chars: NotRequired[int]
@@ -725,6 +751,14 @@ class ConversationFile(TypedDict):
     outline: NotRequired[str]
     sent_at: NotRequired[str | None]
     size: int
+
+
+class ConversationIn(TypedDict):
+    agent: AgentChoice
+    budget_usd: NotRequired[float | None]
+    model: NotRequired[str | None]
+    offline: NotRequired[bool]
+    title: NotRequired[str]
 
 
 class ConversationSummary(TypedDict):
@@ -1544,6 +1578,24 @@ class MemorySpaceInfo(TypedDict):
 class MemoryText(TypedDict):
     content: str
     path: str
+
+
+class MessageFile(TypedDict):
+    file_id: str
+    format: NotRequired[str | None]
+    media_type: NotRequired[str | None]
+    mode: NotRequired[
+        Literal['text', 'document', 'image', 'ocr_text', 'overview', 'unavailable']
+        | None
+    ]
+    name: str
+    notes: NotRequired[list[str]]
+    size: NotRequired[int]
+
+
+class MessageIn(TypedDict):
+    content: NotRequired[str]
+    file_ids: NotRequired[list[str]]
 
 
 class ModelAlternative(TypedDict):
@@ -3210,6 +3262,18 @@ class ToolCallRecord(TypedDict):
     started_at: NotRequired[str]
 
 
+class ToolCallView(TypedDict):
+    approval: NotRequired[ToolCallApproval | None]
+    arguments: NotRequired[dict[str, Any]]
+    duration_ms: NotRequired[int | None]
+    finished_at: NotRequired[str | None]
+    id: str
+    is_error: NotRequired[bool]
+    name: str
+    result: NotRequired[str | None]
+    started_at: str
+
+
 class ToolCapability(TypedDict):
     access: Literal['read', 'write', 'destructive']
     reach: Literal['internal', 'external']
@@ -3615,6 +3679,18 @@ class AdoptRequest(TypedDict):
     items: list[AdoptSource]
 
 
+class AgentConversationSummary(TypedDict):
+    agent: TemplateRef
+    cost_usd: float | None
+    created_at: str
+    id: str
+    messages: int
+    model: str
+    offline: bool
+    title: str
+    updated_at: str
+
+
 class AgentTestResult(TypedDict):
     agent_name: str
     error: NotRequired[str | None]
@@ -3870,6 +3946,44 @@ class ConversationDetail(TypedDict):
     title: NotRequired[str]
     updated_at: NotRequired[str]
     usage: NotRequired[Usage]
+
+
+class ConversationMessage(TypedDict):
+    agent: NotRequired[TemplateRef | None]
+    approval_ids: NotRequired[list[str]]
+    attachments: NotRequired[list[MessageFile]]
+    content: NotRequired[str]
+    conversation_id: str
+    cost_usd: NotRequired[float | None]
+    created_at: NotRequired[str]
+    error: NotRequired[Problem | None]
+    finished_at: NotRequired[str | None]
+    id: NotRequired[str]
+    model: NotRequired[str | None]
+    reply_to: NotRequired[str | None]
+    role: Literal['user', 'assistant']
+    run_id: NotRequired[str | None]
+    seq: int
+    sources: NotRequired[list[SourceEntry]]
+    status: NotRequired[
+        Literal[
+            'complete',
+            'queued',
+            'running',
+            'paused',
+            'succeeded',
+            'failed',
+            'cancelled',
+        ]
+    ]
+    tool_calls: NotRequired[list[ToolCallView]]
+    usage: NotRequired[Usage | None]
+
+
+class ConversationUpload(TypedDict):
+    file: NotRequired[AgentConversationFile | None]
+    name: str
+    problem: NotRequired[Problem | None]
 
 
 class Edge(TypedDict):
@@ -4248,7 +4362,14 @@ class PendingApproval(TypedDict):
     run_id: str
     trigger: NotRequired[
         Literal[
-            'manual', 'schedule', 'batch', 'benchmark', 'subworkflow', 'resume', 'api'
+            'manual',
+            'schedule',
+            'batch',
+            'benchmark',
+            'subworkflow',
+            'resume',
+            'api',
+            'conversation',
         ]
     ]
     waiting_since: NotRequired[str | None]
@@ -4455,7 +4576,14 @@ class RunSummary(TypedDict):
     status: Literal['queued', 'running', 'paused', 'succeeded', 'failed', 'cancelled']
     trigger: NotRequired[
         Literal[
-            'manual', 'schedule', 'batch', 'benchmark', 'subworkflow', 'resume', 'api'
+            'manual',
+            'schedule',
+            'batch',
+            'benchmark',
+            'subworkflow',
+            'resume',
+            'api',
+            'conversation',
         ]
     ]
     trigger_ref: NotRequired[str | None]
@@ -4495,6 +4623,11 @@ class SandboxBackendStatus(TypedDict):
 class ScheduleState(TypedDict):
     activation: NotRequired[Activation | None]
     schedule: Schedule
+
+
+class SentConversationMessage(TypedDict):
+    assistant: ConversationMessage
+    user: ConversationMessage
 
 
 class SentMessage(TypedDict):
@@ -4735,6 +4868,26 @@ class AgentConfig(TypedDict):
     tool_policies: NotRequired[dict[str, ToolBinding]]
     tool_settings: NotRequired[dict[str, ToolSettings]]
     tools: NotRequired[list[str]]
+
+
+class AgentConversationDetail(TypedDict):
+    agent: TemplateRef
+    answering: NotRequired[str | None]
+    auto_title: NotRequired[bool]
+    budget_usd: NotRequired[float | None]
+    created_at: NotRequired[str]
+    files: NotRequired[list[AgentConversationFile]]
+    id: NotRequired[str]
+    last_seq: NotRequired[int]
+    messages: NotRequired[list[ConversationMessage]]
+    model: str
+    offline: NotRequired[bool]
+    owner: NotRequired[str | None]
+    provenance: NotRequired[Literal['unchecked']]
+    tenant_id: str
+    title: NotRequired[str]
+    updated_at: NotRequired[str]
+    usage: NotRequired[Usage]
 
 
 class AgentDraft(TypedDict):
@@ -5213,7 +5366,14 @@ class Run(TypedDict):
     text_input: NotRequired[str | None]
     trigger: NotRequired[
         Literal[
-            'manual', 'schedule', 'batch', 'benchmark', 'subworkflow', 'resume', 'api'
+            'manual',
+            'schedule',
+            'batch',
+            'benchmark',
+            'subworkflow',
+            'resume',
+            'api',
+            'conversation',
         ]
     ]
     trigger_ref: NotRequired[str | None]

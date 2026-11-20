@@ -221,6 +221,16 @@ export type AccessDenyIn = Defaulted<Schemas["DenyIn"], "scope" | "agents" | "mo
 export type AccessResourceType = Schemas["GrantIn"]["resource_type"];
 export type AccessAction = Schemas["GrantIn"]["actions"][number];
 export type AccessMode = "supervised" | "unattended";
+export type AgentConversationSummary = Schemas["AgentConversationSummary"];
+export type AgentConversation = Schemas["AgentConversationDetail"];
+export type AgentConversationFile = Schemas["AgentConversationFile"];
+export type ConversationMessage = Schemas["ConversationMessage"];
+export type SentConversationMessage = Schemas["SentConversationMessage"];
+export type ConversationUpload = Schemas["ConversationUpload"];
+/** A new conversation: the agent template (and version), optionally title, model, offline flag and budget. */
+export type AgentConversationIn = Defaulted<Schemas["ConversationIn"], "offline" | "title">;
+/** A change of a conversation: only the fields given change. */
+export type AgentConversationChange = Partial<Schemas["ConversationChange"]>;
 /** Export options as sent (every field has a server default; `kind` is `standard` unless given). */
 export type ExportOptions = Partial<Schemas["ExportOptions"]>;
 export type ExportCheck = Schemas["ExportCheck"];
@@ -1554,6 +1564,97 @@ export class NodestroClient {
   /** The audit trail of tool approval questions and decisions, newest first. */
   async toolApprovalAudit(limit = 200): Promise<ToolApprovalEvent[]> {
     return this.http.json("GET", "/api/tool-approvals/audit", { query: { limit } });
+  }
+
+  // ---- conversations with own agents (only while the installation switched them on)
+
+  /**
+   * Your conversations with own agents, newest first. `404 conversation.disabled` while `NODESTRO_CONVERSATIONS` is
+   * off (the default), like every method below; the SDK never switches it on.
+   */
+  async listConversations(): Promise<AgentConversationSummary[]> {
+    return this.http.json("GET", "/api/conversations");
+  }
+
+  /**
+   * Start a conversation with an agent template (`agent`: `template_id` and an optional `version`). A cloud model is
+   * never chosen for you: without `model` only a local default is taken, otherwise `422 conversation.model_required`.
+   */
+  async createConversation(conversation: AgentConversationIn): Promise<AgentConversation> {
+    return this.http.json("POST", "/api/conversations", { body: conversation });
+  }
+
+  /** The conversation with its messages; each answer shows its run as it is now. */
+  async getConversation(conversationId: string): Promise<AgentConversation> {
+    return this.http.json("GET", `/api/conversations/${enc(conversationId)}`);
+  }
+
+  /** Rename it or switch its agent, model, offline flag or budget; only the fields given change. */
+  async updateConversation(conversationId: string, change: AgentConversationChange): Promise<AgentConversation> {
+    return this.http.json("PATCH", `/api/conversations/${enc(conversationId)}`, { body: change });
+  }
+
+  /** Delete it with its messages and files; a running answer is cancelled. The answers' runs stay. */
+  async deleteConversation(conversationId: string): Promise<void> {
+    await this.http.request("DELETE", `/api/conversations/${enc(conversationId)}`);
+  }
+
+  /** The conversation as Markdown: messages, files, tool calls, sources and cost. */
+  async exportConversation(conversationId: string): Promise<string> {
+    return new TextDecoder().decode(await this.http.bytes("GET", `/api/conversations/${enc(conversationId)}/export`));
+  }
+
+  /**
+   * Attach files to the conversation (a message sends them by `fileIds`). Each result has the `file` or a `problem`
+   * (refused files are not stored). Not retried automatically.
+   */
+  async uploadConversationFiles(conversationId: string, files: UploadFile[]): Promise<ConversationUpload[]> {
+    return this.http.json("POST", `/api/conversations/${enc(conversationId)}/files`, { form: uploadForm(files) });
+  }
+
+  /** Remove a file from the conversation and delete it (sent messages keep its name). */
+  async removeConversationFile(conversationId: string, fileId: string): Promise<AgentConversation> {
+    return this.http.json("DELETE", `/api/conversations/${enc(conversationId)}/files/${enc(fileId)}`);
+  }
+
+  /** A conversation file as it was uploaded. */
+  async conversationFileContent(conversationId: string, fileId: string): Promise<Uint8Array> {
+    return this.http.bytes("GET", `/api/conversations/${enc(conversationId)}/files/${enc(fileId)}/content`);
+  }
+
+  /**
+   * Send a message and start its answer, which is a run of the agent (follow it with
+   * {@link conversationMessageEvents}). One answer at a time: `409 conversation.answer_running` otherwise. Not
+   * retried automatically.
+   */
+  async sendConversationMessage(
+    conversationId: string,
+    content = "",
+    options: { fileIds?: string[] } = {},
+  ): Promise<SentConversationMessage> {
+    const body = { content, file_ids: options.fileIds ?? [] };
+    return this.http.json("POST", `/api/conversations/${enc(conversationId)}/messages`, { body });
+  }
+
+  async getConversationMessage(conversationId: string, messageId: string): Promise<ConversationMessage> {
+    return this.http.json("GET", `/api/conversations/${enc(conversationId)}/messages/${enc(messageId)}`);
+  }
+
+  /** Cancel a running answer: its run is cancelled and the model connection closed. */
+  async cancelConversationMessage(conversationId: string, messageId: string): Promise<ConversationMessage> {
+    return this.http.json("POST", `/api/conversations/${enc(conversationId)}/messages/${enc(messageId)}/cancel`);
+  }
+
+  /**
+   * The live events of an answer: `snapshot` (the message), `event` (one event of its run, as in {@link events}),
+   * `end` (with the answer's `status`). Options work as in {@link events}; a reconnect gets a new snapshot.
+   */
+  async *conversationMessageEvents(
+    conversationId: string,
+    messageId: string,
+    options: EventStreamOptions = {},
+  ): AsyncGenerator<ServerEvent> {
+    yield* this.http.events(`/api/conversations/${enc(conversationId)}/messages/${enc(messageId)}/events`, options);
   }
 
   // ---- access grants and denies (only while the installation switched them on)

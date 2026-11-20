@@ -1056,6 +1056,24 @@ describe("test series, knowledge, input files, tool approvals and exports (SDK-0
     }
   });
 
+  it("keeps conversations off on the test server: every route is not found (N-04)", async () => {
+    const calls: Array<() => Promise<unknown>> = [
+      () => nodestro.listConversations(),
+      () => nodestro.createConversation({ agent: { template_id: "tpl_x" } }),
+      () => nodestro.getConversation("conv_x"),
+      () => nodestro.updateConversation("conv_x", { title: "x" }),
+      () => nodestro.exportConversation("conv_x"),
+      () => nodestro.uploadConversationFiles("conv_x", [{ name: "a.txt", content: "a" }]),
+      () => nodestro.sendConversationMessage("conv_x", "Hi"),
+      () => nodestro.cancelConversationMessage("conv_x", "conv_x:000002"),
+      () => nodestro.deleteConversation("conv_x"),
+    ];
+    for (const call of calls) {
+      const off = await failure(call());
+      expect([off?.status, off?.code]).toEqual([404, "conversation.disabled"]);
+    }
+  });
+
   it("checks, builds, downloads and deletes an export", async () => {
     const workflow = await nodestro.createWorkflow(simple());
     const { publication } = await nodestro.publish(workflow.id, { slug: `sdk-ts-export-${Date.now()}` });
