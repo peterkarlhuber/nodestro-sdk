@@ -245,6 +245,11 @@ installation switched `NODESTRO_ACCESS_GRANTS` on together with tool approvals (
 method except `access_state` raises `404 access.grants_disabled`. Only a signed-in person writes them. An API key is
 refused with `access.person_required`.
 
+Conversations with own agents (`list_conversations`, `create_conversation`, `send_conversation_message` and the others)
+only work where the installation switched `NODESTRO_CONVERSATIONS` on (off by default). Elsewhere every method answers
+`404 conversation.disabled`. Each answer is a run of the agent: follow it with the message's events, and cancel it to
+end the model connection. A cloud model is never chosen for you.
+
 ## Local models and the knowledge index
 
 On a desktop installation Nodestro manages a local model server (Ollama) itself. The steps are explicit and run as

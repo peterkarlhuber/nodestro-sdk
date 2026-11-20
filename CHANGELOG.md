@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Added (N-04) to both SDKs: conversations with own agents. They work only where the installation switched
+  `NODESTRO_CONVERSATIONS` on, which is off by default; elsewhere they answer `404 conversation.disabled`.
+  - Python: `list_conversations`, `create_conversation`, `get_conversation`, `update_conversation`,
+    `delete_conversation`, `export_conversation`, `upload_conversation_files`, `remove_conversation_file`,
+    `conversation_file_content`, `send_conversation_message`, `get_conversation_message`,
+    `cancel_conversation_message` and `conversation_message_events`.
+  - TypeScript: `listConversations`, `createConversation`, `getConversation`, `updateConversation`,
+    `deleteConversation`, `exportConversation`, `uploadConversationFiles`, `removeConversationFile`,
+    `conversationFileContent`, `sendConversationMessage`, `getConversationMessage`, `cancelConversationMessage` and
+    `conversationMessageEvents`.
+  - The OpenAPI document is synced with the nodestro-api N-04 branch (d29c154, with the review fixes), and the types
+    are regenerated. That brings the conversation schemas and the run trigger `conversation`.
+
 - Changed (N-06 lows): the OpenAPI document is synced with the nodestro-api follow-up, and the types are
   regenerated.
   - A grant can carry `expected` (`version`, `definition_hash`), the tool as the approval request showed it. If

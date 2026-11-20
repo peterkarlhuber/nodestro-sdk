@@ -1522,6 +1522,95 @@ class NodestroClient:
             list[models.ToolApprovalEvent], self._http.json("GET", "/api/tool-approvals/audit", params={"limit": limit})
         )
 
+    # ---- conversations with own agents (only while the installation switched them on) ---------
+
+    def list_conversations(self) -> list[models.AgentConversationSummary]:
+        """Your conversations with own agents, newest first. ``404 conversation.disabled`` while
+        ``NODESTRO_CONVERSATIONS`` is off (the default), like every method below; the SDK never switches it on."""
+        return cast(list[models.AgentConversationSummary], self._http.json("GET", "/api/conversations"))
+
+    def create_conversation(
+        self, conversation: models.ConversationIn | Mapping[str, Any]
+    ) -> models.AgentConversationDetail:
+        """Start a conversation with an agent template (``agent``: ``template_id`` and an optional ``version``). A
+        cloud model is never chosen for you: without ``model`` only a local default is taken, otherwise the server
+        answers ``422 conversation.model_required``."""
+        body = dict(conversation)
+        return cast(models.AgentConversationDetail, self._http.json("POST", "/api/conversations", json_body=body))
+
+    def get_conversation(self, conversation_id: str) -> models.AgentConversationDetail:
+        """The conversation with its messages; each answer shows its run as it is now."""
+        path = f"/api/conversations/{path_segment(conversation_id)}"
+        return cast(models.AgentConversationDetail, self._http.json("GET", path))
+
+    def update_conversation(
+        self, conversation_id: str, change: models.ConversationChange | Mapping[str, Any]
+    ) -> models.AgentConversationDetail:
+        """Rename it or switch its agent, model, offline flag or budget; only the fields given change."""
+        path = f"/api/conversations/{path_segment(conversation_id)}"
+        return cast(models.AgentConversationDetail, self._http.json("PATCH", path, json_body=dict(change)))
+
+    def delete_conversation(self, conversation_id: str) -> None:
+        """Delete it with its messages, files and the answers' runs (a running answer is cancelled first)."""
+        self._http.request("DELETE", f"/api/conversations/{path_segment(conversation_id)}")
+
+    def export_conversation(self, conversation_id: str) -> str:
+        """The conversation as Markdown: messages, files, tool calls, sources and cost."""
+        return self._http.request("GET", f"/api/conversations/{path_segment(conversation_id)}/export").text
+
+    def upload_conversation_files(
+        self, conversation_id: str, files: Sequence[str | os.PathLike[str] | tuple[str, bytes]]
+    ) -> list[models.ConversationUpload]:
+        """Attach files to the conversation (a message sends them by ``file_ids``). Each result has the ``file`` or
+        a ``problem`` (refused files are not stored). Not retried automatically."""
+        parts = [("files", _upload(item, None, "file")) for item in _uploads(files)]
+        path = f"/api/conversations/{path_segment(conversation_id)}/files"
+        return cast(list[models.ConversationUpload], self._http.json("POST", path, files=parts))
+
+    def remove_conversation_file(self, conversation_id: str, file_id: str) -> models.AgentConversationDetail:
+        """Remove a file from the conversation and delete it (sent messages keep its name)."""
+        path = f"/api/conversations/{path_segment(conversation_id)}/files/{path_segment(file_id)}"
+        return cast(models.AgentConversationDetail, self._http.json("DELETE", path))
+
+    def conversation_file_content(self, conversation_id: str, file_id: str) -> bytes:
+        """A conversation file as it was uploaded."""
+        path = f"/api/conversations/{path_segment(conversation_id)}/files/{path_segment(file_id)}/content"
+        return self._http.request("GET", path).content
+
+    def send_conversation_message(
+        self, conversation_id: str, content: str = "", *, file_ids: Sequence[str] = ()
+    ) -> models.SentConversationMessage:
+        """Send a message and start its answer, which is a run of the agent (follow it with
+        :meth:`conversation_message_events`). One answer at a time: ``409 conversation.answer_running`` otherwise.
+        Not retried automatically."""
+        path = f"/api/conversations/{path_segment(conversation_id)}/messages"
+        body = {"content": content, "file_ids": list(file_ids)}
+        return cast(models.SentConversationMessage, self._http.json("POST", path, json_body=body))
+
+    def get_conversation_message(self, conversation_id: str, message_id: str) -> models.ConversationMessage:
+        path = f"/api/conversations/{path_segment(conversation_id)}/messages/{path_segment(message_id)}"
+        return cast(models.ConversationMessage, self._http.json("GET", path))
+
+    def cancel_conversation_message(self, conversation_id: str, message_id: str) -> models.ConversationMessage:
+        """Cancel a running answer: its run is cancelled and the model connection closed."""
+        path = f"/api/conversations/{path_segment(conversation_id)}/messages/{path_segment(message_id)}/cancel"
+        return cast(models.ConversationMessage, self._http.json("POST", path))
+
+    def conversation_message_events(
+        self,
+        conversation_id: str,
+        message_id: str,
+        *,
+        timeout: float | None = None,
+        reconnect: bool | RetryPolicy = False,
+        stop: threading.Event | None = None,
+    ) -> Generator[Event, None, None]:
+        """The live events of an answer: ``snapshot`` (the message), ``event`` (one event of its run, as in
+        :meth:`events`), ``end`` (with the answer's ``status``). ``timeout``, ``reconnect`` and ``stop`` work as in
+        :meth:`events`; a reconnect gets a new snapshot."""
+        path = f"/api/conversations/{path_segment(conversation_id)}/messages/{path_segment(message_id)}/events"
+        return self._http.events(path, timeout=timeout, reconnect=reconnect_policy(reconnect), stop=stop)
+
     # ---- access grants and denies (only while the installation switched them on) -----------------
 
     def access_state(self) -> models.AccessState:

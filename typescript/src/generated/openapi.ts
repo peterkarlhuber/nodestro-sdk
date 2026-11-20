@@ -1431,7 +1431,8 @@ export interface paths {
         };
         /**
          * Budget Requests
-         * @description The tenant's open budget requests, oldest first (also after a restart).
+         * @description The tenant's open budget requests, oldest first (also after a restart); not those of another user's
+         *     conversation with an own agent (N-04).
          */
         get: operations["budget_requests_api_budget_requests_get"];
         put?: never;
@@ -1596,6 +1597,209 @@ export interface paths {
          *     answers with its code only (``connection.*``), never the service's message.
          */
         post: operations["send_connection_test_api_connections__connection_id__test_send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Conversations */
+        get: operations["list_conversations_api_conversations_get"];
+        put?: never;
+        /** Create Conversation */
+        post: operations["create_conversation_api_conversations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Conversation */
+        get: operations["get_conversation_api_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Conversation
+         * @description Delete it with its messages, files and the answers' runs (a running answer is cancelled first), and revoke its
+         *     grants for "this conversation". The usage ledger keeps the cost.
+         */
+        delete: operations["delete_conversation_api_conversations__conversation_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Change Conversation
+         * @description Rename it or switch its agent, model, offline flag or budget; only the fields sent change.
+         */
+        patch: operations["change_conversation_api_conversations__conversation_id__patch"];
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Conversation
+         * @description The conversation as Markdown, as a download.
+         */
+        get: operations["export_conversation_api_conversations__conversation_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Files
+         * @description Check, read and attach files to the conversation (a message sends them); refused files are reported with the
+         *     reason and never stored.
+         */
+        post: operations["upload_files_api_conversations__conversation_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove File
+         * @description Remove a file from the conversation and delete it (sent messages keep its name).
+         */
+        delete: operations["remove_file_api_conversations__conversation_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/files/{file_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File Content
+         * @description The file as uploaded: always a download (never shown inline in the studio's origin).
+         */
+        get: operations["file_content_api_conversations__conversation_id__files__file_id__content_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Message
+         * @description Store the message and start its answer (a run); follow it via its events. A local model that is not ready is
+         *     refused before anything is stored (``409 model.local_unavailable``); no other model is chosen instead.
+         */
+        post: operations["send_message_api_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Message */
+        get: operations["get_message_api_conversations__conversation_id__messages__message_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/messages/{message_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Message
+         * @description Cancel a running answer: its run is cancelled and the model connection closed.
+         */
+        post: operations["cancel_message_api_conversations__conversation_id__messages__message_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conversations/{conversation_id}/messages/{message_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Message Events
+         * @description Server-Sent Events: a ``snapshot`` of the message, then the run's events (``event``) until ``end``.
+         */
+        get: operations["message_events_api_conversations__conversation_id__messages__message_id__events_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5071,7 +5275,8 @@ export interface paths {
         };
         /**
          * Open Tool Approvals
-         * @description Every question that waits for a person, oldest first (also after a restart).
+         * @description Every question that waits for a person, oldest first (also after a restart); not the questions of another
+         *     user's conversation with an own agent (N-04).
          */
         get: operations["open_tool_approvals_api_tool_approvals_get"];
         put?: never;
@@ -5601,7 +5806,8 @@ export interface paths {
         put?: never;
         /**
          * Preview
-         * @description What an agent would receive: prompt with filled placeholders, inputs and context.
+         * @description What an agent would receive: prompt with filled placeholders, inputs and context. A run of another user's
+         *     conversation with an own agent is not found (N-04: its input and outputs are the conversation).
          */
         post: operations["preview_api_workflows_preview_post"];
         delete?: never;
@@ -6145,6 +6351,16 @@ export interface components {
             title: string;
         };
         /**
+         * AgentChoice
+         * @description An agent template; ``version`` ``None``: its current version.
+         */
+        AgentChoice: {
+            /** Template Id */
+            template_id: string;
+            /** Version */
+            version?: number | null;
+        };
+        /**
          * AgentConfig
          * @description Everything about one agent node; mirrors the arguments of ``orkexa.Agent``.
          *
@@ -6267,6 +6483,110 @@ export interface components {
             };
             /** Tools */
             tools?: string[];
+        };
+        /** AgentConversationDetail */
+        AgentConversationDetail: {
+            agent: components["schemas"]["TemplateRef"];
+            /** Answering */
+            answering?: string | null;
+            /**
+             * Auto Title
+             * @default true
+             */
+            auto_title: boolean;
+            /** Budget Usd */
+            budget_usd?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Files */
+            files?: components["schemas"]["AgentConversationFile"][];
+            /** Id */
+            id?: string;
+            /**
+             * Last Seq
+             * @default 0
+             */
+            last_seq: number;
+            /** Messages */
+            messages?: components["schemas"]["ConversationMessage"][];
+            /** Model */
+            model: string;
+            /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
+            /** Owner */
+            owner?: string | null;
+            /**
+             * Provenance
+             * @default unchecked
+             * @constant
+             */
+            provenance: "unchecked";
+            /** Tenant Id */
+            tenant_id: string;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
+            usage?: components["schemas"]["Usage"];
+        };
+        /**
+         * AgentConversationFile
+         * @description A file of the conversation: an input file of origin ``conversation``.
+         */
+        AgentConversationFile: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at?: string;
+            /** Format */
+            format: string;
+            /** Id */
+            id: string;
+            /** Media Type */
+            media_type: string;
+            /** Name */
+            name: string;
+            /** Size */
+            size: number;
+        };
+        /** AgentConversationSummary */
+        AgentConversationSummary: {
+            agent: components["schemas"]["TemplateRef"];
+            /** Cost Usd */
+            cost_usd: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Messages */
+            messages: number;
+            /** Model */
+            model: string;
+            /** Offline */
+            offline: boolean;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * AgentDraft
@@ -7911,6 +8231,11 @@ export interface components {
             /** Files */
             files: string[];
         };
+        /** Body_upload_files_api_conversations__conversation_id__files_post */
+        Body_upload_files_api_conversations__conversation_id__files_post: {
+            /** Files */
+            files: string[];
+        };
         /** Body_upload_inputs_api_inputs_post */
         Body_upload_inputs_api_inputs_post: {
             /**
@@ -8958,6 +9283,21 @@ export interface components {
             /** Versions */
             versions?: number[];
         };
+        /**
+         * ConversationChange
+         * @description A change of a conversation: only the fields that are sent change (rename, switch agent or model).
+         */
+        ConversationChange: {
+            agent?: components["schemas"]["AgentChoice"] | null;
+            /** Budget Usd */
+            budget_usd?: number | null;
+            /** Model */
+            model?: string | null;
+            /** Offline */
+            offline?: boolean | null;
+            /** Title */
+            title?: string | null;
+        };
         /** ConversationDetail */
         ConversationDetail: {
             /** Attachment States */
@@ -9049,6 +9389,75 @@ export interface components {
             /** Size */
             size: number;
         };
+        /** ConversationIn */
+        ConversationIn: {
+            agent: components["schemas"]["AgentChoice"];
+            /** Budget Usd */
+            budget_usd?: number | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
+        /** ConversationMessage */
+        ConversationMessage: {
+            agent?: components["schemas"]["TemplateRef"] | null;
+            /** Approval Ids */
+            approval_ids?: string[];
+            /** Attachments */
+            attachments?: components["schemas"]["MessageFile"][];
+            /**
+             * Content
+             * @default
+             */
+            content: string;
+            /** Conversation Id */
+            conversation_id: string;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            error?: components["schemas"]["Problem"] | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id?: string;
+            /** Model */
+            model?: string | null;
+            /** Reply To */
+            reply_to?: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Run Id */
+            run_id?: string | null;
+            /** Seq */
+            seq: number;
+            /** Sources */
+            sources?: components["schemas"]["SourceEntry"][];
+            /**
+             * Status
+             * @default complete
+             * @enum {string}
+             */
+            status: "complete" | "queued" | "running" | "paused" | "succeeded" | "failed" | "cancelled";
+            /** Tool Calls */
+            tool_calls?: components["schemas"]["ToolCallView"][];
+            usage?: components["schemas"]["Usage"] | null;
+        };
         /** ConversationSummary */
         ConversationSummary: {
             /** Attachments */
@@ -9076,6 +9485,16 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * ConversationUpload
+         * @description One uploaded file: attached (``file``) or refused (``problem``; nothing is stored then).
+         */
+        ConversationUpload: {
+            file?: components["schemas"]["AgentConversationFile"] | null;
+            /** Name */
+            name: string;
+            problem?: components["schemas"]["Problem"] | null;
         };
         /**
          * CostEstimate
@@ -11788,6 +12207,39 @@ export interface components {
             /** Path */
             path: string;
         };
+        /**
+         * MessageFile
+         * @description A file sent with a message, and how the answer's model received it.
+         */
+        MessageFile: {
+            /** File Id */
+            file_id: string;
+            /** Format */
+            format?: string | null;
+            /** Media Type */
+            media_type?: string | null;
+            /** Mode */
+            mode?: ("text" | "document" | "image" | "ocr_text" | "overview" | "unavailable") | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Size
+             * @default 0
+             */
+            size: number;
+        };
+        /** MessageIn */
+        MessageIn: {
+            /**
+             * Content
+             * @default
+             */
+            content: string;
+            /** File Ids */
+            file_ids?: string[];
+        };
         /** Meta */
         Meta: {
             /** Capabilities */
@@ -12753,7 +13205,7 @@ export interface components {
              * @default manual
              * @enum {string}
              */
-            trigger: "manual" | "schedule" | "batch" | "benchmark" | "subworkflow" | "resume" | "api";
+            trigger: "manual" | "schedule" | "batch" | "benchmark" | "subworkflow" | "resume" | "api" | "conversation";
             /** Waiting Since */
             waiting_since?: string | null;
             /** Workflow Id */
@@ -14522,7 +14974,7 @@ export interface components {
              * @default manual
              * @enum {string}
              */
-            trigger: "manual" | "schedule" | "batch" | "benchmark" | "subworkflow" | "resume" | "api";
+            trigger: "manual" | "schedule" | "batch" | "benchmark" | "subworkflow" | "resume" | "api" | "conversation";
             /** Trigger Ref */
             trigger_ref?: string | null;
             usage?: components["schemas"]["Usage"];
@@ -14843,7 +15295,7 @@ export interface components {
              * @default manual
              * @enum {string}
              */
-            trigger: "manual" | "schedule" | "batch" | "benchmark" | "subworkflow" | "resume" | "api";
+            trigger: "manual" | "schedule" | "batch" | "benchmark" | "subworkflow" | "resume" | "api" | "conversation";
             /** Trigger Ref */
             trigger_ref?: string | null;
             usage: components["schemas"]["Usage"];
@@ -15446,6 +15898,11 @@ export interface components {
             size?: number | null;
             /** Status */
             status?: number | null;
+        };
+        /** SentConversationMessage */
+        SentConversationMessage: {
+            assistant: components["schemas"]["ConversationMessage"];
+            user: components["schemas"]["ConversationMessage"];
         };
         /**
          * SentFile
@@ -17220,6 +17677,37 @@ export interface components {
              * Format: date-time
              */
             started_at?: string;
+        };
+        /**
+         * ToolCallView
+         * @description One tool call of an answer: its arguments, result and duration.
+         */
+        ToolCallView: {
+            approval?: components["schemas"]["ToolCallApproval"] | null;
+            /** Arguments */
+            arguments?: {
+                [key: string]: unknown;
+            };
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Is Error
+             * @default false
+             */
+            is_error: boolean;
+            /** Name */
+            name: string;
+            /** Result */
+            result?: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
         };
         /**
          * ToolCapability
@@ -21629,6 +22117,424 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SendTestOut"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_conversations_api_conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConversationSummary"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_conversation_api_conversations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConversationDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_conversation_api_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConversationDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_conversation_api_conversations__conversation_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    change_conversation_api_conversations__conversation_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConversationDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_conversation_api_conversations__conversation_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/markdown": string;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    upload_files_api_conversations__conversation_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_files_api_conversations__conversation_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationUpload"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_file_api_conversations__conversation_id__files__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConversationDetail"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    file_content_api_conversations__conversation_id__files__file_id__content_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    send_message_api_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentConversationMessage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_message_api_conversations__conversation_id__messages__message_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationMessage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    cancel_message_api_conversations__conversation_id__messages__message_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationMessage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    message_events_api_conversations__conversation_id__messages__message_id__events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Error */

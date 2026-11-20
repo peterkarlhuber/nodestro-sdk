@@ -1149,6 +1149,26 @@ def test_access_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> 
         assert (off.value.status, off.value.code) == (404, "access.grants_disabled")
 
 
+def test_conversations_stay_off_on_the_test_server(nodestro: NodestroClient) -> None:
+    """N-04: the test server keeps ``NODESTRO_CONVERSATIONS`` off (the default), so every route is not found with
+    its own code and nothing is read or written."""
+    calls = [
+        nodestro.list_conversations,
+        lambda: nodestro.create_conversation({"agent": {"template_id": "tpl_x"}}),
+        lambda: nodestro.get_conversation("conv_x"),
+        lambda: nodestro.update_conversation("conv_x", {"title": "x"}),
+        lambda: nodestro.export_conversation("conv_x"),
+        lambda: nodestro.upload_conversation_files("conv_x", [("a.txt", b"a")]),
+        lambda: nodestro.send_conversation_message("conv_x", "Hi"),
+        lambda: nodestro.cancel_conversation_message("conv_x", "conv_x:000002"),
+        lambda: nodestro.delete_conversation("conv_x"),
+    ]
+    for call in calls:
+        with pytest.raises(NodestroAPIError) as off:
+            call()
+        assert (off.value.status, off.value.code) == (404, "conversation.disabled")
+
+
 def test_exports_are_checked_built_downloaded_and_deleted(nodestro: NodestroClient, tmp_path: Path) -> None:
     """SDK-003: standalone exports of a publication; portable packages are export jobs (their build downloads
     Python and libraries, so this test only checks how a job is refused and looked up)."""

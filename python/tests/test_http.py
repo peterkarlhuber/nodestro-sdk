@@ -762,3 +762,73 @@ def test_a_tool_grant_sends_the_tool_as_it_was_shown() -> None:
     }
     client_with(handler).grant_access(grant)
     assert sent == [grant]
+
+
+# ---- conversations with own agents (N-04) ----------------------------------------------------
+
+
+def test_conversation_methods_call_their_routes() -> None:
+    sent: list[tuple[str, str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.raw_path.decode()
+        kind = request.headers.get("content-type", "")
+        body = json.loads(request.content) if kind.startswith("application/json") and request.content else None
+        if kind.startswith("multipart/form-data"):
+            body = b'filename="notes.txt"' in request.read()
+        sent.append((request.method, path, body))
+        if path.endswith("/export"):
+            return httpx.Response(200, text="# Notes\n", headers={"content-type": "text/markdown; charset=utf-8"})
+        if path.endswith("/content"):
+            return httpx.Response(200, content=b"raw")
+        if request.method == "DELETE" and path.count("/") == 3:
+            return httpx.Response(204)
+        return httpx.Response(200, json=[] if path.endswith(("/conversations", "/files")) else {})
+
+    nodestro = client_with(handler)
+    nodestro.list_conversations()
+    nodestro.create_conversation({"agent": {"template_id": "tpl_1"}, "model": "ollama:llama3.2"})
+    nodestro.get_conversation("conv/1")
+    nodestro.update_conversation("conv_1", {"title": "Plans"})
+    assert nodestro.export_conversation("conv_1") == "# Notes\n"
+    nodestro.upload_conversation_files("conv_1", [("notes.txt", b"hello")])
+    assert nodestro.conversation_file_content("conv_1", "inp_1") == b"raw"
+    nodestro.remove_conversation_file("conv_1", "inp_1")
+    nodestro.send_conversation_message("conv_1", "Hi", file_ids=["inp_1"])
+    nodestro.send_conversation_message("conv_1", "Again")
+    nodestro.get_conversation_message("conv_1", "conv_1:000002")
+    nodestro.cancel_conversation_message("conv_1", "conv_1:000002")
+    nodestro.delete_conversation("conv_1")
+    assert sent == [
+        ("GET", "/api/conversations", None),
+        ("POST", "/api/conversations", {"agent": {"template_id": "tpl_1"}, "model": "ollama:llama3.2"}),
+        ("GET", "/api/conversations/conv%2F1", None),
+        ("PATCH", "/api/conversations/conv_1", {"title": "Plans"}),
+        ("GET", "/api/conversations/conv_1/export", None),
+        ("POST", "/api/conversations/conv_1/files", True),
+        ("GET", "/api/conversations/conv_1/files/inp_1/content", None),
+        ("DELETE", "/api/conversations/conv_1/files/inp_1", None),
+        ("POST", "/api/conversations/conv_1/messages", {"content": "Hi", "file_ids": ["inp_1"]}),
+        ("POST", "/api/conversations/conv_1/messages", {"content": "Again", "file_ids": []}),
+        ("GET", "/api/conversations/conv_1/messages/conv_1%3A000002", None),
+        ("POST", "/api/conversations/conv_1/messages/conv_1%3A000002/cancel", None),
+        ("DELETE", "/api/conversations/conv_1", None),
+    ]
+
+
+def test_conversation_message_events_follow_the_answer() -> None:
+    stream = (
+        'event: snapshot\ndata: {"id": "conv_1:000002", "status": "running"}\n\n'
+        'event: event\ndata: {"seq": 1, "type": "agent_text"}\n\n'
+        'event: end\ndata: {"status": "succeeded"}\n\n'
+    )
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.raw_path.decode())
+        return httpx.Response(200, text=stream, headers={"content-type": "text/event-stream"})
+
+    events = list(client_with(handler).conversation_message_events("conv_1", "conv_1:000002"))
+    assert [event.event for event in events] == ["snapshot", "event", "end"]
+    assert events[-1].data == {"status": "succeeded"}
+    assert paths == ["/api/conversations/conv_1/messages/conv_1%3A000002/events"]
