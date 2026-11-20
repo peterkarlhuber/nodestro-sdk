@@ -1551,7 +1551,7 @@ class NodestroClient:
         return cast(models.AgentConversationDetail, self._http.json("PATCH", path, json_body=dict(change)))
 
     def delete_conversation(self, conversation_id: str) -> None:
-        """Delete it with its messages and files; a running answer is cancelled. The answers' runs stay."""
+        """Delete it with its messages, files and the answers' runs (a running answer is cancelled first)."""
         self._http.request("DELETE", f"/api/conversations/{path_segment(conversation_id)}")
 
     def export_conversation(self, conversation_id: str) -> str:

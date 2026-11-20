@@ -12,8 +12,8 @@
     `deleteConversation`, `exportConversation`, `uploadConversationFiles`, `removeConversationFile`,
     `conversationFileContent`, `sendConversationMessage`, `getConversationMessage`, `cancelConversationMessage` and
     `conversationMessageEvents`.
-  - The OpenAPI document is synced with the nodestro-api N-04 branch (06aad3a), and the types are regenerated. That
-    brings the conversation schemas and the run trigger `conversation`.
+  - The OpenAPI document is synced with the nodestro-api N-04 branch (d29c154, with the review fixes), and the types
+    are regenerated. That brings the conversation schemas and the run trigger `conversation`.
 
 - Changed (N-06 lows): the OpenAPI document is synced with the nodestro-api follow-up, and the types are
   regenerated.

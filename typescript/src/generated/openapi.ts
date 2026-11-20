@@ -1431,7 +1431,8 @@ export interface paths {
         };
         /**
          * Budget Requests
-         * @description The tenant's open budget requests, oldest first (also after a restart).
+         * @description The tenant's open budget requests, oldest first (also after a restart); not those of another user's
+         *     conversation with an own agent (N-04).
          */
         get: operations["budget_requests_api_budget_requests_get"];
         put?: never;
@@ -1633,7 +1634,8 @@ export interface paths {
         post?: never;
         /**
          * Delete Conversation
-         * @description Delete it with its messages and files; a running answer is cancelled. The answers' runs stay.
+         * @description Delete it with its messages, files and the answers' runs (a running answer is cancelled first), and revoke its
+         *     grants for "this conversation". The usage ledger keeps the cost.
          */
         delete: operations["delete_conversation_api_conversations__conversation_id__delete"];
         options?: never;
@@ -5273,7 +5275,8 @@ export interface paths {
         };
         /**
          * Open Tool Approvals
-         * @description Every question that waits for a person, oldest first (also after a restart).
+         * @description Every question that waits for a person, oldest first (also after a restart); not the questions of another
+         *     user's conversation with an own agent (N-04).
          */
         get: operations["open_tool_approvals_api_tool_approvals_get"];
         put?: never;

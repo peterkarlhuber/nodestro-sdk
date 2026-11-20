@@ -1594,7 +1594,7 @@ export class NodestroClient {
     return this.http.json("PATCH", `/api/conversations/${enc(conversationId)}`, { body: change });
   }
 
-  /** Delete it with its messages and files; a running answer is cancelled. The answers' runs stay. */
+  /** Delete it with its messages, files and the answers' runs (a running answer is cancelled first). */
   async deleteConversation(conversationId: string): Promise<void> {
     await this.http.request("DELETE", `/api/conversations/${enc(conversationId)}`);
   }
