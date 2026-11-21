@@ -6044,7 +6044,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked";
+            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned";
             /**
              * Outcome
              * @default success
@@ -18836,7 +18836,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked") | null;
+                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned") | null;
             };
             header?: never;
             path?: never;

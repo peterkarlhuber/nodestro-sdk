@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Contract sync (W3-S1, nodestro-api `claude/w3-conv-authz`): the access audit kind `conversation_owner_assigned`
+  (the server operator gave a conversation without an owner its owner; additive). Both SDKs' generated types only.
 - Added (N-04) to both SDKs: conversations with own agents. They work only where the installation switched
   `NODESTRO_CONVERSATIONS` on, which is off by default; elsewhere they answer `404 conversation.disabled`.
   - Python: `list_conversations`, `create_conversation`, `get_conversation`, `update_conversation`,

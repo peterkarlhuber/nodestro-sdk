@@ -30,6 +30,7 @@ class AccessEvent(TypedDict):
         'role_changed',
         'member_removed',
         'sessions_revoked',
+        'conversation_owner_assigned',
     ]
     outcome: NotRequired[Literal['success', 'denied']]
     target_id: str
