@@ -6433,6 +6433,11 @@ export interface components {
              */
             name: string;
             /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
+            /**
              * On Refusal
              * @default raise
              * @enum {string}
@@ -16754,6 +16759,8 @@ export interface components {
             label: string;
             /** Notes */
             notes?: components["schemas"]["Problem"][];
+            /** Offline */
+            offline?: ("agent" | "conversation") | null;
             /** Paths */
             paths?: string[];
             /** Ref Id */
