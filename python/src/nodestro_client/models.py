@@ -734,8 +734,10 @@ class ContractInfo(TypedDict):
 class ConversationChange(TypedDict):
     agent: NotRequired[AgentChoice | None]
     budget_usd: NotRequired[float | None]
+    history: NotRequired[Literal['trim', 'summarize'] | None]
     model: NotRequired[str | None]
     offline: NotRequired[bool | None]
+    summary_model: NotRequired[str | None]
     title: NotRequired[str | None]
 
 
@@ -757,8 +759,10 @@ class ConversationFile(TypedDict):
 class ConversationIn(TypedDict):
     agent: AgentChoice
     budget_usd: NotRequired[float | None]
+    history: NotRequired[Literal['trim', 'summarize']]
     model: NotRequired[str | None]
     offline: NotRequired[bool]
+    summary_model: NotRequired[str | None]
     title: NotRequired[str]
 
 
@@ -3950,38 +3954,6 @@ class ConversationDetail(TypedDict):
     usage: NotRequired[Usage]
 
 
-class ConversationMessage(TypedDict):
-    agent: NotRequired[TemplateRef | None]
-    approval_ids: NotRequired[list[str]]
-    attachments: NotRequired[list[MessageFile]]
-    content: NotRequired[str]
-    conversation_id: str
-    cost_usd: NotRequired[float | None]
-    created_at: NotRequired[str]
-    error: NotRequired[Problem | None]
-    finished_at: NotRequired[str | None]
-    id: NotRequired[str]
-    model: NotRequired[str | None]
-    reply_to: NotRequired[str | None]
-    role: Literal['user', 'assistant']
-    run_id: NotRequired[str | None]
-    seq: int
-    sources: NotRequired[list[SourceEntry]]
-    status: NotRequired[
-        Literal[
-            'complete',
-            'queued',
-            'running',
-            'paused',
-            'succeeded',
-            'failed',
-            'cancelled',
-        ]
-    ]
-    tool_calls: NotRequired[list[ToolCallView]]
-    usage: NotRequired[Usage | None]
-
-
 class ConversationUpload(TypedDict):
     file: NotRequired[AgentConversationFile | None]
     name: str
@@ -4077,6 +4049,18 @@ class GrantIn(TypedDict):
         'tool', 'folder', 'workflow', 'mcp_server', 'connection', 'cloud_provider'
     ]
     scope: NotRequired[Literal['agent', 'agents', 'all']]
+
+
+class HistorySummary(TypedDict):
+    error: NotRequired[str | None]
+    first_seq: NotRequired[int | None]
+    last_seq: NotRequired[int | None]
+    method: Literal['trimmed', 'summarized']
+    model: NotRequired[str | None]
+    run_id: NotRequired[str | None]
+    sources: NotRequired[list[str]]
+    text: str
+    usage: NotRequired[Usage | None]
 
 
 class InstallState(TypedDict):
@@ -4627,11 +4611,6 @@ class ScheduleState(TypedDict):
     schedule: Schedule
 
 
-class SentConversationMessage(TypedDict):
-    assistant: ConversationMessage
-    user: ConversationMessage
-
-
 class SentMessage(TypedDict):
     assistant: ChatMessage
     user: ChatMessage
@@ -4873,26 +4852,6 @@ class AgentConfig(TypedDict):
     tools: NotRequired[list[str]]
 
 
-class AgentConversationDetail(TypedDict):
-    agent: TemplateRef
-    answering: NotRequired[str | None]
-    auto_title: NotRequired[bool]
-    budget_usd: NotRequired[float | None]
-    created_at: NotRequired[str]
-    files: NotRequired[list[AgentConversationFile]]
-    id: NotRequired[str]
-    last_seq: NotRequired[int]
-    messages: NotRequired[list[ConversationMessage]]
-    model: str
-    offline: NotRequired[bool]
-    owner: NotRequired[str | None]
-    provenance: NotRequired[Literal['unchecked']]
-    tenant_id: str
-    title: NotRequired[str]
-    updated_at: NotRequired[str]
-    usage: NotRequired[Usage]
-
-
 class AgentDraft(TypedDict):
     config: AgentConfig
     cost_usd: NotRequired[float | None]
@@ -5044,6 +5003,39 @@ class ContextPreview(TypedDict):
     tools: NotRequired[list[str]]
 
 
+class ConversationMessage(TypedDict):
+    agent: NotRequired[TemplateRef | None]
+    approval_ids: NotRequired[list[str]]
+    attachments: NotRequired[list[MessageFile]]
+    content: NotRequired[str]
+    conversation_id: str
+    cost_usd: NotRequired[float | None]
+    created_at: NotRequired[str]
+    error: NotRequired[Problem | None]
+    finished_at: NotRequired[str | None]
+    id: NotRequired[str]
+    model: NotRequired[str | None]
+    reply_to: NotRequired[str | None]
+    role: Literal['user', 'assistant']
+    run_id: NotRequired[str | None]
+    seq: int
+    sources: NotRequired[list[SourceEntry]]
+    status: NotRequired[
+        Literal[
+            'complete',
+            'queued',
+            'running',
+            'paused',
+            'succeeded',
+            'failed',
+            'cancelled',
+        ]
+    ]
+    summary: NotRequired[HistorySummary | None]
+    tool_calls: NotRequired[list[ToolCallView]]
+    usage: NotRequired[Usage | None]
+
+
 class DependencyStatus(TypedDict):
     approved_at: NotRequired[str | None]
     current_python: NotRequired[str]
@@ -5189,6 +5181,11 @@ class SaveResult(TypedDict):
     tool: ToolInfo | None
 
 
+class SentConversationMessage(TypedDict):
+    assistant: ConversationMessage
+    user: ConversationMessage
+
+
 class ToolDraftDecision(TypedDict):
     draft: ToolDraft
     tool: NotRequired[ToolInfo | None]
@@ -5239,6 +5236,28 @@ class WorkflowVersion(TypedDict):
     restored_from: NotRequired[int | None]
     snapshot: WorkflowIn
     workflow_id: str
+
+
+class AgentConversationDetail(TypedDict):
+    agent: TemplateRef
+    answering: NotRequired[str | None]
+    auto_title: NotRequired[bool]
+    budget_usd: NotRequired[float | None]
+    created_at: NotRequired[str]
+    files: NotRequired[list[AgentConversationFile]]
+    history: NotRequired[Literal['trim', 'summarize']]
+    id: NotRequired[str]
+    last_seq: NotRequired[int]
+    messages: NotRequired[list[ConversationMessage]]
+    model: str
+    offline: NotRequired[bool]
+    owner: NotRequired[str | None]
+    provenance: NotRequired[Literal['unchecked']]
+    summary_model: NotRequired[str | None]
+    tenant_id: str
+    title: NotRequired[str]
+    updated_at: NotRequired[str]
+    usage: NotRequired[Usage]
 
 
 class ArchitectJob(TypedDict):
