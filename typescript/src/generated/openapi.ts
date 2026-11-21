@@ -12312,6 +12312,11 @@ export interface components {
              *     ]
              */
             efforts: string[];
+            /**
+             * Features
+             * @default []
+             */
+            features: string[];
             /** Library Version */
             library_version: string;
             /** Models */
@@ -15003,6 +15008,8 @@ export interface components {
             parent_run_id?: string | null;
             /** Recommended Skills */
             recommended_skills?: string[];
+            /** Reference File Ids */
+            reference_file_ids?: string[];
             /** Release Id */
             release_id?: string | null;
             /** Release Number */
