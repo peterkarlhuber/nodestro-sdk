@@ -1678,6 +1678,38 @@ class NodestroClient:
         }
         return cast(models.AccessRow, self._http.json("GET", "/api/access/explain", params=params))
 
+    # ---- granted folders (only while the installation switched them on) -------------------------
+
+    def folder_state(self) -> models.FolderState:
+        """Whether folder grants are on (``NODESTRO_FOLDER_GRANTS``, off by default and never on a server; the SDK
+        never switches it on), the default limits and their bounds. Always answers."""
+        return cast(models.FolderState, self._http.json("GET", "/api/folders/state"))
+
+    def list_folders(self) -> list[models.FolderGrantView]:
+        """Every folder grant (``admin``), newest first, revoked and expired ones included. ``404 folder.disabled``
+        while the switch is off, like every method below."""
+        return cast(list[models.FolderGrantView], self._http.json("GET", "/api/folders"))
+
+    def grant_folder(self, folder: models.FolderGrantIn | Mapping[str, Any]) -> models.FolderGrantView:
+        """Grant a folder of the installation's computer for reading (``admin``, a signed-in person only: an API key
+        is refused with ``access.person_required``). Agents see its name, never its path. System folders, the home
+        folder and Nodestro's data folder are refused (``folder.not_grantable`` with ``reason``)."""
+        return cast(models.FolderGrantView, self._http.json("POST", "/api/folders", json_body=dict(folder)))
+
+    def get_folder(self, folder_id: str) -> models.FolderGrantView:
+        """One folder grant (``admin``)."""
+        return cast(models.FolderGrantView, self._http.json("GET", f"/api/folders/{path_segment(folder_id)}"))
+
+    def folder_accesses(self, folder_id: str, *, limit: int = 200) -> list[models.FolderAccessEntry]:
+        """The access log of a folder grant (``admin``), newest first: every call of the folder tools, never a
+        path."""
+        path = f"/api/folders/{path_segment(folder_id)}/accesses"
+        return cast(list[models.FolderAccessEntry], self._http.json("GET", path, params={"limit": limit}))
+
+    def revoke_folder(self, folder_id: str) -> models.FolderGrantView:
+        """Revoke a folder grant; the next tool call on it is refused. Revoking twice changes nothing."""
+        return cast(models.FolderGrantView, self._http.json("DELETE", f"/api/folders/{path_segment(folder_id)}"))
+
     # ---- exports of published workflows ---------------------------------------------------------
 
     def check_export(

@@ -1071,6 +1071,39 @@ class FileView(TypedDict):
     size: int
 
 
+class FolderAccessEntry(TypedDict):
+    action: str
+    actor: NotRequired[str | None]
+    agent: NotRequired[str | None]
+    at: str
+    code: NotRequired[str | None]
+    conversation_id: NotRequired[str | None]
+    outcome: str
+    run_id: NotRequired[str | None]
+
+
+class FolderLimitBounds(TypedDict):
+    highest: float
+    lowest: float
+
+
+class FolderLimits(TypedDict, closed=True):
+    max_chars: NotRequired[int]
+    max_entries: NotRequired[int]
+    max_file_bytes: NotRequired[int]
+    max_results: NotRequired[int]
+    max_search_files: NotRequired[int]
+    pdf_memory_mb: NotRequired[int]
+    pdf_pages: NotRequired[int]
+    pdf_seconds: NotRequired[float]
+
+
+class FolderState(TypedDict):
+    bounds: dict[str, FolderLimitBounds]
+    enabled: bool
+    limits: FolderLimits
+
+
 class FormField(TypedDict):
     accept: NotRequired[list[str]]
     accept_formats: NotRequired[list[str]]
@@ -3279,7 +3312,7 @@ class ToolCallView(TypedDict):
 class ToolCapability(TypedDict):
     access: Literal['read', 'write', 'destructive']
     reach: Literal['internal', 'external']
-    source: Literal['nodestro', 'author', 'admin', 'derived', 'default']
+    source: Literal['nodestro', 'author', 'admin', 'derived', 'folder', 'default']
 
 
 class ToolChoice(TypedDict):
@@ -4024,6 +4057,45 @@ class FileUpload(TypedDict):
     file: NotRequired[FileView | None]
     name: str
     problem: NotRequired[Problem | None]
+
+
+class FolderGrant(TypedDict, closed=True):
+    access: NotRequired[Literal['read']]
+    created_at: str
+    created_by: str
+    exclude: NotRequired[list[str]]
+    grant_id: str
+    id: str
+    identity: tuple[int, int]
+    include: NotRequired[list[str]]
+    index: NotRequired[bool]
+    limits: NotRequired[FolderLimits]
+    name: str
+    path: str
+
+
+class FolderGrantIn(TypedDict):
+    agents: NotRequired[list[str]]
+    exclude: NotRequired[list[str]]
+    expires_at: NotRequired[str | None]
+    include: NotRequired[list[str]]
+    index: NotRequired[bool]
+    limits: NotRequired[FolderLimits | None]
+    mode: NotRequired[Literal['supervised', 'unattended']]
+    name: str
+    path: str
+    scope: NotRequired[Literal['all', 'agents']]
+
+
+class FolderGrantView(TypedDict):
+    agents: list[str]
+    expires_at: NotRequired[str | None]
+    folder: FolderGrant
+    mode: Literal['supervised', 'unattended']
+    revoked_at: NotRequired[str | None]
+    revoked_by: NotRequired[str | None]
+    scope: Literal['agent', 'agents', 'all']
+    status: Literal['active', 'revoked', 'expired']
 
 
 class GateCheckIn(TypedDict):
