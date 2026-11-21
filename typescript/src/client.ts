@@ -235,8 +235,9 @@ export type AgentConversationFile = Schemas["AgentConversationFile"];
 export type ConversationMessage = Schemas["ConversationMessage"];
 export type SentConversationMessage = Schemas["SentConversationMessage"];
 export type ConversationUpload = Schemas["ConversationUpload"];
-/** A new conversation: the agent template (and version), optionally title, model, offline flag and budget. */
-export type AgentConversationIn = Defaulted<Schemas["ConversationIn"], "offline" | "title">;
+/** A new conversation: the agent template (and version), optionally title, model, offline flag, budget, history
+ * strategy (`trim` or `summarize`) and summary model. */
+export type AgentConversationIn = Defaulted<Schemas["ConversationIn"], "offline" | "title" | "history">;
 /** A change of a conversation: only the fields given change. */
 export type AgentConversationChange = Partial<Schemas["ConversationChange"]>;
 /** Export options as sent (every field has a server default; `kind` is `standard` unless given). */

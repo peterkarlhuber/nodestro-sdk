@@ -11,6 +11,11 @@
   - Contract sync (nodestro-api `claude/w3-n10`): the routes `/api/folders`, the tool capability source `folder`
     (the runtime's read-only tools `list_folder`, `read_file`, `search_files`) and the new `folder.*` and `fs.*`
     problem codes (additive).
+- Contract sync (N-05, nodestro-api `claude/w3-n05`): long conversations. A conversation has `history` (`trim`, the
+  default, or `summarize`) and `summary_model` (the helper model of `summarize`), on create and update, and each
+  answer may carry `summary` (`HistorySummary`: whether earlier messages were trimmed or summarized, their range,
+  the text the model read, the helper model and run). Both SDKs' generated types only; additive.
+
 - Contract sync (N-09, nodestro-api `claude/w3-n09`): `AgentConfig.offline` (default `false`): the strict offline
   mode's rules for one agent, checked at every call (additive). Both SDKs' generated types only; new problem codes
   `offline.cloud_model`, `offline.remote_endpoint`, `offline.server_tools` and `offline.tool_unavailable`.
