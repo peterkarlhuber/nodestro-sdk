@@ -1546,7 +1546,8 @@ class NodestroClient:
     def update_conversation(
         self, conversation_id: str, change: models.ConversationChange | Mapping[str, Any]
     ) -> models.AgentConversationDetail:
-        """Rename it or switch its agent, model, offline flag or budget; only the fields given change."""
+        """Rename it or switch its agent, model, offline flag, budget, ``history`` (``trim`` or ``summarize``) or
+        ``summary_model``; only the fields given change."""
         path = f"/api/conversations/{path_segment(conversation_id)}"
         return cast(models.AgentConversationDetail, self._http.json("PATCH", path, json_body=dict(change)))
 

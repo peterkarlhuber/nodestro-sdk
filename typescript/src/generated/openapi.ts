@@ -6508,6 +6508,12 @@ export interface components {
             created_at?: string;
             /** Files */
             files?: components["schemas"]["AgentConversationFile"][];
+            /**
+             * History
+             * @default trim
+             * @enum {string}
+             */
+            history: "trim" | "summarize";
             /** Id */
             id?: string;
             /**
@@ -6532,6 +6538,8 @@ export interface components {
              * @constant
              */
             provenance: "unchecked";
+            /** Summary Model */
+            summary_model?: string | null;
             /** Tenant Id */
             tenant_id: string;
             /**
@@ -9296,10 +9304,14 @@ export interface components {
             agent?: components["schemas"]["AgentChoice"] | null;
             /** Budget Usd */
             budget_usd?: number | null;
+            /** History */
+            history?: ("trim" | "summarize") | null;
             /** Model */
             model?: string | null;
             /** Offline */
             offline?: boolean | null;
+            /** Summary Model */
+            summary_model?: string | null;
             /** Title */
             title?: string | null;
         };
@@ -9399,6 +9411,12 @@ export interface components {
             agent: components["schemas"]["AgentChoice"];
             /** Budget Usd */
             budget_usd?: number | null;
+            /**
+             * History
+             * @default trim
+             * @enum {string}
+             */
+            history: "trim" | "summarize";
             /** Model */
             model?: string | null;
             /**
@@ -9406,6 +9424,8 @@ export interface components {
              * @default false
              */
             offline: boolean;
+            /** Summary Model */
+            summary_model?: string | null;
             /**
              * Title
              * @default
@@ -9459,6 +9479,7 @@ export interface components {
              * @enum {string}
              */
             status: "complete" | "queued" | "running" | "paused" | "succeeded" | "failed" | "cancelled";
+            summary?: components["schemas"]["HistorySummary"] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCallView"][];
             usage?: components["schemas"]["Usage"] | null;
@@ -10702,6 +10723,37 @@ export interface components {
             ram_bytes?: number | null;
             /** System */
             system: string;
+        };
+        /**
+         * HistorySummary
+         * @description What replaced the earlier messages of a conversation for one answer (N-05), shown in its history.
+         *
+         *     ``method`` ``trimmed``: the messages ``first_seq`` to ``last_seq`` were left out; ``summarized``: a helper model
+         *     (``model``, in run ``run_id`` with its ``usage``) summarized them. ``text`` is exactly what the answer's model
+         *     read; it keeps untrusted data in ``<untrusted_data>`` frames with their ``sources``. ``error``: why summarizing
+         *     failed (the history was trimmed instead).
+         */
+        HistorySummary: {
+            /** Error */
+            error?: string | null;
+            /** First Seq */
+            first_seq?: number | null;
+            /** Last Seq */
+            last_seq?: number | null;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "trimmed" | "summarized";
+            /** Model */
+            model?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Sources */
+            sources?: string[];
+            /** Text */
+            text: string;
+            usage?: components["schemas"]["Usage"] | null;
         };
         /** ImportIn */
         ImportIn: {
