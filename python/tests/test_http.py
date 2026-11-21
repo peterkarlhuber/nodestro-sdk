@@ -764,6 +764,38 @@ def test_a_tool_grant_sends_the_tool_as_it_was_shown() -> None:
     assert sent == [grant]
 
 
+# ---- granted folders (N-10) ----------------------------------------------------------------
+
+
+def test_folder_methods_call_their_routes() -> None:
+    import json as jsonlib
+
+    sent: list[tuple[str, str, dict[str, str], Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = jsonlib.loads(request.content) if request.content else None
+        path = request.url.raw_path.decode().split("?")[0]
+        sent.append((request.method, path, dict(request.url.params), body))
+        return httpx.Response(200, json=[] if path.endswith(("/folders", "/accesses")) else {})
+
+    nodestro = client_with(handler)
+    folder: models.FolderGrantIn = {"name": "Offers", "path": "/home/ada/Offers", "exclude": ["drafts/**"]}
+    nodestro.folder_state()
+    nodestro.list_folders()
+    nodestro.grant_folder(folder)
+    nodestro.get_folder("fgr/1")
+    nodestro.folder_accesses("fgr_1", limit=10)
+    nodestro.revoke_folder("fgr_1")
+    assert sent == [
+        ("GET", "/api/folders/state", {}, None),
+        ("GET", "/api/folders", {}, None),
+        ("POST", "/api/folders", {}, folder),
+        ("GET", "/api/folders/fgr%2F1", {}, None),
+        ("GET", "/api/folders/fgr_1/accesses", {"limit": "10"}, None),
+        ("DELETE", "/api/folders/fgr_1", {}, None),
+    ]
+
+
 # ---- conversations with own agents (N-04) ----------------------------------------------------
 
 

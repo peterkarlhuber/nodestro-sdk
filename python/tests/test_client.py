@@ -1130,6 +1130,24 @@ def test_tool_approvals_are_read_and_decided_only_where_switched_on(nodestro: No
         nodestro.decide_tool_approval(run["id"], "tap_missing", "maybe", arguments_hash="x")  # type: ignore[arg-type]
 
 
+def test_folder_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> None:
+    """N-10: the test server keeps ``NODESTRO_FOLDER_GRANTS`` off (the default). The state answers, and every other
+    route is not found with its own code, so nothing is read or written."""
+    state = nodestro.folder_state()
+    assert state["enabled"] is False and state["limits"]["max_file_bytes"] > 0
+    calls = [
+        nodestro.list_folders,
+        lambda: nodestro.grant_folder({"name": "Docs", "path": "/tmp/docs"}),
+        lambda: nodestro.get_folder("fgr_missing"),
+        lambda: nodestro.folder_accesses("fgr_missing"),
+        lambda: nodestro.revoke_folder("fgr_missing"),
+    ]
+    for call in calls:
+        with pytest.raises(NodestroAPIError) as off:
+            call()
+        assert (off.value.status, off.value.code) == (404, "folder.disabled")
+
+
 def test_access_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> None:
     """N-06: the test server keeps ``NODESTRO_ACCESS_GRANTS`` off (the default). The state answers, and every other
     route is not found with its own code, so nothing is read or written."""

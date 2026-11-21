@@ -1963,6 +1963,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Folders */
+        get: operations["list_folders_api_folders_get"];
+        put?: never;
+        /**
+         * Grant Folder
+         * @description Grant a folder for reading. Agents see its name, never its path.
+         */
+        post: operations["grant_folder_api_folders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Folder State */
+        get: operations["folder_state_api_folders_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/{folder_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Folder */
+        get: operations["get_folder_api_folders__folder_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Folder
+         * @description Revoke a folder grant: every later call of the folder tools on it is refused.
+         */
+        delete: operations["revoke_folder_api_folders__folder_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/{folder_id}/accesses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Folder Accesses */
+        get: operations["folder_accesses_api_folders__folder_id__accesses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -10397,6 +10473,221 @@ export interface components {
             size: number;
         };
         /**
+         * FolderAccessEntry
+         * @description One entry of a grant's access log (an activity event, without paths).
+         */
+        FolderAccessEntry: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor?: string | null;
+            /** Agent */
+            agent?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Code */
+            code?: string | null;
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /** Outcome */
+            outcome: string;
+            /** Run Id */
+            run_id?: string | null;
+        };
+        /**
+         * FolderGrant
+         * @description A folder granted for reading (see the module documentation). Never deleted: it ends with its access grant.
+         */
+        FolderGrant: {
+            /**
+             * Access
+             * @default read
+             * @constant
+             */
+            access: "read";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Exclude
+             * @default []
+             */
+            exclude: string[];
+            /** Grant Id */
+            grant_id: string;
+            /** Id */
+            id: string;
+            /** Identity */
+            identity: [
+                number,
+                number
+            ];
+            /**
+             * Include
+             * @default []
+             */
+            include: string[];
+            /**
+             * Index
+             * @default false
+             */
+            index: boolean;
+            /**
+             * @default {
+             *       "max_chars": 50000,
+             *       "max_entries": 2000,
+             *       "max_file_bytes": 10485760,
+             *       "max_results": 50,
+             *       "max_search_files": 2000,
+             *       "pdf_memory_mb": 256,
+             *       "pdf_pages": 200,
+             *       "pdf_seconds": 20
+             *     }
+             */
+            limits: components["schemas"]["FolderLimits"];
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+        };
+        /**
+         * FolderGrantIn
+         * @description A folder grant as a person gives it. The writer and the time come from the server.
+         */
+        FolderGrantIn: {
+            /** Agents */
+            agents?: string[];
+            /** Exclude */
+            exclude?: string[];
+            /** Expires At */
+            expires_at?: string | null;
+            /** Include */
+            include?: string[];
+            /**
+             * Index
+             * @default false
+             */
+            index: boolean;
+            limits?: components["schemas"]["FolderLimits"] | null;
+            /**
+             * Mode
+             * @default supervised
+             * @enum {string}
+             */
+            mode: "supervised" | "unattended";
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "all" | "agents";
+        };
+        /**
+         * FolderGrantView
+         * @description A folder grant with the state of its access grant, as the administration shows it.
+         */
+        FolderGrantView: {
+            /** Agents */
+            agents: string[];
+            /** Expires At */
+            expires_at?: string | null;
+            folder: components["schemas"]["FolderGrant"];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "supervised" | "unattended";
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Revoked By */
+            revoked_by?: string | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "agent" | "agents" | "all";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "revoked" | "expired";
+        };
+        /** FolderLimitBounds */
+        FolderLimitBounds: {
+            /** Highest */
+            highest: number;
+            /** Lowest */
+            lowest: number;
+        };
+        /**
+         * FolderLimits
+         * @description What one call of the folder tools may read. The defaults are the limits a grant gets unless the person sets
+         *     lower or higher ones within the bounds.
+         */
+        FolderLimits: {
+            /**
+             * Max Chars
+             * @default 50000
+             */
+            max_chars: number;
+            /**
+             * Max Entries
+             * @default 2000
+             */
+            max_entries: number;
+            /**
+             * Max File Bytes
+             * @default 10485760
+             */
+            max_file_bytes: number;
+            /**
+             * Max Results
+             * @default 50
+             */
+            max_results: number;
+            /**
+             * Max Search Files
+             * @default 2000
+             */
+            max_search_files: number;
+            /**
+             * Pdf Memory Mb
+             * @default 256
+             */
+            pdf_memory_mb: number;
+            /**
+             * Pdf Pages
+             * @default 200
+             */
+            pdf_pages: number;
+            /**
+             * Pdf Seconds
+             * @default 20
+             */
+            pdf_seconds: number;
+        };
+        /** FolderState */
+        FolderState: {
+            /** Bounds */
+            bounds: {
+                [key: string]: components["schemas"]["FolderLimitBounds"];
+            };
+            /** Enabled */
+            enabled: boolean;
+            limits: components["schemas"]["FolderLimits"];
+        };
+        /**
          * FormField
          * @description One field of an app's input form, in the order the form shows them (``InfoOut.form``, form version 1).
          *
@@ -17787,7 +18078,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "nodestro" | "author" | "admin" | "derived" | "default";
+            source: "nodestro" | "author" | "admin" | "derived" | "folder" | "default";
         };
         /** ToolChoice */
         ToolChoice: {
@@ -22838,6 +23129,192 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_folders_api_folders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderGrantView"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    grant_folder_api_folders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderGrantIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderGrantView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    folder_state_api_folders_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderState"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_folder_api_folders__folder_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderGrantView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_folder_api_folders__folder_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderGrantView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    folder_accesses_api_folders__folder_id__accesses_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderAccessEntry"][];
                 };
             };
             /** @description Error */

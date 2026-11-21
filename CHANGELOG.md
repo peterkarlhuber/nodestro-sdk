@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added (N-10) to both SDKs: granted folders. They work only where the installation switched
+  `NODESTRO_FOLDER_GRANTS` on, which is off by default and never on a server; elsewhere they answer
+  `404 folder.disabled`. Only a signed-in person writes, so an API-key client gets `access.person_required`.
+  - Python: `folder_state`, `list_folders`, `grant_folder`, `get_folder`, `folder_accesses` and `revoke_folder`.
+  - TypeScript: `folderState`, `listFolders`, `grantFolder`, `getFolder`, `folderAccesses` and `revokeFolder`, with
+    the types `FolderState`, `FolderGrantView`, `FolderGrantIn` and `FolderAccessEntry`.
+  - Contract sync (nodestro-api `claude/w3-n10`): the routes `/api/folders`, the tool capability source `folder`
+    (the runtime's read-only tools `list_folder`, `read_file`, `search_files`) and the new `folder.*` and `fs.*`
+    problem codes (additive).
 - Contract sync (N-05, nodestro-api `claude/w3-n05`): long conversations. A conversation has `history` (`trim`, the
   default, or `summarize`) and `summary_model` (the helper model of `summarize`), on create and update, and each
   answer may carry `summary` (`HistorySummary`: whether earlier messages were trimmed or summarized, their range,
