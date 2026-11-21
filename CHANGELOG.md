@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Contract sync (RT-089, nodestro-api `claude/w3-conv-ui`): `Meta.features` (`conversations` while the server serves
+  conversations with own agents) and `Run.reference_file_ids` (the earlier files of a conversation an answer was
+  offered). Additive; both SDKs' generated types only.
 - Contract sync (W3-S1, nodestro-api `claude/w3-conv-authz`): the access audit kind `conversation_owner_assigned`
   (the server operator gave a conversation without an owner its owner; additive). Both SDKs' generated types only.
 - Added (N-04) to both SDKs: conversations with own agents. They work only where the installation switched
