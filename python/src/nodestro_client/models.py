@@ -2914,6 +2914,7 @@ class Snapshot(TypedDict):
     kind: Literal['workflow', 'agent', 'tool', 'memory', 'knowledge', 'run']
     label: str
     notes: NotRequired[list[Problem]]
+    offline: NotRequired[Literal['agent', 'conversation'] | None]
     paths: NotRequired[list[str]]
     ref_id: str
     secrets: NotRequired[int]

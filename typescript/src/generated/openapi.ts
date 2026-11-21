@@ -16752,6 +16752,8 @@ export interface components {
             label: string;
             /** Notes */
             notes?: components["schemas"]["Problem"][];
+            /** Offline */
+            offline?: ("agent" | "conversation") | null;
             /** Paths */
             paths?: string[];
             /** Ref Id */
