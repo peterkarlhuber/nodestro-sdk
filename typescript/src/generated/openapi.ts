@@ -6433,6 +6433,11 @@ export interface components {
              */
             name: string;
             /**
+             * Offline
+             * @default false
+             */
+            offline: boolean;
+            /**
              * On Refusal
              * @default raise
              * @enum {string}

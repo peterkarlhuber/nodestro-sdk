@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Contract sync (N-09, nodestro-api `claude/w3-n09`): `AgentConfig.offline` (default `false`): the strict offline
+  mode's rules for one agent, checked at every call (additive). Both SDKs' generated types only; new problem codes
+  `offline.cloud_model`, `offline.remote_endpoint`, `offline.server_tools` and `offline.tool_unavailable`.
 - Contract sync (W3-S1, nodestro-api `claude/w3-conv-authz`): the access audit kind `conversation_owner_assigned`
   (the server operator gave a conversation without an owner its owner; additive). Both SDKs' generated types only.
 - Added (N-04) to both SDKs: conversations with own agents. They work only where the installation switched

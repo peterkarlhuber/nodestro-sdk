@@ -4851,6 +4851,7 @@ class AgentConfig(TypedDict):
     messages: NotRequired[list[ExampleMessage]]
     model: NotRequired[str]
     name: NotRequired[str]
+    offline: NotRequired[bool]
     on_refusal: NotRequired[Literal['raise', 'return']]
     origin: NotRequired[TemplateRef | None]
     output: NotRequired[OutputConfig]
