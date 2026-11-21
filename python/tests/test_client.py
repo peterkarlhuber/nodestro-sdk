@@ -1157,6 +1157,7 @@ def test_conversations_stay_off_on_the_test_server(nodestro: NodestroClient) -> 
         lambda: nodestro.create_conversation({"agent": {"template_id": "tpl_x"}}),
         lambda: nodestro.get_conversation("conv_x"),
         lambda: nodestro.update_conversation("conv_x", {"title": "x"}),
+        lambda: nodestro.update_conversation("conv_x", {"history": "summarize", "summary_model": None}),  # N-05
         lambda: nodestro.export_conversation("conv_x"),
         lambda: nodestro.upload_conversation_files("conv_x", [("a.txt", b"a")]),
         lambda: nodestro.send_conversation_message("conv_x", "Hi"),
