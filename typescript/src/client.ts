@@ -224,10 +224,11 @@ export type AccessMode = "supervised" | "unattended";
 export type FolderState = Schemas["FolderState"];
 export type FolderGrantView = Schemas["FolderGrantView"];
 export type FolderAccessEntry = Schemas["FolderAccessEntry"];
-/** A folder grant as a person gives it (the server fills in who and when; for all agents, `supervised`, until revoked). */
+/** A folder grant as a person gives it (the server fills in who and when; for all agents, `supervised`, until revoked,
+ * with the default excludes of common secret files unless `default_excludes` is `false`). */
 export type FolderGrantIn = Defaulted<
   Schemas["FolderGrantIn"],
-  "include" | "exclude" | "limits" | "index" | "scope" | "agents" | "mode" | "expires_at"
+  "include" | "exclude" | "limits" | "index" | "default_excludes" | "scope" | "agents" | "mode" | "expires_at"
 >;
 export type AgentConversationSummary = Schemas["AgentConversationSummary"];
 export type AgentConversation = Schemas["AgentConversationDetail"];

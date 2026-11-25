@@ -15,6 +15,9 @@
   - Contract sync (nodestro-api `claude/w3-n10`): the routes `/api/folders`, the tool capability source `folder`
     (the runtime's read-only tools `list_folder`, `read_file`, `search_files`) and the new `folder.*` and `fs.*`
     problem codes (additive).
+  - Contract sync (N-10 review): `FolderGrantIn.default_excludes` and `FolderGrant.default_excludes` (an
+    administrator turns off the default excludes of common secret files for one grant; optional in TypeScript's
+    `FolderGrantIn`, default `true`; additive).
 - Contract sync (RT-089, nodestro-api `claude/w3-conv-ui`): `Meta.features` (`conversations` while the server serves
   conversations with own agents) and `Run.reference_file_ids` (the earlier files of a conversation an answer was
   offered). Additive; both SDKs' generated types only.

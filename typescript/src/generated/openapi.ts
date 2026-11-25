@@ -10516,6 +10516,11 @@ export interface components {
             /** Created By */
             created_by: string;
             /**
+             * Default Excludes
+             * @default true
+             */
+            default_excludes: boolean;
+            /**
              * Exclude
              * @default []
              */
@@ -10564,6 +10569,11 @@ export interface components {
         FolderGrantIn: {
             /** Agents */
             agents?: string[];
+            /**
+             * Default Excludes
+             * @default true
+             */
+            default_excludes: boolean;
             /** Exclude */
             exclude?: string[];
             /** Expires At */
