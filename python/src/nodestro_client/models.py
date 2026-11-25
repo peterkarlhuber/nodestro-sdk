@@ -4035,6 +4035,7 @@ class FolderGrant(TypedDict, closed=True):
     access: NotRequired[Literal['read']]
     created_at: str
     created_by: str
+    default_excludes: NotRequired[bool]
     exclude: NotRequired[list[str]]
     grant_id: str
     id: str
@@ -4048,6 +4049,7 @@ class FolderGrant(TypedDict, closed=True):
 
 class FolderGrantIn(TypedDict):
     agents: NotRequired[list[str]]
+    default_excludes: NotRequired[bool]
     exclude: NotRequired[list[str]]
     expires_at: NotRequired[str | None]
     include: NotRequired[list[str]]
