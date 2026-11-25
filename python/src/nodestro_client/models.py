@@ -5325,7 +5325,7 @@ class AgentConversationDetail(TypedDict):
     model: str
     offline: NotRequired[bool]
     owner: NotRequired[str | None]
-    provenance: NotRequired[Literal['unchecked']]
+    provenance: NotRequired[Literal['unchecked', 'granted_content']]
     summary_model: NotRequired[str | None]
     tenant_id: str
     title: NotRequired[str]
@@ -5439,6 +5439,7 @@ class Run(TypedDict):
     file_ids: NotRequired[list[str]]
     finished_at: NotRequired[str | None]
     flow_state: NotRequired[dict[str, Any] | None]
+    granted_content: NotRequired[bool]
     id: NotRequired[str]
     imported_at: NotRequired[str | None]
     input: NotRequired[str]

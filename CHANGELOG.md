@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Contract sync (N-08, nodestro-api `claude/w3-n08`): egress protection by content provenance. `Run.granted_content`
+  (whether content of a granted folder, knowledge, memory or file entered the run; left out while unset) and the
+  conversation's `provenance` value `granted_content` next to `unchecked`. Additive; both SDKs' generated types only.
+  The protection itself is off by default (runtime `NODESTRO_CONTENT_PROVENANCE`).
 - Added (N-10) to both SDKs: granted folders. They work only where the installation switched
   `NODESTRO_FOLDER_GRANTS` on, which is off by default and never on a server; elsewhere they answer
   `404 folder.disabled`. Only a signed-in person writes, so an API-key client gets `access.person_required`.
