@@ -5130,6 +5130,7 @@ class MemoryProposal(TypedDict):
 class Meta(TypedDict):
     capabilities: list[str]
     efforts: NotRequired[list[str]]
+    features: NotRequired[list[str]]
     library_version: str
     models: list[ModelInfo]
     profile: NotRequired[Literal['desktop', 'server', 'local-container']]
@@ -5374,6 +5375,7 @@ class Run(TypedDict):
     parent_node_id: NotRequired[str | None]
     parent_run_id: NotRequired[str | None]
     recommended_skills: NotRequired[list[str]]
+    reference_file_ids: NotRequired[list[str]]
     release_id: NotRequired[str | None]
     release_number: NotRequired[int | None]
     resumed_from: NotRequired[str | None]
