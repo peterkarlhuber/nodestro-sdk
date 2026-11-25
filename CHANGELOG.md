@@ -11,6 +11,9 @@
   - Contract sync (nodestro-api `claude/w3-n10`): the routes `/api/folders`, the tool capability source `folder`
     (the runtime's read-only tools `list_folder`, `read_file`, `search_files`) and the new `folder.*` and `fs.*`
     problem codes (additive).
+- Contract sync (RT-089, nodestro-api `claude/w3-conv-ui`): `Meta.features` (`conversations` while the server serves
+  conversations with own agents) and `Run.reference_file_ids` (the earlier files of a conversation an answer was
+  offered). Additive; both SDKs' generated types only.
 - Contract sync (N-05, nodestro-api `claude/w3-n05`): long conversations. A conversation has `history` (`trim`, the
   default, or `summarize`) and `summary_model` (the helper model of `summarize`), on create and update, and each
   answer may carry `summary` (`HistorySummary`: whether earlier messages were trimmed or summarized, their range,
