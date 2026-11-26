@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Contract sync (RT-089c, nodestro-api `claude/w3s-rt089c`): memory spaces have an owner on a server. The access
+  audit kind `memory_space_owner_assigned` (the operator's `nodestro-server memory backfill-owners`) and the
+  descriptions of the memory routes. Additive; both SDKs' generated types only. Another person's space answers
+  `404 memory.space_not_found`. Review fixes: `Run.memory_owner` and `RunSummary.memory_owner` (the person whose
+  persistent memory space the run used; only that person sees the run; left out while unset).
 - Contract sync (N-08, nodestro-api `claude/w3-n08`): egress protection by content provenance. `Run.granted_content`
   (whether content of a granted folder, knowledge, memory or file entered the run; left out while unset) and the
   conversation's `provenance` value `granted_content` next to `unchecked`. Additive; both SDKs' generated types only.

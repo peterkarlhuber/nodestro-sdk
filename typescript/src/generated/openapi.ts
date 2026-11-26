@@ -3206,7 +3206,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Spaces */
+        /**
+         * List Spaces
+         * @description The spaces the request's owner uses (RT-089c: on a server only their own).
+         */
         get: operations["list_spaces_api_memory_get"];
         put?: never;
         post?: never;
@@ -3244,7 +3247,10 @@ export interface paths {
         get: operations["list_memory_api_memory__space__get"];
         put?: never;
         post?: never;
-        /** Clear Memory */
+        /**
+         * Clear Memory
+         * @description Empty a space; on a server its owner keeps it (RT-089c).
+         */
         delete: operations["clear_memory_api_memory__space__delete"];
         options?: never;
         head?: never;
@@ -3260,7 +3266,10 @@ export interface paths {
         };
         /** Read Memory */
         get: operations["read_memory_api_memory__space__file_get"];
-        /** Write Memory */
+        /**
+         * Write Memory
+         * @description Write a file; on a server the first writer of a new space becomes its owner (RT-089c).
+         */
         put: operations["write_memory_api_memory__space__file_put"];
         post?: never;
         /** Delete Memory */
@@ -3631,7 +3640,8 @@ export interface paths {
         /**
          * Publication Overview
          * @description All publications of this installation (on a server: of the tenant) with their workflow, active release and
-         *     exports, for the studio's *Publications* page (one request instead of one per publication).
+         *     exports, for the studio's *Publications* page (one request instead of one per publication). Exports with another
+         *     person's memory are left out (RT-089c).
          */
         get: operations["publication_overview_api_publication_overview_get"];
         put?: never;
@@ -6120,7 +6130,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned";
+            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned";
             /**
              * Outcome
              * @default success
@@ -15302,6 +15312,8 @@ export interface components {
              * @default
              */
             input: string;
+            /** Memory Owner */
+            memory_owner?: string | null;
             /** Nodes */
             nodes?: {
                 [key: string]: components["schemas"]["NodeRun"];
@@ -15644,6 +15656,8 @@ export interface components {
             imported_at?: string | null;
             /** Input */
             input: string;
+            /** Memory Owner */
+            memory_owner?: string | null;
             /** Parent Run Id */
             parent_run_id?: string | null;
             /** Release Id */
@@ -19208,7 +19222,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned") | null;
+                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned") | null;
             };
             header?: never;
             path?: never;

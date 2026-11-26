@@ -31,6 +31,7 @@ class AccessEvent(TypedDict):
         'member_removed',
         'sessions_revoked',
         'conversation_owner_assigned',
+        'memory_space_owner_assigned',
     ]
     outcome: NotRequired[Literal['success', 'denied']]
     target_id: str
@@ -4627,6 +4628,7 @@ class RunSummary(TypedDict):
     id: str
     imported_at: NotRequired[str | None]
     input: str
+    memory_owner: NotRequired[str | None]
     parent_run_id: NotRequired[str | None]
     release_id: NotRequired[str | None]
     release_number: NotRequired[int | None]
@@ -5445,6 +5447,7 @@ class Run(TypedDict):
     id: NotRequired[str]
     imported_at: NotRequired[str | None]
     input: NotRequired[str]
+    memory_owner: NotRequired[str | None]
     nodes: NotRequired[dict[str, NodeRun]]
     output: NotRequired[Any]
     parent_node_id: NotRequired[str | None]
