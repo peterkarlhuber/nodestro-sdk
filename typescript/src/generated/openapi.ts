@@ -3301,7 +3301,9 @@ export interface paths {
          * @description The owner of a memory space allows a workflow (with every workflow it runs, in their current content) or one
          *     agent configuration to use it (RT-089d). Only the space's owner, or a member who creates the space with it (its
          *     first writer); anyone else gets ``404 memory.space_not_found``. Nothing else grants a consent, and a changed
-         *     workflow needs a new one. Each consent is recorded in the access audit trail.
+         *     workflow needs a new one. The request names the digest the owner was shown; if anything changed since (any of the
+         *     workflows, a tool, a connection), it is refused with ``409 memory.consent_stale``. Each consent is recorded in the
+         *     access audit trail.
          */
         post: operations["grant_memory_consent_api_memory_consents_post"];
         delete?: never;
@@ -3323,7 +3325,11 @@ export interface paths {
          */
         get: operations["preview_memory_consent_api_memory_consents_preview_get"];
         put?: never;
-        post?: never;
+        /**
+         * Preview Agent Memory Consent
+         * @description The digest a consent for an agent configuration (agent tests) would cover now, for the grant to name.
+         */
+        post: operations["preview_agent_memory_consent_api_memory_consents_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3342,8 +3348,9 @@ export interface paths {
         post?: never;
         /**
          * Revoke Memory Consent
-         * @description Withdraw one of the request's owner's consents; another person's or an unknown id answers ``404``. A step that
-         *     already reads the space finishes; every later step and run that needs the consent is refused.
+         * @description Withdraw one of the request's owner's consents; another person's or an unknown id answers ``404``. It takes
+         *     effect at the next check: a step that already passed its check (and the tool calls it makes) finishes; every step
+         *     and run that starts afterwards and needs the consent is refused.
          */
         delete: operations["revoke_memory_consent_api_memory_consents__consent_id__delete"];
         options?: never;
@@ -6706,6 +6713,22 @@ export interface components {
             };
             /** Tools */
             tools?: string[];
+        };
+        /**
+         * AgentConsentPreview
+         * @description The digest a consent for an agent configuration covers now (with the tools, connections and MCP servers it
+         *     uses), which the grant names.
+         */
+        AgentConsentPreview: {
+            /** Digest */
+            digest: string;
+        };
+        /**
+         * AgentConsentPreviewIn
+         * @description An agent configuration whose consent digest the owner wants to see before allowing it.
+         */
+        AgentConsentPreviewIn: {
+            agent: components["schemas"]["AgentConfig"];
         };
         /** AgentConversationDetail */
         AgentConversationDetail: {
@@ -12758,14 +12781,15 @@ export interface components {
         /**
          * MemoryConsentIn
          * @description What the owner of ``space`` allows to use it: a saved workflow (``workflow_id``, ``version``; ``None``: the
-         *     latest) with every workflow it runs, or one agent configuration for agent tests (``agent``). ``digest``: the
-         *     digest the owner was shown (``GET /api/memory-consents/preview``); when given and the content changed since, the
-         *     consent is refused (``409 memory.consent_stale``) instead of covering content the owner did not see.
+         *     latest) with every workflow it runs, or one agent configuration for agent tests (``agent``). ``digest`` (required):
+         *     the digest the owner was shown (``GET /api/memory-consents/preview`` for a workflow, the combined digest of all
+         *     its workflows; ``POST /api/memory-consents/preview`` for an agent configuration). When anything changed since,
+         *     the consent is refused (``409 memory.consent_stale``) instead of covering content the owner did not see.
          */
         MemoryConsentIn: {
             agent?: components["schemas"]["AgentConfig"] | null;
             /** Digest */
-            digest?: string | null;
+            digest: string;
             /** Space */
             space: string;
             /** Version */
@@ -12776,7 +12800,8 @@ export interface components {
         /**
          * MemoryConsentPreview
          * @description What a consent for a workflow would cover now: the workflow and every workflow it runs (sub-workflows, teams),
-         *     each in the version and with the digest its run would have.
+         *     each in the version and with the digest its run would have; ``digest``: one digest over all of them, which the
+         *     grant names.
          */
         MemoryConsentPreview: {
             /** Digest */
@@ -26013,6 +26038,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemoryConsentPreview"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_agent_memory_consent_api_memory_consents_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentConsentPreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConsentPreview"];
                 };
             };
             /** @description Error */

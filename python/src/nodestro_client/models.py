@@ -101,6 +101,10 @@ class AgentChoice(TypedDict):
     version: NotRequired[int | None]
 
 
+class AgentConsentPreview(TypedDict):
+    digest: str
+
+
 class AgentConversationFile(TypedDict):
     added_at: NotRequired[str]
     format: str
@@ -4998,6 +5002,10 @@ class AgentConfig(TypedDict):
     tools: NotRequired[list[str]]
 
 
+class AgentConsentPreviewIn(TypedDict):
+    agent: AgentConfig
+
+
 class AgentDraft(TypedDict):
     config: AgentConfig
     cost_usd: NotRequired[float | None]
@@ -5270,7 +5278,7 @@ class McpDiscovery(TypedDict):
 
 class MemoryConsentIn(TypedDict):
     agent: NotRequired[AgentConfig | None]
-    digest: NotRequired[str | None]
+    digest: str
     space: str
     version: NotRequired[int | None]
     workflow_id: NotRequired[str | None]
