@@ -3640,7 +3640,8 @@ export interface paths {
         /**
          * Publication Overview
          * @description All publications of this installation (on a server: of the tenant) with their workflow, active release and
-         *     exports, for the studio's *Publications* page (one request instead of one per publication).
+         *     exports, for the studio's *Publications* page (one request instead of one per publication). Exports with another
+         *     person's memory are left out (RT-089c).
          */
         get: operations["publication_overview_api_publication_overview_get"];
         put?: never;
@@ -15311,6 +15312,8 @@ export interface components {
              * @default
              */
             input: string;
+            /** Memory Owner */
+            memory_owner?: string | null;
             /** Nodes */
             nodes?: {
                 [key: string]: components["schemas"]["NodeRun"];
@@ -15653,6 +15656,8 @@ export interface components {
             imported_at?: string | null;
             /** Input */
             input: string;
+            /** Memory Owner */
+            memory_owner?: string | null;
             /** Parent Run Id */
             parent_run_id?: string | null;
             /** Release Id */
