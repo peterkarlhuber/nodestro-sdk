@@ -31,6 +31,7 @@ class AccessEvent(TypedDict):
         'member_removed',
         'sessions_revoked',
         'conversation_owner_assigned',
+        'memory_space_owner_assigned',
     ]
     outcome: NotRequired[Literal['success', 'denied']]
     target_id: str
