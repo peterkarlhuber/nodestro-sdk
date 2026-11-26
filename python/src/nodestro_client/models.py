@@ -32,6 +32,8 @@ class AccessEvent(TypedDict):
         'sessions_revoked',
         'conversation_owner_assigned',
         'memory_space_owner_assigned',
+        'memory_consent_granted',
+        'memory_consent_revoked',
         'backup_restored',
         'data_exported',
         'data_deleted',
@@ -710,6 +712,13 @@ class ConnectionView(TypedDict):
     updated_at: str
     updated_by: NotRequired[str | None]
     used_by: NotRequired[list[str]]
+
+
+class ConsentTarget(TypedDict):
+    digest: str
+    name: NotRequired[str]
+    version: NotRequired[int | None]
+    workflow_id: str
 
 
 class ContextRef(TypedDict):
@@ -1618,6 +1627,24 @@ class Measurement(TypedDict):
 class MemoryConfig(TypedDict):
     mode: NotRequired[Literal['none', 'run', 'persistent']]
     space: NotRequired[str | None]
+
+
+class MemoryConsent(TypedDict):
+    at: NotRequired[str]
+    digest: str
+    id: str
+    owner: str
+    space: str
+    subject: Literal['workflow', 'agent']
+    workflow_id: NotRequired[str | None]
+    workflow_name: NotRequired[str]
+    workflow_version: NotRequired[int | None]
+
+
+class MemoryConsentPreview(TypedDict):
+    digest: str
+    targets: list[ConsentTarget]
+    workflow_id: str
 
 
 class MemoryFile(TypedDict):
@@ -5241,6 +5268,14 @@ class McpDiscovery(TypedDict):
     tools: list[McpToolView]
 
 
+class MemoryConsentIn(TypedDict):
+    agent: NotRequired[AgentConfig | None]
+    digest: NotRequired[str | None]
+    space: str
+    version: NotRequired[int | None]
+    workflow_id: NotRequired[str | None]
+
+
 class MemoryProposal(TypedDict):
     cost_usd: float | None
     seed: MemorySeed
@@ -5491,6 +5526,7 @@ class Run(TypedDict):
     imported_at: NotRequired[str | None]
     input: NotRequired[str]
     memory_owner: NotRequired[str | None]
+    memory_spaces: NotRequired[list[str]]
     nodes: NotRequired[dict[str, NodeRun]]
     output: NotRequired[Any]
     parent_node_id: NotRequired[str | None]

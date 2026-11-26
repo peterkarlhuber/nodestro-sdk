@@ -3283,6 +3283,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/memory-consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Memory Consents
+         * @description The consents the request's owner gave for their memory spaces (RT-089d), oldest first.
+         */
+        get: operations["list_memory_consents_api_memory_consents_get"];
+        put?: never;
+        /**
+         * Grant Memory Consent
+         * @description The owner of a memory space allows a workflow (with every workflow it runs, in their current content) or one
+         *     agent configuration to use it (RT-089d). Only the space's owner, or a member who creates the space with it (its
+         *     first writer); anyone else gets ``404 memory.space_not_found``. Nothing else grants a consent, and a changed
+         *     workflow needs a new one. Each consent is recorded in the access audit trail.
+         */
+        post: operations["grant_memory_consent_api_memory_consents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-consents/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Memory Consent
+         * @description What a consent for ``workflow_id`` would cover now, for the owner to review before allowing it.
+         */
+        get: operations["preview_memory_consent_api_memory_consents_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-consents/{consent_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Memory Consent
+         * @description Withdraw one of the request's owner's consents; another person's or an unknown id answers ``404``. A step that
+         *     already reads the space finishes; every later step and run that needs the consent is refused.
+         */
+        delete: operations["revoke_memory_consent_api_memory_consents__consent_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/memory/propose": {
         parameters: {
             query?: never;
@@ -6194,7 +6262,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned" | "backup_restored" | "data_exported" | "data_deleted";
+            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned" | "memory_consent_granted" | "memory_consent_revoked" | "backup_restored" | "data_exported" | "data_deleted";
             /**
              * Outcome
              * @default success
@@ -9303,6 +9371,23 @@ export interface components {
             updated_by?: string | null;
             /** Used By */
             used_by?: string[];
+        };
+        /**
+         * ConsentTarget
+         * @description One workflow a consent covers, as it would run now.
+         */
+        ConsentTarget: {
+            /** Digest */
+            digest: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Version */
+            version?: number | null;
+            /** Workflow Id */
+            workflow_id: string;
         };
         /** ContextPreview */
         ContextPreview: {
@@ -12635,6 +12720,72 @@ export interface components {
             /** Space */
             space?: string | null;
         };
+        /**
+         * MemoryConsent
+         * @description The owner of a memory space allows one content to use it (RT-089d): the workflow ``workflow_id`` (or, for an
+         *     agent test, an agent configuration) whose content has the digest ``digest``. It applies to nothing else: a changed
+         *     workflow has another digest and needs a new consent.
+         */
+        MemoryConsent: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Digest */
+            digest: string;
+            /** Id */
+            id: string;
+            /** Owner */
+            owner: string;
+            /** Space */
+            space: string;
+            /**
+             * Subject
+             * @enum {string}
+             */
+            subject: "workflow" | "agent";
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /**
+             * Workflow Name
+             * @default
+             */
+            workflow_name: string;
+            /** Workflow Version */
+            workflow_version?: number | null;
+        };
+        /**
+         * MemoryConsentIn
+         * @description What the owner of ``space`` allows to use it: a saved workflow (``workflow_id``, ``version``; ``None``: the
+         *     latest) with every workflow it runs, or one agent configuration for agent tests (``agent``). ``digest``: the
+         *     digest the owner was shown (``GET /api/memory-consents/preview``); when given and the content changed since, the
+         *     consent is refused (``409 memory.consent_stale``) instead of covering content the owner did not see.
+         */
+        MemoryConsentIn: {
+            agent?: components["schemas"]["AgentConfig"] | null;
+            /** Digest */
+            digest?: string | null;
+            /** Space */
+            space: string;
+            /** Version */
+            version?: number | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
+        };
+        /**
+         * MemoryConsentPreview
+         * @description What a consent for a workflow would cover now: the workflow and every workflow it runs (sub-workflows, teams),
+         *     each in the version and with the digest its run would have.
+         */
+        MemoryConsentPreview: {
+            /** Digest */
+            digest: string;
+            /** Targets */
+            targets: components["schemas"]["ConsentTarget"][];
+            /** Workflow Id */
+            workflow_id: string;
+        };
         /** MemoryFile */
         MemoryFile: {
             /** Path */
@@ -15460,6 +15611,8 @@ export interface components {
             input: string;
             /** Memory Owner */
             memory_owner?: string | null;
+            /** Memory Spaces */
+            memory_spaces?: string[];
             /** Nodes */
             nodes?: {
                 [key: string]: components["schemas"]["NodeRun"];
@@ -19368,7 +19521,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned" | "backup_restored" | "data_exported" | "data_deleted") | null;
+                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned" | "memory_consent_granted" | "memory_consent_revoked" | "backup_restored" | "data_exported" | "data_deleted") | null;
             };
             header?: never;
             path?: never;
@@ -25767,6 +25920,129 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MemorySpaceInfo"][];
                 };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_memory_consents_api_memory_consents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryConsent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    grant_memory_consent_api_memory_consents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryConsentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryConsent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_memory_consent_api_memory_consents_preview_get: {
+        parameters: {
+            query: {
+                workflow_id: string;
+                version?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryConsentPreview"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_memory_consent_api_memory_consents__consent_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             "4XX": {

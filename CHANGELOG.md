@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Contract sync (RT-089d, nodestro-api `claude/w4-rt089d` 8802902): the owner's consents for private memory spaces
+  (`/api/memory-consents`: list, preview, grant, revoke; types `MemoryConsent`, `MemoryConsentIn`,
+  `MemoryConsentPreview`, `ConsentTarget`), the access audit kinds `memory_consent_granted` and
+  `memory_consent_revoked`, and `Run.memory_spaces`. Types only; no client methods yet.
 - Contract sync (N-15, nodestro-api master 60d8f52: product-neutral backups, export everything, delete everything),
   with client methods in both SDKs: `export_everything()` / `exportEverything()` (`GET /api/data/export`, a ZIP file
   of everything without secrets) and `delete_everything(confirm)` / `deleteEverything(confirm)`
