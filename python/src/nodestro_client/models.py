@@ -423,6 +423,12 @@ class BodyUploadKnowledgeApiKnowledgePost(TypedDict):
     files: list[str]
 
 
+class BrowsedFolder(TypedDict):
+    link: NotRequired[bool]
+    name: str
+    path: str
+
+
 class BudgetBlock(TypedDict):
     label: NotRequired[str | None]
     node_id: NotRequired[str | None]
@@ -1087,6 +1093,10 @@ class FolderAccessEntry(TypedDict):
     run_id: NotRequired[str | None]
 
 
+class FolderBrowseIn(TypedDict):
+    path: NotRequired[str | None]
+
+
 class FolderLimitBounds(TypedDict):
     highest: float
     lowest: float
@@ -1101,6 +1111,11 @@ class FolderLimits(TypedDict, closed=True):
     pdf_memory_mb: NotRequired[int]
     pdf_pages: NotRequired[int]
     pdf_seconds: NotRequired[float]
+
+
+class FolderPlace(TypedDict):
+    kind: Literal['home', 'root', 'drive', 'media']
+    path: str
 
 
 class FolderState(TypedDict):
@@ -4030,6 +4045,15 @@ class FileUpload(TypedDict):
     file: NotRequired[FileView | None]
     name: str
     problem: NotRequired[Problem | None]
+
+
+class FolderBrowse(TypedDict):
+    folders: list[BrowsedFolder]
+    parent: str | None
+    path: str
+    places: list[FolderPlace]
+    separator: str
+    truncated: bool
 
 
 class FolderGrant(TypedDict, closed=True):

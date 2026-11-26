@@ -1048,6 +1048,7 @@ describe("test series, knowledge, input files, tool approvals and exports (SDK-0
       () => nodestro.getFolder("fgr_missing"),
       () => nodestro.folderAccesses("fgr_missing"),
       () => nodestro.revokeFolder("fgr_missing"),
+      () => nodestro.browseFolders("/tmp"), // N-11: the folder browser is off with the switch, too
     ];
     for (const call of calls) {
       const off = await failure(call());

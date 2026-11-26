@@ -1984,6 +1984,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/folders/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Browse Folders
+         * @description The sub-folders of a folder of this computer (names only), for choosing a folder to grant.
+         */
+        post: operations["browse_folders_api_folders_browse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/folders/state": {
         parameters: {
             query?: never;
@@ -8367,6 +8387,18 @@ export interface components {
             /** Files */
             files: string[];
         };
+        /** BrowsedFolder */
+        BrowsedFolder: {
+            /**
+             * Link
+             * @default false
+             */
+            link: boolean;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+        };
         /**
          * BudgetBlock
          * @description The limit that refused the request.
@@ -10508,6 +10540,32 @@ export interface components {
             run_id?: string | null;
         };
         /**
+         * FolderBrowse
+         * @description One folder of the browser: its sub-folders (never files) and the starting points.
+         */
+        FolderBrowse: {
+            /** Folders */
+            folders: components["schemas"]["BrowsedFolder"][];
+            /** Parent */
+            parent: string | null;
+            /** Path */
+            path: string;
+            /** Places */
+            places: components["schemas"]["FolderPlace"][];
+            /** Separator */
+            separator: string;
+            /** Truncated */
+            truncated: boolean;
+        };
+        /**
+         * FolderBrowseIn
+         * @description The folder to browse: an absolute path; ``None``: the home folder (or the root of the file system).
+         */
+        FolderBrowseIn: {
+            /** Path */
+            path?: string | null;
+        };
+        /**
          * FolderGrant
          * @description A folder granted for reading (see the module documentation). Never deleted: it ends with its access grant.
          */
@@ -10696,6 +10754,16 @@ export interface components {
              * @default 20
              */
             pdf_seconds: number;
+        };
+        /** FolderPlace */
+        FolderPlace: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "home" | "root" | "drive" | "media";
+            /** Path */
+            path: string;
         };
         /** FolderState */
         FolderState: {
@@ -23227,6 +23295,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FolderGrantView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    browse_folders_api_folders_browse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderBrowseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderBrowse"];
                 };
             };
             /** @description Error */

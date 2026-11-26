@@ -786,6 +786,8 @@ def test_folder_methods_call_their_routes() -> None:
     nodestro.get_folder("fgr/1")
     nodestro.folder_accesses("fgr_1", limit=10)
     nodestro.revoke_folder("fgr_1")
+    nodestro.browse_folders("/home/ada")
+    nodestro.browse_folders()
     assert sent == [
         ("GET", "/api/folders/state", {}, None),
         ("GET", "/api/folders", {}, None),
@@ -793,6 +795,8 @@ def test_folder_methods_call_their_routes() -> None:
         ("GET", "/api/folders/fgr%2F1", {}, None),
         ("GET", "/api/folders/fgr_1/accesses", {"limit": "10"}, None),
         ("DELETE", "/api/folders/fgr_1", {}, None),
+        ("POST", "/api/folders/browse", {}, {"path": "/home/ada"}),
+        ("POST", "/api/folders/browse", {}, {"path": None}),
     ]
 
 

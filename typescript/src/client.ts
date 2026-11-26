@@ -224,6 +224,9 @@ export type AccessMode = "supervised" | "unattended";
 export type FolderState = Schemas["FolderState"];
 export type FolderGrantView = Schemas["FolderGrantView"];
 export type FolderAccessEntry = Schemas["FolderAccessEntry"];
+export type FolderBrowse = Schemas["FolderBrowse"];
+export type BrowsedFolder = Schemas["BrowsedFolder"];
+export type FolderPlace = Schemas["FolderPlace"];
 /** A folder grant as a person gives it (the server fills in who and when; for all agents, `supervised`, until revoked,
  * with the default excludes of common secret files unless `default_excludes` is `false`). */
 export type FolderGrantIn = Defaulted<
@@ -1788,6 +1791,16 @@ export class NodestroClient {
   /** Revoke a folder grant; the next tool call on it is refused. Revoking twice changes nothing. */
   async revokeFolder(folderId: string): Promise<FolderGrantView> {
     return this.http.json("DELETE", `/api/folders/${enc(folderId)}`);
+  }
+
+  /**
+   * The sub-folders of a folder of the installation's computer, for choosing a folder to grant (`admin`, N-11): folder
+   * names and paths, never files. Without `path`: the home folder. System folders, other users' home folders,
+   * credential folders and Nodestro's data folder are neither listed nor opened (`folder.not_browsable` with
+   * `reason`). Only for the authenticated local session (`folder.session_required` without one).
+   */
+  async browseFolders(path?: string): Promise<FolderBrowse> {
+    return this.http.json("POST", "/api/folders/browse", { body: { path: path ?? null } });
   }
 
   // ---- exports of published workflows

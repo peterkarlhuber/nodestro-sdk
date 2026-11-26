@@ -255,6 +255,8 @@ describe("granted folders (N-10)", () => {
     await client.getFolder("fgr/1");
     await client.folderAccesses("fgr_1", 10);
     await client.revokeFolder("fgr_1");
+    await client.browseFolders("/home/ada");
+    await client.browseFolders();
     const seen = calls.map(({ url, init }) => {
       const parsed = new URL(url);
       return [init.method, parsed.pathname, Object.fromEntries(parsed.searchParams), init.body ? JSON.parse(String(init.body)) : null];
@@ -266,6 +268,8 @@ describe("granted folders (N-10)", () => {
       ["GET", "/api/folders/fgr%2F1", {}, null],
       ["GET", "/api/folders/fgr_1/accesses", { limit: "10" }, null],
       ["DELETE", "/api/folders/fgr_1", {}, null],
+      ["POST", "/api/folders/browse", {}, { path: "/home/ada" }],
+      ["POST", "/api/folders/browse", {}, { path: null }],
     ]);
   });
 });
