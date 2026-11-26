@@ -6611,9 +6611,9 @@ export interface components {
             /**
              * Provenance
              * @default unchecked
-             * @constant
+             * @enum {string}
              */
-            provenance: "unchecked";
+            provenance: "unchecked" | "granted_content";
             /** Summary Model */
             summary_model?: string | null;
             /** Tenant Id */
@@ -15288,6 +15288,11 @@ export interface components {
             flow_state?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Granted Content
+             * @default false
+             */
+            granted_content: boolean;
             /** Id */
             id?: string;
             /** Imported At */
