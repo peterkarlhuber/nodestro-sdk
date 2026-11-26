@@ -221,6 +221,15 @@ export type AccessDenyIn = Defaulted<Schemas["DenyIn"], "scope" | "agents" | "mo
 export type AccessResourceType = Schemas["GrantIn"]["resource_type"];
 export type AccessAction = Schemas["GrantIn"]["actions"][number];
 export type AccessMode = "supervised" | "unattended";
+export type FolderState = Schemas["FolderState"];
+export type FolderGrantView = Schemas["FolderGrantView"];
+export type FolderAccessEntry = Schemas["FolderAccessEntry"];
+/** A folder grant as a person gives it (the server fills in who and when; for all agents, `supervised`, until revoked,
+ * with the default excludes of common secret files unless `default_excludes` is `false`). */
+export type FolderGrantIn = Defaulted<
+  Schemas["FolderGrantIn"],
+  "include" | "exclude" | "limits" | "index" | "default_excludes" | "scope" | "agents" | "mode" | "expires_at"
+>;
 export type AgentConversationSummary = Schemas["AgentConversationSummary"];
 export type AgentConversation = Schemas["AgentConversationDetail"];
 export type AgentConversationFile = Schemas["AgentConversationFile"];
@@ -1737,6 +1746,48 @@ export class NodestroClient {
       mode: options.mode ?? "supervised",
     };
     return this.http.json("GET", "/api/access/explain", { query });
+  }
+
+  // ---- granted folders (only while the installation switched them on)
+
+  /**
+   * Whether folder grants are on (`NODESTRO_FOLDER_GRANTS`, off by default and never on a server; the SDK never
+   * switches it on), the default limits and their bounds. Always answers.
+   */
+  async folderState(): Promise<FolderState> {
+    return this.http.json("GET", "/api/folders/state");
+  }
+
+  /**
+   * Every folder grant (`admin`), newest first, revoked and expired ones included. `404 folder.disabled` while the
+   * switch is off, like every method below.
+   */
+  async listFolders(): Promise<FolderGrantView[]> {
+    return this.http.json("GET", "/api/folders");
+  }
+
+  /**
+   * Grant a folder of the installation's computer for reading (`admin`, a signed-in person only: an API key is
+   * refused with `access.person_required`). Agents see its name, never its path. System folders, the home folder and
+   * Nodestro's data folder are refused (`folder.not_grantable` with `reason`).
+   */
+  async grantFolder(folder: FolderGrantIn): Promise<FolderGrantView> {
+    return this.http.json("POST", "/api/folders", { body: folder });
+  }
+
+  /** One folder grant (`admin`). */
+  async getFolder(folderId: string): Promise<FolderGrantView> {
+    return this.http.json("GET", `/api/folders/${enc(folderId)}`);
+  }
+
+  /** The access log of a folder grant (`admin`), newest first: every call of the folder tools, never a path. */
+  async folderAccesses(folderId: string, limit = 200): Promise<FolderAccessEntry[]> {
+    return this.http.json("GET", `/api/folders/${enc(folderId)}/accesses`, { query: { limit } });
+  }
+
+  /** Revoke a folder grant; the next tool call on it is refused. Revoking twice changes nothing. */
+  async revokeFolder(folderId: string): Promise<FolderGrantView> {
+    return this.http.json("DELETE", `/api/folders/${enc(folderId)}`);
   }
 
   // ---- exports of published workflows

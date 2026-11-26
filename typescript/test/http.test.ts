@@ -244,6 +244,32 @@ function recording(answer: (url: string, init: RequestInit, call: number) => Res
   return { calls, fetcher };
 }
 
+describe("granted folders (N-10)", () => {
+  it("calls each route", async () => {
+    const { calls, fetcher } = recording((url) => json(200, /folders$|accesses$/.test(new URL(url).pathname) ? [] : {}));
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    const folder = { name: "Offers", path: "/home/ada/Offers", exclude: ["drafts/**"] };
+    await client.folderState();
+    await client.listFolders();
+    await client.grantFolder(folder);
+    await client.getFolder("fgr/1");
+    await client.folderAccesses("fgr_1", 10);
+    await client.revokeFolder("fgr_1");
+    const seen = calls.map(({ url, init }) => {
+      const parsed = new URL(url);
+      return [init.method, parsed.pathname, Object.fromEntries(parsed.searchParams), init.body ? JSON.parse(String(init.body)) : null];
+    });
+    expect(seen).toEqual([
+      ["GET", "/api/folders/state", {}, null],
+      ["GET", "/api/folders", {}, null],
+      ["POST", "/api/folders", {}, folder],
+      ["GET", "/api/folders/fgr%2F1", {}, null],
+      ["GET", "/api/folders/fgr_1/accesses", { limit: "10" }, null],
+      ["DELETE", "/api/folders/fgr_1", {}, null],
+    ]);
+  });
+});
+
 describe("access grants and denies (N-06)", () => {
   it("calls each route with only the given filters", async () => {
     const { calls, fetcher } = recording((url) => json(200, /who-may|grants$|denies$/.test(new URL(url).pathname) ? [] : {}));

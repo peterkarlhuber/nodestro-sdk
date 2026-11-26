@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added (N-10) to both SDKs: granted folders. They work only where the installation switched
+  `NODESTRO_FOLDER_GRANTS` on, which is off by default and never on a server; elsewhere they answer
+  `404 folder.disabled`. Only a signed-in person writes, so an API-key client gets `access.person_required`.
+  - Python: `folder_state`, `list_folders`, `grant_folder`, `get_folder`, `folder_accesses` and `revoke_folder`.
+  - TypeScript: `folderState`, `listFolders`, `grantFolder`, `getFolder`, `folderAccesses` and `revokeFolder`, with
+    the types `FolderState`, `FolderGrantView`, `FolderGrantIn` and `FolderAccessEntry`.
+  - Contract sync (nodestro-api `claude/w3-n10`): the routes `/api/folders`, the tool capability source `folder`
+    (the runtime's read-only tools `list_folder`, `read_file`, `search_files`) and the new `folder.*` and `fs.*`
+    problem codes (additive).
+  - Contract sync (N-10 review): `FolderGrantIn.default_excludes` and `FolderGrant.default_excludes` (an
+    administrator turns off the default excludes of common secret files for one grant; optional in TypeScript's
+    `FolderGrantIn`, default `true`; additive).
 - Contract sync (RT-089, nodestro-api `claude/w3-conv-ui`): `Meta.features` (`conversations` while the server serves
   conversations with own agents) and `Run.reference_file_ids` (the earlier files of a conversation an answer was
   offered). Additive; both SDKs' generated types only.

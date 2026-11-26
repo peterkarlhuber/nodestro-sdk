@@ -1038,6 +1038,23 @@ describe("test series, knowledge, input files, tool approvals and exports (SDK-0
     await expect(nodestro.decideToolApproval(run.id, "tap_missing", "maybe" as never, { argumentsHash: "x" })).rejects.toThrow(TypeError);
   });
 
+  it("keeps folder grants off on the test server: the state answers, every other route is not found (N-10)", async () => {
+    const state = await nodestro.folderState();
+    expect(state.enabled).toBe(false);
+    expect(state.limits.max_file_bytes).toBeGreaterThan(0);
+    const calls: Array<() => Promise<unknown>> = [
+      () => nodestro.listFolders(),
+      () => nodestro.grantFolder({ name: "Docs", path: "/tmp/docs" }),
+      () => nodestro.getFolder("fgr_missing"),
+      () => nodestro.folderAccesses("fgr_missing"),
+      () => nodestro.revokeFolder("fgr_missing"),
+    ];
+    for (const call of calls) {
+      const off = await failure(call());
+      expect([off?.status, off?.code]).toEqual([404, "folder.disabled"]);
+    }
+  });
+
   it("keeps access grants off on the test server: the state answers, every other route is not found (N-06)", async () => {
     const state = await nodestro.accessState();
     expect(state.enabled).toBe(false);
