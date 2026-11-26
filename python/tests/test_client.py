@@ -1141,6 +1141,7 @@ def test_folder_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> 
         lambda: nodestro.get_folder("fgr_missing"),
         lambda: nodestro.folder_accesses("fgr_missing"),
         lambda: nodestro.revoke_folder("fgr_missing"),
+        lambda: nodestro.browse_folders("/tmp"),  # N-11: the folder browser is off with the switch, too
     ]
     for call in calls:
         with pytest.raises(NodestroAPIError) as off:

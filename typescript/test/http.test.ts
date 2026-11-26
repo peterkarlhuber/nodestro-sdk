@@ -255,6 +255,8 @@ describe("granted folders (N-10)", () => {
     await client.getFolder("fgr/1");
     await client.folderAccesses("fgr_1", 10);
     await client.revokeFolder("fgr_1");
+    await client.browseFolders("/home/ada");
+    await client.browseFolders();
     const seen = calls.map(({ url, init }) => {
       const parsed = new URL(url);
       return [init.method, parsed.pathname, Object.fromEntries(parsed.searchParams), init.body ? JSON.parse(String(init.body)) : null];
@@ -266,6 +268,26 @@ describe("granted folders (N-10)", () => {
       ["GET", "/api/folders/fgr%2F1", {}, null],
       ["GET", "/api/folders/fgr_1/accesses", { limit: "10" }, null],
       ["DELETE", "/api/folders/fgr_1", {}, null],
+      ["POST", "/api/folders/browse", {}, { path: "/home/ada" }],
+      ["POST", "/api/folders/browse", {}, { path: null }],
+    ]);
+  });
+});
+
+describe("all data of the installation (N-15)", () => {
+  it("exports and deletes everything", async () => {
+    const { calls, fetcher } = recording((url) =>
+      new URL(url).pathname.endsWith("/export")
+        ? new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "content-type": "application/zip" } })
+        : json(200, { complete: true, removed_entries: 3 }),
+    );
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    expect(Array.from(await client.exportEverything())).toEqual([80, 75, 3, 4]);
+    expect((await client.deleteEverything("delete all data")).complete).toBe(true);
+    const seen = calls.map(({ url, init }) => [init.method, new URL(url).pathname, init.body ? JSON.parse(String(init.body)) : null]);
+    expect(seen).toEqual([
+      ["GET", "/api/data/export", null],
+      ["POST", "/api/data/delete-all", { confirm: "delete all data" }],
     ]);
   });
 });

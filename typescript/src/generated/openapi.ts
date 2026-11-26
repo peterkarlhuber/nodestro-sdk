@@ -1120,6 +1120,8 @@ export interface paths {
         /**
          * Restore
          * @description Replace all data with a checked backup; the current state is saved as a safety backup first.
+         *
+         *     ``secrets_to_reenter`` names the secrets the backup left out that this computer does not have.
          */
         post: operations["restore_api_backup_restore_post"];
         delete?: never;
@@ -1806,6 +1808,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/data/delete-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Everything
+         * @description Delete every piece of data in the data directory: the database is emptied and rebuilt, every other file and
+         *     folder is removed (see :mod:`nodestro_api.data_lifecycle`). Needs ``confirm`` set to ``"delete all data"``;
+         *     refused while runs or other background work are active. Cannot be undone: no safety backup is kept.
+         */
+        post: operations["delete_everything_api_data_delete_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Everything
+         * @description Everything the workspace holds as readable files in a ZIP file (``nodestro-export``), without any secret.
+         */
+        get: operations["export_everything_api_data_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diagnostics": {
         parameters: {
             query?: never;
@@ -1978,6 +2022,26 @@ export interface paths {
          * @description Grant a folder for reading. Agents see its name, never its path.
          */
         post: operations["grant_folder_api_folders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Browse Folders
+         * @description The sub-folders of a folder of this computer (names only), for choosing a folder to grant.
+         */
+        post: operations["browse_folders_api_folders_browse_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6130,7 +6194,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned";
+            kind: "login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned" | "backup_restored" | "data_exported" | "data_deleted";
             /**
              * Outcome
              * @default success
@@ -6143,7 +6207,7 @@ export interface components {
              * Target Type
              * @enum {string}
              */
-            target_type: "user" | "api_key" | "tenant" | "session";
+            target_type: "user" | "api_key" | "tenant" | "session" | "data";
         };
         /**
          * AccessResource
@@ -7776,6 +7840,13 @@ export interface components {
             nodestro_version: string;
             /** Notes */
             notes?: string[];
+            /**
+             * Product
+             * @default nodestro
+             */
+            product: string;
+            /** Secrets To Reenter */
+            secrets_to_reenter?: string[];
         };
         /** Batch */
         Batch: {
@@ -8366,6 +8437,18 @@ export interface components {
             description: string;
             /** Files */
             files: string[];
+        };
+        /** BrowsedFolder */
+        BrowsedFolder: {
+            /**
+             * Link
+             * @default false
+             */
+            link: boolean;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
         };
         /**
          * BudgetBlock
@@ -9674,6 +9757,31 @@ export interface components {
             /** Value */
             value?: unknown;
         };
+        /** DeleteAllRequest */
+        DeleteAllRequest: {
+            /** Confirm */
+            confirm: string;
+        };
+        /**
+         * DeleteResult
+         * @description What a deletion removed: the contents before it and the number of files and folders in the data directory.
+         */
+        DeleteResult: {
+            /** Complete */
+            complete: boolean;
+            contents: components["schemas"]["BackupContents"];
+            /**
+             * Deleted At
+             * Format: date-time
+             */
+            deleted_at: string;
+            /** Left */
+            left?: string[];
+            /** Log Emptied */
+            log_emptied: boolean;
+            /** Removed Entries */
+            removed_entries: number;
+        };
         /**
          * Deny
          * @description An explicit block (spec 7.1), addressed like a :class:`Grant`. Holds for a folder and every folder below it,
@@ -10508,6 +10616,32 @@ export interface components {
             run_id?: string | null;
         };
         /**
+         * FolderBrowse
+         * @description One folder of the browser: its sub-folders (never files) and the starting points.
+         */
+        FolderBrowse: {
+            /** Folders */
+            folders: components["schemas"]["BrowsedFolder"][];
+            /** Parent */
+            parent: string | null;
+            /** Path */
+            path: string;
+            /** Places */
+            places: components["schemas"]["FolderPlace"][];
+            /** Separator */
+            separator: string;
+            /** Truncated */
+            truncated: boolean;
+        };
+        /**
+         * FolderBrowseIn
+         * @description The folder to browse: an absolute path; ``None``: the home folder (or the root of the file system).
+         */
+        FolderBrowseIn: {
+            /** Path */
+            path?: string | null;
+        };
+        /**
          * FolderGrant
          * @description A folder granted for reading (see the module documentation). Never deleted: it ends with its access grant.
          */
@@ -10696,6 +10830,16 @@ export interface components {
              * @default 20
              */
             pdf_seconds: number;
+        };
+        /** FolderPlace */
+        FolderPlace: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "home" | "root" | "drive" | "media";
+            /** Path */
+            path: string;
         };
         /** FolderState */
         FolderState: {
@@ -15057,6 +15201,8 @@ export interface components {
             contents: components["schemas"]["BackupContents"];
             /** Safety Backup */
             safety_backup: string;
+            /** Secrets To Reenter */
+            secrets_to_reenter?: string[];
         };
         /** ResultFile */
         ResultFile: {
@@ -19222,7 +19368,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned") | null;
+                kind?: ("login" | "logout" | "tenant_switched" | "api_key_created" | "api_key_revoked" | "api_key_rotated" | "api_key_deleted" | "tenant_created" | "tenant_status_changed" | "role_changed" | "member_removed" | "sessions_revoked" | "conversation_owner_assigned" | "memory_space_owner_assigned" | "backup_restored" | "data_exported" | "data_deleted") | null;
             };
             header?: never;
             path?: never;
@@ -22934,6 +23080,68 @@ export interface operations {
             };
         };
     };
+    delete_everything_api_data_delete_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAllRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_everything_api_data_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     diagnostics_api_diagnostics_get: {
         parameters: {
             query?: never;
@@ -23227,6 +23435,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FolderGrantView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    browse_folders_api_folders_browse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderBrowseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderBrowse"];
                 };
             };
             /** @description Error */

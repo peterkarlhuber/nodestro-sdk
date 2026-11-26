@@ -1711,6 +1711,29 @@ class NodestroClient:
         """Revoke a folder grant; the next tool call on it is refused. Revoking twice changes nothing."""
         return cast(models.FolderGrantView, self._http.json("DELETE", f"/api/folders/{path_segment(folder_id)}"))
 
+    def browse_folders(self, path: str | None = None) -> models.FolderBrowse:
+        """The sub-folders of a folder of the installation's computer, for choosing a folder to grant (``admin``, N-11):
+        folder names and paths, never files. ``None``: the home folder. System folders, other users' home folders,
+        credential folders and Nodestro's data folder are neither listed nor opened (``folder.not_browsable`` with
+        ``reason``). Only for the authenticated local session (``folder.session_required`` without one)."""
+        body: models.FolderBrowseIn = {"path": path}
+        return cast(models.FolderBrowse, self._http.json("POST", "/api/folders/browse", json_body=dict(body)))
+
+    # ---- all data of the installation (N-15) ---------------------------------------------------
+
+    def export_everything(self) -> bytes:
+        """Everything the workspace holds as readable files in one ZIP file (``nodestro-export``), without any secret
+        (``install`` permission, N-15). The export is recorded in the access audit (``data_exported``)."""
+        return self._http.request("GET", "/api/data/export").content
+
+    def delete_everything(self, confirm: str) -> models.DeleteResult:
+        """Delete every piece of data of the installation (``install`` permission, N-15): the database is emptied
+        and rebuilt, every other file and folder of the data directory is removed. Cannot be undone; no safety backup
+        is kept. ``confirm`` must be the text ``"delete all data"`` (``data.not_confirmed`` otherwise); refused while
+        runs or other background work are active."""
+        body: models.DeleteAllRequest = {"confirm": confirm}
+        return cast(models.DeleteResult, self._http.json("POST", "/api/data/delete-all", json_body=dict(body)))
+
     # ---- exports of published workflows ---------------------------------------------------------
 
     def check_export(

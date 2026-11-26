@@ -786,6 +786,8 @@ def test_folder_methods_call_their_routes() -> None:
     nodestro.get_folder("fgr/1")
     nodestro.folder_accesses("fgr_1", limit=10)
     nodestro.revoke_folder("fgr_1")
+    nodestro.browse_folders("/home/ada")
+    nodestro.browse_folders()
     assert sent == [
         ("GET", "/api/folders/state", {}, None),
         ("GET", "/api/folders", {}, None),
@@ -793,6 +795,31 @@ def test_folder_methods_call_their_routes() -> None:
         ("GET", "/api/folders/fgr%2F1", {}, None),
         ("GET", "/api/folders/fgr_1/accesses", {"limit": "10"}, None),
         ("DELETE", "/api/folders/fgr_1", {}, None),
+        ("POST", "/api/folders/browse", {}, {"path": "/home/ada"}),
+        ("POST", "/api/folders/browse", {}, {"path": None}),
+    ]
+
+
+# ---- all data of the installation (N-15) ---------------------------------------------------------
+
+
+def test_data_methods_call_their_routes() -> None:
+    import json as jsonlib
+
+    sent: list[tuple[str, str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append((request.method, request.url.path, jsonlib.loads(request.content) if request.content else None))
+        if request.url.path.endswith("/export"):
+            return httpx.Response(200, content=b"PK\x03\x04zip", headers={"content-type": "application/zip"})
+        return httpx.Response(200, json={"complete": True, "removed_entries": 3})
+
+    nodestro = client_with(handler)
+    assert nodestro.export_everything() == b"PK\x03\x04zip"
+    assert nodestro.delete_everything("delete all data")["complete"] is True
+    assert sent == [
+        ("GET", "/api/data/export", None),
+        ("POST", "/api/data/delete-all", {"confirm": "delete all data"}),
     ]
 
 

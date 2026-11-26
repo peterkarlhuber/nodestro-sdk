@@ -32,10 +32,13 @@ class AccessEvent(TypedDict):
         'sessions_revoked',
         'conversation_owner_assigned',
         'memory_space_owner_assigned',
+        'backup_restored',
+        'data_exported',
+        'data_deleted',
     ]
     outcome: NotRequired[Literal['success', 'denied']]
     target_id: str
-    target_type: Literal['user', 'api_key', 'tenant', 'session']
+    target_type: Literal['user', 'api_key', 'tenant', 'session', 'data']
 
 
 class AccessResource(TypedDict):
@@ -292,6 +295,8 @@ class BackupInfo(TypedDict):
     library_version: str
     nodestro_version: str
     notes: NotRequired[list[str]]
+    product: NotRequired[str]
+    secrets_to_reenter: NotRequired[list[str]]
 
 
 class BatchCounts(TypedDict):
@@ -421,6 +426,12 @@ class BodyUploadKnowledgeApiKnowledgePost(TypedDict):
     collection: NotRequired[str]
     description: NotRequired[str]
     files: list[str]
+
+
+class BrowsedFolder(TypedDict):
+    link: NotRequired[bool]
+    name: str
+    path: str
 
 
 class BudgetBlock(TypedDict):
@@ -806,6 +817,19 @@ class DecisionRecord(TypedDict):
     value: NotRequired[Any]
 
 
+class DeleteAllRequest(TypedDict):
+    confirm: str
+
+
+class DeleteResult(TypedDict):
+    complete: bool
+    contents: BackupContents
+    deleted_at: str
+    left: NotRequired[list[str]]
+    log_emptied: bool
+    removed_entries: int
+
+
 class Deny(TypedDict):
     actions: list[
         Literal['read', 'write', 'move', 'trash', 'delete', 'execute', 'send', 'submit']
@@ -1087,6 +1111,10 @@ class FolderAccessEntry(TypedDict):
     run_id: NotRequired[str | None]
 
 
+class FolderBrowseIn(TypedDict):
+    path: NotRequired[str | None]
+
+
 class FolderLimitBounds(TypedDict):
     highest: float
     lowest: float
@@ -1101,6 +1129,11 @@ class FolderLimits(TypedDict, closed=True):
     pdf_memory_mb: NotRequired[int]
     pdf_pages: NotRequired[int]
     pdf_seconds: NotRequired[float]
+
+
+class FolderPlace(TypedDict):
+    kind: Literal['home', 'root', 'drive', 'media']
+    path: str
 
 
 class FolderState(TypedDict):
@@ -2411,6 +2444,7 @@ class RestoreRequest(TypedDict):
 class RestoreResult(TypedDict):
     contents: BackupContents
     safety_backup: str
+    secrets_to_reenter: NotRequired[list[str]]
 
 
 class ResultFile(TypedDict):
@@ -4030,6 +4064,15 @@ class FileUpload(TypedDict):
     file: NotRequired[FileView | None]
     name: str
     problem: NotRequired[Problem | None]
+
+
+class FolderBrowse(TypedDict):
+    folders: list[BrowsedFolder]
+    parent: str | None
+    path: str
+    places: list[FolderPlace]
+    separator: str
+    truncated: bool
 
 
 class FolderGrant(TypedDict, closed=True):
