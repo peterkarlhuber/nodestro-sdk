@@ -800,6 +800,29 @@ def test_folder_methods_call_their_routes() -> None:
     ]
 
 
+# ---- all data of the installation (N-15) ---------------------------------------------------------
+
+
+def test_data_methods_call_their_routes() -> None:
+    import json as jsonlib
+
+    sent: list[tuple[str, str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append((request.method, request.url.path, jsonlib.loads(request.content) if request.content else None))
+        if request.url.path.endswith("/export"):
+            return httpx.Response(200, content=b"PK\x03\x04zip", headers={"content-type": "application/zip"})
+        return httpx.Response(200, json={"complete": True, "removed_entries": 3})
+
+    nodestro = client_with(handler)
+    assert nodestro.export_everything() == b"PK\x03\x04zip"
+    assert nodestro.delete_everything("delete all data")["complete"] is True
+    assert sent == [
+        ("GET", "/api/data/export", None),
+        ("POST", "/api/data/delete-all", {"confirm": "delete all data"}),
+    ]
+
+
 # ---- conversations with own agents (N-04) ----------------------------------------------------
 
 

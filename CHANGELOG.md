@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Contract sync (N-15, nodestro-api master 60d8f52: product-neutral backups, export everything, delete everything),
+  with client methods in both SDKs: `export_everything()` / `exportEverything()` (`GET /api/data/export`, a ZIP file
+  of everything without secrets) and `delete_everything(confirm)` / `deleteEverything(confirm)`
+  (`POST /api/data/delete-all`; `confirm` must be `"delete all data"`, cannot be undone; TypeScript type
+  `DeleteResult`), both with the `install` permission. New types `DeleteAllRequest`, `DeleteResult`; `BackupInfo`
+  gains `product` and `secrets_to_reenter`, `RestoreResult` gains `secrets_to_reenter`; the access audit gains the
+  kinds `backup_restored`, `data_exported`, `data_deleted` and the target type `data`. The backup routes themselves
+  have no SDK methods (as before). Additive.
+
 - Added (N-11) to both SDKs: the folder browser for choosing a folder to grant, `browse_folders(path=None)` (Python)
   and `browseFolders(path?)` (TypeScript, with the types `FolderBrowse`, `BrowsedFolder`, `FolderPlace`). Folder
   names and paths only, never files; `POST /api/folders/browse` answers only the authenticated local session of a

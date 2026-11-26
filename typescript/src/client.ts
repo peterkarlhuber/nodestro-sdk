@@ -227,6 +227,7 @@ export type FolderAccessEntry = Schemas["FolderAccessEntry"];
 export type FolderBrowse = Schemas["FolderBrowse"];
 export type BrowsedFolder = Schemas["BrowsedFolder"];
 export type FolderPlace = Schemas["FolderPlace"];
+export type DeleteResult = Schemas["DeleteResult"];
 /** A folder grant as a person gives it (the server fills in who and when; for all agents, `supervised`, until revoked,
  * with the default excludes of common secret files unless `default_excludes` is `false`). */
 export type FolderGrantIn = Defaulted<
@@ -1801,6 +1802,26 @@ export class NodestroClient {
    */
   async browseFolders(path?: string): Promise<FolderBrowse> {
     return this.http.json("POST", "/api/folders/browse", { body: { path: path ?? null } });
+  }
+
+  // ---- all data of the installation (N-15)
+
+  /**
+   * Everything the workspace holds as readable files in one ZIP file (`nodestro-export`), without any secret
+   * (`install` permission, N-15). The export is recorded in the access audit (`data_exported`).
+   */
+  async exportEverything(): Promise<Uint8Array> {
+    return this.http.bytes("GET", "/api/data/export");
+  }
+
+  /**
+   * Delete every piece of data of the installation (`install` permission, N-15): the database is emptied and rebuilt,
+   * every other file and folder of the data directory is removed. Cannot be undone; no safety backup is kept.
+   * `confirm` must be the text `"delete all data"` (`data.not_confirmed` otherwise); refused while runs or other
+   * background work are active.
+   */
+  async deleteEverything(confirm: string): Promise<DeleteResult> {
+    return this.http.json("POST", "/api/data/delete-all", { body: { confirm } });
   }
 
   // ---- exports of published workflows

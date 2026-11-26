@@ -274,6 +274,24 @@ describe("granted folders (N-10)", () => {
   });
 });
 
+describe("all data of the installation (N-15)", () => {
+  it("exports and deletes everything", async () => {
+    const { calls, fetcher } = recording((url) =>
+      new URL(url).pathname.endsWith("/export")
+        ? new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "content-type": "application/zip" } })
+        : json(200, { complete: true, removed_entries: 3 }),
+    );
+    const client = new NodestroClient("http://nodestro.test", { fetch: fetcher });
+    expect(Array.from(await client.exportEverything())).toEqual([80, 75, 3, 4]);
+    expect((await client.deleteEverything("delete all data")).complete).toBe(true);
+    const seen = calls.map(({ url, init }) => [init.method, new URL(url).pathname, init.body ? JSON.parse(String(init.body)) : null]);
+    expect(seen).toEqual([
+      ["GET", "/api/data/export", null],
+      ["POST", "/api/data/delete-all", { confirm: "delete all data" }],
+    ]);
+  });
+});
+
 describe("access grants and denies (N-06)", () => {
   it("calls each route with only the given filters", async () => {
     const { calls, fetcher } = recording((url) => json(200, /who-may|grants$|denies$/.test(new URL(url).pathname) ? [] : {}));

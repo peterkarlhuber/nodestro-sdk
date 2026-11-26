@@ -1719,6 +1719,21 @@ class NodestroClient:
         body: models.FolderBrowseIn = {"path": path}
         return cast(models.FolderBrowse, self._http.json("POST", "/api/folders/browse", json_body=dict(body)))
 
+    # ---- all data of the installation (N-15) ---------------------------------------------------
+
+    def export_everything(self) -> bytes:
+        """Everything the workspace holds as readable files in one ZIP file (``nodestro-export``), without any secret
+        (``install`` permission, N-15). The export is recorded in the access audit (``data_exported``)."""
+        return self._http.request("GET", "/api/data/export").content
+
+    def delete_everything(self, confirm: str) -> models.DeleteResult:
+        """Delete every piece of data of the installation (``install`` permission, N-15): the database is emptied
+        and rebuilt, every other file and folder of the data directory is removed. Cannot be undone; no safety backup
+        is kept. ``confirm`` must be the text ``"delete all data"`` (``data.not_confirmed`` otherwise); refused while
+        runs or other background work are active."""
+        body: models.DeleteAllRequest = {"confirm": confirm}
+        return cast(models.DeleteResult, self._http.json("POST", "/api/data/delete-all", json_body=dict(body)))
+
     # ---- exports of published workflows ---------------------------------------------------------
 
     def check_export(
