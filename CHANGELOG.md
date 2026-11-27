@@ -10,7 +10,7 @@
   `import_knowledge_collection(file, dry_run=, collection=)` / `importKnowledgeCollection(file, { dryRun, collection })`
   (`nodestro-collection/1`). New types `McpPackage`, `ConnectionPackage`, `ImportReport`, `ImportItem`,
   `EmbeddingMatch`; `WorkflowImport` gains `format`. Exports never hold a secret; a newer format version raises
-  `exchange.version_newer`.
+  `exchange.version_newer`. The import request bodies are documented as `McpPackage` and `ConnectionPackage`.
 
 - Contract sync (RT-089d, nodestro-api `claude/w4-rt089d` 8802902): the owner's consents for private memory spaces
   (`/api/memory-consents`: list, preview, grant, revoke; types `MemoryConsent`, `MemoryConsentIn`,

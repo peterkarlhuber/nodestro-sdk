@@ -1516,10 +1516,10 @@ export interface paths {
         put?: never;
         /**
          * Import Connections
-         * @description Preview (``dry_run``) or apply a ``nodestro-connection/1`` file. Each connection is checked like creating it by
-         *     hand (type and mode, provider, settings, address rules, a unique name); applying creates all of them or none,
-         *     without secrets (``secrets_to_reenter`` names those to enter). A newer format version is refused
-         *     (``exchange.version_newer``).
+         * @description Preview (``dry_run``) or apply a ``nodestro-connection/1`` file (the request body). Each connection is checked
+         *     like creating it by hand (type and mode, provider, settings, address rules, a unique name); applying creates all
+         *     of them or none, without secrets (``secrets_to_reenter`` names those to enter). The raw body goes to the shared
+         *     check (size, nesting, format and version: a newer one is refused with ``exchange.version_newer``).
          */
         post: operations["import_connections_api_connections_import_post"];
         delete?: never;
@@ -3180,10 +3180,11 @@ export interface paths {
         put?: never;
         /**
          * Import Servers
-         * @description Preview (``dry_run``) or apply a ``nodestro-mcp/1`` file. Each server is checked like adding it by hand
-         *     (address rules, a stdio server only with the Docker sandbox, the server limit); applying adds all of them or none,
-         *     each switched off, without a token and with no tool approved (``secrets_to_reenter`` names the tokens and sign-ins
-         *     to enter). A newer format version is refused (``exchange.version_newer``).
+         * @description Preview (``dry_run``) or apply a ``nodestro-mcp/1`` file (the request body). Each server is checked like adding
+         *     it by hand (address rules, a stdio server only with the Docker sandbox, the server limit); applying adds all of
+         *     them or none, each switched off, without a token and with no tool approved (``secrets_to_reenter`` names the
+         *     tokens and sign-ins to enter). The raw body goes to the shared check (size, nesting, format and version: a newer
+         *     one is refused with ``exchange.version_newer``).
          */
         post: operations["import_servers_api_mcp_import_post"];
         delete?: never;
@@ -22963,9 +22964,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["ConnectionPackage"];
             };
         };
         responses: {
@@ -26002,9 +26001,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["McpPackage"];
             };
         };
         responses: {
