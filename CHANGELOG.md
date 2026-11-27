@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Contract sync (N-14, nodestro-api `claude/w5-n14`): exchange files with client methods in both SDKs:
+  `export_mcp_servers()` / `exportMcpServers()` and `import_mcp_servers(document, dry_run=)` /
+  `importMcpServers(document, { dryRun })` (`nodestro-mcp/1`, `admin`), `export_connections()` /
+  `exportConnections()` and `import_connections(...)` / `importConnections(...)` (`nodestro-connection/1`, `admin`),
+  `export_knowledge_collection(name)` / `exportKnowledgeCollection(name)` (a ZIP file) and
+  `import_knowledge_collection(file, dry_run=, collection=)` / `importKnowledgeCollection(file, { dryRun, collection })`
+  (`nodestro-collection/1`). New types `McpPackage`, `ConnectionPackage`, `ImportReport`, `ImportItem`,
+  `EmbeddingMatch`; `WorkflowImport` gains `format`. Exports never hold a secret; a newer format version raises
+  `exchange.version_newer`. The import request bodies are documented as `McpPackage` and `ConnectionPackage`.
+
 - Contract sync (N-12 index state, nodestro-api `claude/w5-index-state`): `FolderGrantView.index_state` with the new
   type `FolderIndexInfo` (`state` `off`, `indexing`, `ready`, `budget_exceeded` or `failed`; `files`, `chunks`,
   `skipped`, `last_indexed_at`, `code`). Types only. Additive.

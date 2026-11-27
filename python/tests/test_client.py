@@ -676,6 +676,31 @@ def test_service_connections_and_the_builtin_catalog(nodestro: NodestroClient) -
     assert made["id"] not in {item["id"] for item in nodestro.list_connections()}
 
 
+def test_exchange_files_without_secrets(nodestro: NodestroClient) -> None:
+    made = nodestro.create_connection({"type": "search", "provider": "test", "name": "SDK exchange"})
+    nodestro.set_connection_secret(made["id"], "sdk-exchange-secret")
+    exported = nodestro.export_connections()
+    assert exported["format"] == "nodestro-connection/1" and "sdk-exchange-secret" not in str(exported)
+    entry = next(item for item in exported["connections"] if item["name"] == "SDK exchange")
+    document = {**exported, "connections": [{**entry, "name": "SDK exchange copy"}]}
+    assert nodestro.import_connections(document, dry_run=True)["items"][0]["status"] == "ready"
+    report = nodestro.import_connections(document)
+    copy = report["items"][0]["id"]
+    assert copy is not None and nodestro.get_connection(copy)["secret_set"] is False
+    assert report["secrets_to_reenter"] == [f"connection:{copy}"]
+    with pytest.raises(NodestroAPIError) as newer:
+        nodestro.import_mcp_servers({"format": "nodestro-mcp/2", "servers": []}, dry_run=True)
+    assert newer.value.status == 422 and newer.value.code == "exchange.version_newer"
+    assert nodestro.export_mcp_servers()["format"] == "nodestro-mcp/1"
+    stored = nodestro.upload_knowledge([("sdk-exchange.md", b"An exchange file test.")], collection="SDK exchange")
+    package = nodestro.export_knowledge_collection("SDK exchange")
+    preview = nodestro.import_knowledge_collection(package, dry_run=True, collection="SDK copy")
+    assert preview["collection"] == "SDK copy" and [item["status"] for item in preview["items"]] == ["exists"]
+    for connection_id in (made["id"], copy):
+        nodestro.delete_connection(connection_id)
+    nodestro.delete_knowledge(stored[0]["id"])
+
+
 def test_connected_mcp_services(nodestro: NodestroClient) -> None:
     status = nodestro.mcp_status()
     assert status["write_tools_enabled"] is False and status["endpoint_list"] is None

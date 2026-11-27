@@ -398,6 +398,12 @@ class BlockedRequest(TypedDict):
     run_id: str
 
 
+class BodyImportCollectionApiKnowledgeCollectionsImportPost(TypedDict):
+    collection: NotRequired[str | None]
+    dry_run: NotRequired[bool]
+    file: str
+
+
 class BodyImportSkillApiSkillsImportPost(TypedDict):
     dry_run: NotRequired[bool]
     file: str
@@ -650,6 +656,14 @@ class ConnectionCheck(TypedDict):
     status: NotRequired[Literal['unchecked', 'ok', 'failed']]
 
 
+class ConnectionEntry(TypedDict, closed=True):
+    description: NotRequired[str]
+    name: str
+    provider: NotRequired[str]
+    settings: NotRequired[dict[str, Any]]
+    type: str
+
+
 class ConnectionEvent(TypedDict):
     actor: NotRequired[str | None]
     at: NotRequired[str]
@@ -674,6 +688,13 @@ class ConnectionIn(TypedDict, closed=True):
     provider: NotRequired[str]
     settings: NotRequired[dict[str, Any]]
     type: str
+
+
+class ConnectionPackage(TypedDict, closed=True):
+    connections: list[ConnectionEntry]
+    created_at: NotRequired[str | None]
+    format: str
+    producer: NotRequired[str]
 
 
 class ConnectionPatch(TypedDict, closed=True):
@@ -925,6 +946,12 @@ class DraftAgentChange(TypedDict):
 class EdgeLoop(TypedDict):
     max_iterations: int
     on_exhausted: NotRequired[Literal['fail', 'continue']]
+
+
+class EmbeddingMatch(TypedDict):
+    matches: NotRequired[bool]
+    package: NotRequired[dict[str, Any] | None]
+    workspace: NotRequired[dict[str, Any] | None]
 
 
 class EnableIn(TypedDict):
@@ -1253,6 +1280,27 @@ class ImportIn(TypedDict):
     path: str
     projector: NotRequired[str | None]
     template: NotRequired[str | None]
+
+
+class ImportItem(TypedDict):
+    code: NotRequired[str | None]
+    id: NotRequired[str | None]
+    kind: Literal['mcp_server', 'connection', 'document']
+    name: str
+    needs_secret: NotRequired[bool]
+    params: NotRequired[dict[str, Any]]
+    status: NotRequired[Literal['ready', 'refused', 'created', 'exists']]
+
+
+class ImportReport(TypedDict):
+    collection: NotRequired[str | None]
+    collection_exists: NotRequired[bool]
+    dry_run: bool
+    embedding: NotRequired[EmbeddingMatch | None]
+    format: str
+    items: NotRequired[list[ImportItem]]
+    left_out: NotRequired[list[str]]
+    secrets_to_reenter: NotRequired[list[str]]
 
 
 class InfoOut(TypedDict):
@@ -1609,6 +1657,13 @@ class McpStatus(TypedDict):
     token_vault: bool
     unattended_enabled: bool
     write_tools_enabled: bool
+
+
+class McpStdioEntry(TypedDict, closed=True):
+    args: NotRequired[list[str]]
+    memory_mb: NotRequired[int]
+    module: str
+    requirements: list[str]
 
 
 class McpToolRef(TypedDict):
@@ -4311,6 +4366,18 @@ class LocalStatus(TypedDict):
     version: NotRequired[str | None]
 
 
+class McpServerEntry(TypedDict, closed=True):
+    allow_loopback: NotRequired[bool]
+    auth: NotRequired[Literal['none', 'bearer', 'oauth']]
+    max_output_chars: NotRequired[int]
+    max_parallel_calls: NotRequired[int]
+    name: str
+    stdio: NotRequired[McpStdioEntry | None]
+    timeout_seconds: NotRequired[float]
+    transport: NotRequired[Literal['http', 'stdio']]
+    url: NotRequired[str]
+
+
 class McpServerIn(TypedDict):
     allow_loopback: NotRequired[bool]
     auth: NotRequired[Literal['none', 'bearer', 'oauth']]
@@ -5286,6 +5353,13 @@ class McpDiscovery(TypedDict):
     tools: list[McpToolView]
 
 
+class McpPackage(TypedDict, closed=True):
+    created_at: NotRequired[str | None]
+    format: str
+    producer: NotRequired[str]
+    servers: list[McpServerEntry]
+
+
 class MemoryConsentIn(TypedDict):
     agent: NotRequired[AgentConfig | None]
     digest: str
@@ -5384,6 +5458,7 @@ class WorkflowImport(TypedDict):
     capabilities: NotRequired[list[str]]
     description: NotRequired[str]
     edges: NotRequired[list[Edge]]
+    format: NotRequired[str | None]
     limits: NotRequired[WorkflowLimits]
     name: NotRequired[str]
     nodes: NotRequired[list[Node]]
