@@ -3549,7 +3549,10 @@ export interface paths {
         /**
          * Write Memory
          * @description Write a file: a person remembers or edits an entry by this explicit action, recorded with the origin ``user``
-         *     (N-24; no model tool writes this way). On a server the first writer of a new space becomes its owner (RT-089c).
+         *     (N-24; no model tool writes this way). ``proposed=true`` marks text the person saves from the memory assistant's
+         *     proposal (``/api/memory/propose``): it is model output and is recorded with the origin ``assistant``. The flag
+         *     can only lower the origin; no request records anything but ``user`` or ``assistant``. On a server the first writer
+         *     of a new space becomes its owner (RT-089c).
          */
         put: operations["write_memory_api_memory__space__file_put"];
         post?: never;
@@ -27055,7 +27058,9 @@ export interface operations {
     };
     write_memory_api_memory__space__file_put: {
         parameters: {
-            query?: never;
+            query?: {
+                proposed?: boolean;
+            };
             header?: never;
             path: {
                 space: string;

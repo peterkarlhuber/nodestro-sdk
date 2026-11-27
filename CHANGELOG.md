@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Contract sync (N-24, nodestro-api `claude/w6-n24`): memory entries. `MemoryFile` gains `updated_at`, `origin` and
-  `scope`; `MemorySpaceInfo` gains `scope` (types only, both SDKs).
+  `scope`; `MemorySpaceInfo` gains `scope`; `PUT /api/memory/{space}/file` takes the query `proposed`, and
+  `MemoryText.path` is at most 512 characters (types only, both SDKs).
 
 - Contract sync (N-20, nodestro-api `claude/w6-n20`): workflows as tools of an agent. New client methods
   `workflow_version_as_tool(workflow_id, version, name=)` / `workflowVersionAsTool(workflowId, version, { name })`
