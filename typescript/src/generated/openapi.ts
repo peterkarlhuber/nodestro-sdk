@@ -3518,7 +3518,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Memory */
+        /**
+         * List Memory
+         * @description The entries of a space (N-24): each file with its size, the time and origin of its last write (``tool``: an
+         *     agent's memory tool, ``user``: a person's explicit write, ``null``: unknown) and its scope (``user``). Only the
+         *     space's owner sees them (RT-089c).
+         */
         get: operations["list_memory_api_memory__space__get"];
         put?: never;
         post?: never;
@@ -3543,11 +3548,18 @@ export interface paths {
         get: operations["read_memory_api_memory__space__file_get"];
         /**
          * Write Memory
-         * @description Write a file; on a server the first writer of a new space becomes its owner (RT-089c).
+         * @description Write a file: a person remembers or edits an entry by this explicit action, recorded with the origin ``user``
+         *     (N-24; no model tool writes this way). ``proposed=true`` marks text the person saves from the memory assistant's
+         *     proposal (``/api/memory/propose``): it is model output and is recorded with the origin ``assistant``. The flag
+         *     can only lower the origin; no request records anything but ``user`` or ``assistant``. On a server the first writer
+         *     of a new space becomes its owner (RT-089c).
          */
         put: operations["write_memory_api_memory__space__file_put"];
         post?: never;
-        /** Delete Memory */
+        /**
+         * Delete Memory
+         * @description Delete an entry (a file, or a directory with its files); only the space's owner (RT-089c).
+         */
         delete: operations["delete_memory_api_memory__space__file_delete"];
         options?: never;
         head?: never;
@@ -13237,12 +13249,25 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
         };
-        /** MemoryFile */
+        /**
+         * MemoryFile
+         * @description One entry of a memory space (N-24: with the time and origin of its last write).
+         */
         MemoryFile: {
+            /** Origin */
+            origin?: string | null;
             /** Path */
             path: string;
+            /**
+             * Scope
+             * @default user
+             * @enum {string}
+             */
+            scope: "user" | "project" | "agent";
             /** Size */
             size: number;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /** MemoryProposal */
         MemoryProposal: {
@@ -13311,6 +13336,12 @@ export interface components {
             files: number;
             /** Name */
             name: string;
+            /**
+             * Scope
+             * @default user
+             * @enum {string}
+             */
+            scope: "user" | "project" | "agent";
             /** Size */
             size: number;
         };
@@ -27027,7 +27058,9 @@ export interface operations {
     };
     write_memory_api_memory__space__file_put: {
         parameters: {
-            query?: never;
+            query?: {
+                proposed?: boolean;
+            };
             header?: never;
             path: {
                 space: string;
