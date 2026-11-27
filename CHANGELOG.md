@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Contract sync (RT-098, nodestro-api `claude/w7-ext-store`): the data-only extension store. New client methods
+  `list_extensions` / `listExtensions`, `upload_extension` / `uploadExtension`, `remove_extension` /
+  `removeExtension` and `revoke_extension` / `revokeExtension` (`/api/extensions`, admin, a signed-in person only);
+  new types `ExtensionStoreView`, `StoredExtension`, `RevokedExtension`, `RefusedExtension`; activity source
+  `extension`.
+
 - Contract sync (N-24, nodestro-api `claude/w6-n24`): memory entries. `MemoryFile` gains `updated_at`, `origin` and
   `scope`; `MemorySpaceInfo` gains `scope`; `PUT /api/memory/{space}/file` takes the query `proposed`, and
   `MemoryText.path` is at most 512 characters (types only, both SDKs).

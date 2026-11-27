@@ -2052,6 +2052,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/extensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Extensions
+         * @description The store's packages, the revoked hashes and the packages refused in the host environment.
+         */
+        get: operations["list_extensions_api_extensions_get"];
+        put?: never;
+        /**
+         * Upload Extension
+         * @description Take a pure-Python wheel into the store after every check of the runtime (nothing is installed or imported).
+         */
+        post: operations["upload_extension_api_extensions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/extensions/{sha256}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Extension
+         * @description Remove a package: later calls of its tools are refused at once.
+         */
+        delete: operations["remove_extension_api_extensions__sha256__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/extensions/{sha256}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Extension
+         * @description Revoke a hash: removed when installed, refused at every later upload.
+         */
+        post: operations["revoke_extension_api_extensions__sha256__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/folders": {
         parameters: {
             query?: never;
@@ -6614,7 +6678,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file";
+            source: "tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file" | "extension";
             /** Source Event */
             source_event?: string | null;
         };
@@ -8699,6 +8763,17 @@ export interface components {
             file: string;
             /** Workflow Id */
             workflow_id: string;
+        };
+        /** Body_upload_extension_api_extensions_post */
+        Body_upload_extension_api_extensions_post: {
+            /** File */
+            file: string;
+            /** Origin */
+            origin: string;
+            /** Replaces */
+            replaces?: string | null;
+            /** Sha256 */
+            sha256: string;
         };
         /** Body_upload_files_api_assistant_conversations__conversation_id__files_post */
         Body_upload_files_api_assistant_conversations__conversation_id__files_post: {
@@ -10804,6 +10879,21 @@ export interface components {
             python_version: string;
             /** Requirements */
             requirements?: components["schemas"]["NeededRequirement"][];
+        };
+        /** ExtensionStoreView */
+        ExtensionStoreView: {
+            /** Enabled */
+            enabled: boolean;
+            /** Host Refused */
+            host_refused: components["schemas"]["RefusedExtension"][];
+            /** Max Bytes */
+            max_bytes: number;
+            /** Packages */
+            packages: components["schemas"]["StoredExtension"][];
+            /** Revoked */
+            revoked: components["schemas"]["RevokedExtension"][];
+            /** Tools Switch */
+            tools_switch: boolean;
         };
         /** FieldError */
         FieldError: {
@@ -15579,6 +15669,20 @@ export interface components {
         Refresh: {
             workflow?: components["schemas"]["WorkflowIn"] | null;
         };
+        /**
+         * RefusedExtension
+         * @description A package found in the backend's Python environment: never imported, never offered (``invalid``).
+         */
+        RefusedExtension: {
+            /** Detail */
+            detail?: string | null;
+            /** Distribution */
+            distribution: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
+        };
         /** ReindexIn */
         ReindexIn: {
             /** Model */
@@ -16040,6 +16144,15 @@ export interface components {
             source: string;
             /** Version */
             version: string;
+        };
+        /** RevokedExtension */
+        RevokedExtension: {
+            /** Revoked At */
+            revoked_at: string;
+            /** Revoked By */
+            revoked_by: string;
+            /** Sha256 */
+            sha256: string;
         };
         /** Run */
         Run: {
@@ -18100,6 +18213,47 @@ export interface components {
              * @default 0
              */
             unreferenced: number;
+        };
+        /**
+         * StoredExtension
+         * @description One package of the store and how it stands in this process.
+         */
+        StoredExtension: {
+            /** Bytes */
+            bytes: number;
+            /** Detail */
+            detail?: string | null;
+            /** Distribution */
+            distribution: string;
+            /** Entries */
+            entries: string[][];
+            /** Files */
+            files: number;
+            /** Installed At */
+            installed_at: string;
+            /** Installed By */
+            installed_by: string;
+            /** Origin */
+            origin: string;
+            /**
+             * Reason
+             * @default pending
+             */
+            reason: string | null;
+            /** Replaces */
+            replaces?: string | null;
+            /** Sha256 */
+            sha256: string;
+            /**
+             * State
+             * @default locked
+             * @enum {string}
+             */
+            state: "sandboxed" | "locked";
+            /** Tools */
+            tools?: string[];
+            /** Version */
+            version: string;
         };
         /**
          * SubmitResult
@@ -20486,7 +20640,7 @@ export interface operations {
                 limit?: number;
                 since?: string | null;
                 until?: string | null;
-                source?: ("tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file")[] | null;
+                source?: ("tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file" | "extension")[] | null;
                 action?: string[] | null;
                 actor?: string | null;
                 agent?: string | null;
@@ -20528,7 +20682,7 @@ export interface operations {
                 format?: "jsonl" | "csv";
                 since?: string | null;
                 until?: string | null;
-                source?: ("tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file")[] | null;
+                source?: ("tool_call" | "tool_approval" | "mcp" | "connection" | "workflow" | "agent" | "file" | "extension")[] | null;
                 action?: string[] | null;
                 actor?: string | null;
                 agent?: string | null;
@@ -24238,6 +24392,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_extensions_api_extensions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtensionStoreView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    upload_extension_api_extensions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_extension_api_extensions_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredExtension"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_extension_api_extensions__sha256__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtensionStoreView"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_extension_api_extensions__sha256__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtensionStoreView"];
                 };
             };
             /** @description Error */
