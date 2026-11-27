@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Contract sync (N-12 index state, nodestro-api `claude/w5-index-state`): `FolderGrantView.index_state` with the new
+  type `FolderIndexInfo` (`state` `off`, `indexing`, `ready`, `budget_exceeded` or `failed`; `files`, `chunks`,
+  `skipped`, `last_indexed_at`, `code`). Types only. Additive.
 - Contract sync (RT-089d, nodestro-api `claude/w4-rt089d` 8802902): the owner's consents for private memory spaces
   (`/api/memory-consents`: list, preview, grant, revoke; types `MemoryConsent`, `MemoryConsentIn`,
   `MemoryConsentPreview`, `ConsentTarget`), the access audit kinds `memory_consent_granted` and
