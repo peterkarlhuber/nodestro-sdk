@@ -10857,7 +10857,7 @@ export interface components {
         };
         /**
          * FolderGrantView
-         * @description A folder grant with the state of its access grant, as the administration shows it.
+         * @description A folder grant with the state of its access grant and of its search index, as the administration shows it.
          */
         FolderGrantView: {
             /** Agents */
@@ -10865,6 +10865,7 @@ export interface components {
             /** Expires At */
             expires_at?: string | null;
             folder: components["schemas"]["FolderGrant"];
+            index_state?: components["schemas"]["FolderIndexInfo"];
             /**
              * Mode
              * @enum {string}
@@ -10884,6 +10885,42 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "revoked" | "expired";
+        };
+        /**
+         * FolderIndexInfo
+         * @description The search index of a folder grant (N-12) as the administration sees it: its state and counts, never a file
+         *     name or a content.
+         *
+         *     ``off``: the grant keeps no index, or it ended (its index is dropped). ``indexing``: the first sync has not ended
+         *     yet (or not started). ``ready``: the index is complete. ``budget_exceeded``: the index is ready but left files out
+         *     at a limit (the grant's file limit or the folder's chunk or byte budget). ``failed``: the folder could not be read
+         *     at all; ``code`` names why (an ``fs.*`` or ``folder.*`` code).
+         */
+        FolderIndexInfo: {
+            /**
+             * Chunks
+             * @default 0
+             */
+            chunks: number;
+            /** Code */
+            code?: string | null;
+            /**
+             * Files
+             * @default 0
+             */
+            files: number;
+            /** Last Indexed At */
+            last_indexed_at?: string | null;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "off" | "indexing" | "ready" | "failed" | "budget_exceeded";
         };
         /** FolderLimitBounds */
         FolderLimitBounds: {
