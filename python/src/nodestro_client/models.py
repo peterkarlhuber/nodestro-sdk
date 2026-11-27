@@ -1725,8 +1725,11 @@ class MemoryConsentPreview(TypedDict):
 
 
 class MemoryFile(TypedDict):
+    origin: NotRequired[str | None]
     path: str
+    scope: NotRequired[Literal['user', 'project', 'agent']]
     size: int
+    updated_at: NotRequired[str | None]
 
 
 class MemoryProposalRequest(TypedDict):
@@ -1748,6 +1751,7 @@ class MemorySeedFile(TypedDict):
 class MemorySpaceInfo(TypedDict):
     files: int
     name: str
+    scope: NotRequired[Literal['user', 'project', 'agent']]
     size: int
 
 
