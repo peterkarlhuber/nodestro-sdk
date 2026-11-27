@@ -292,6 +292,19 @@ class NodestroClient:
             self._http.json("GET", f"/api/workflows/{path_segment(workflow_id)}/versions"),
         )
 
+    def workflow_version_as_tool(
+        self, workflow_id: str, version: int, *, name: str | None = None
+    ) -> models.WorkflowToolInfo:
+        """A saved workflow version as a tool of an agent (N-20): the binding to store in the agent's
+        ``workflow_tools`` (with its effect), the arguments the model sees and the newest saved version."""
+        params = {"name": name} if name is not None else None
+        return cast(
+            models.WorkflowToolInfo,
+            self._http.json(
+                "GET", f"/api/workflows/{path_segment(workflow_id)}/versions/{int(version)}/tool", params=params
+            ),
+        )
+
     # ---- runs ------------------------------------------------------------------------
 
     def start_run(

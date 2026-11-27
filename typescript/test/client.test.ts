@@ -410,6 +410,9 @@ describe("studio API, further operations", () => {
     expect((await nodestro.updateWorkflow(workflow.id, { ...simple(), name: "SDK renamed" })).name).toBe("SDK renamed");
     const versions = await nodestro.workflowVersions(workflow.id);
     expect(versions.length).toBeGreaterThanOrEqual(2);
+    const tool = await nodestro.workflowVersionAsTool(workflow.id, 1, { name: "workflow_simple" });
+    expect([tool.binding.name, tool.binding.version]).toEqual(["workflow_simple", 1]);
+    expect(tool.latest_version).toBe(versions[0]?.number);
     await nodestro.deleteWorkflow(workflow.id);
     expect((await failure(nodestro.getWorkflow(workflow.id)))?.status).toBe(404);
   });

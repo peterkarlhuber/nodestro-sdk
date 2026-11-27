@@ -431,6 +431,9 @@ def test_workflows_are_checked_versioned_updated_and_deleted(nodestro: NodestroC
     assert updated["name"] == "SDK renamed"
     versions = nodestro.workflow_versions(workflow["id"])
     assert len(versions) >= 2 and all(isinstance(item["number"], int) for item in versions)
+    tool = nodestro.workflow_version_as_tool(workflow["id"], 1, name="workflow_simple")
+    assert (tool["binding"]["name"], tool["binding"]["version"]) == ("workflow_simple", 1)
+    assert tool["latest_version"] == versions[0]["number"] and "effect" in tool["binding"]
     nodestro.delete_workflow(workflow["id"])
     with pytest.raises(NodestroAPIError) as gone:
         nodestro.get_workflow(workflow["id"])

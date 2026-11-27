@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Contract sync (N-20, nodestro-api `claude/w6-n20`): workflows as tools of an agent. New client methods
+  `workflow_version_as_tool(workflow_id, version, name=)` / `workflowVersionAsTool(workflowId, version, { name })`
+  (`GET /api/workflows/{workflow_id}/versions/{number}/tool`); new types `WorkflowToolInfo`, `WorkflowToolConfig`,
+  `WorkflowEffect`, `WorkflowCallView` and the conversation fields `tool_calls[].workflow`, `result_files` and
+  `workflow_tool_updates`.
+
 - Contract sync (N-14, nodestro-api `claude/w5-n14`): exchange files with client methods in both SDKs:
   `export_mcp_servers()` / `exportMcpServers()` and `import_mcp_servers(document, dry_run=)` /
   `importMcpServers(document, { dryRun })` (`nodestro-mcp/1`, `admin`), `export_connections()` /
