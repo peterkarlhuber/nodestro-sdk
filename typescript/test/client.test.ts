@@ -646,6 +646,37 @@ describe("service connections", () => {
   });
 });
 
+describe("exchange files", () => {
+  it("exports and imports without secrets and refuses a newer version", async () => {
+    const made = await nodestro.createConnection({ type: "search", provider: "test", name: "TS exchange" });
+    await nodestro.setConnectionSecret(made.id, "ts-exchange-secret");
+    const exported = await nodestro.exportConnections();
+    expect(exported.format).toBe("nodestro-connection/1");
+    expect(JSON.stringify(exported)).not.toContain("ts-exchange-secret");
+    const entry = exported.connections.find((item) => item.name === "TS exchange");
+    const document = { ...exported, connections: [{ ...entry, name: "TS exchange copy" }] };
+    expect((await nodestro.importConnections(document, { dryRun: true })).items?.[0]?.status).toBe("ready");
+    const report = await nodestro.importConnections(document);
+    const copy = report.items?.[0]?.id ?? "";
+    expect((await nodestro.getConnection(copy)).secret_set).toBe(false);
+    await expect(nodestro.importMcpServers({ format: "nodestro-mcp/2", servers: [] }, { dryRun: true })).rejects.toMatchObject({
+      status: 422,
+      code: "exchange.version_newer",
+    });
+    expect((await nodestro.exportMcpServers()).format).toBe("nodestro-mcp/1");
+    const [stored] = await nodestro.uploadKnowledge([{ name: "ts-exchange.md", content: "An exchange file test." }], {
+      collection: "TS exchange",
+    });
+    const zip = await nodestro.exportKnowledgeCollection("TS exchange");
+    const preview = await nodestro.importKnowledgeCollection(zip, { dryRun: true, collection: "TS copy" });
+    expect(preview.collection).toBe("TS copy");
+    expect(preview.items?.map((item) => item.status)).toEqual(["exists"]);
+    await nodestro.deleteConnection(made.id);
+    await nodestro.deleteConnection(copy);
+    await nodestro.deleteKnowledge(stored?.id ?? "");
+  });
+});
+
 describe("connected MCP services", () => {
   it("adds, lists, changes and removes a server without returning its token", async () => {
     const status = await nodestro.mcpStatus();

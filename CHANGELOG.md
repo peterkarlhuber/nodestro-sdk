@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Contract sync (N-14, nodestro-api `claude/w5-n14`): exchange files with client methods in both SDKs:
+  `export_mcp_servers()` / `exportMcpServers()` and `import_mcp_servers(document, dry_run=)` /
+  `importMcpServers(document, { dryRun })` (`nodestro-mcp/1`, `admin`), `export_connections()` /
+  `exportConnections()` and `import_connections(...)` / `importConnections(...)` (`nodestro-connection/1`, `admin`),
+  `export_knowledge_collection(name)` / `exportKnowledgeCollection(name)` (a ZIP file) and
+  `import_knowledge_collection(file, dry_run=, collection=)` / `importKnowledgeCollection(file, { dryRun, collection })`
+  (`nodestro-collection/1`). New types `McpPackage`, `ConnectionPackage`, `ImportReport`, `ImportItem`,
+  `EmbeddingMatch`; `WorkflowImport` gains `format`. Exports never hold a secret; a newer format version raises
+  `exchange.version_newer`.
+
 - Contract sync (RT-089d, nodestro-api `claude/w4-rt089d` 8802902): the owner's consents for private memory spaces
   (`/api/memory-consents`: list, preview, grant, revoke; types `MemoryConsent`, `MemoryConsentIn`,
   `MemoryConsentPreview`, `ConsentTarget`), the access audit kinds `memory_consent_granted` and

@@ -123,6 +123,9 @@ export type ConnectionView = Schemas["ConnectionView"];
 export type SendTestOut = Schemas["SendTestOut"];
 export type ConnectionIn = Schemas["ConnectionIn"];
 export type ConnectionPatch = Schemas["ConnectionPatch"];
+export type ConnectionPackage = Schemas["ConnectionPackage"];
+export type McpPackage = Schemas["McpPackage"];
+export type ImportReport = Schemas["ImportReport"];
 export type ConnectionEvent = Schemas["ConnectionEvent"];
 export type McpStatus = Schemas["McpStatus"];
 export type McpServerView = Schemas["McpServerView"];
@@ -767,6 +770,16 @@ export class NodestroClient {
     return this.http.json("GET", "/api/connections/events", { query: { limit: options.limit ?? 200 } });
   }
 
+  /** Every connection as `nodestro-connection/1` (never a secret); needs `admin`. */
+  async exportConnections(): Promise<ConnectionPackage> {
+    return this.http.json("GET", "/api/connections/export");
+  }
+
+  /** Preview (`dryRun`) or create the connections of a `nodestro-connection/1` file, all or none, without secrets. */
+  async importConnections(document: Record<string, unknown>, options: { dryRun?: boolean } = {}): Promise<ImportReport> {
+    return this.http.json("POST", "/api/connections/import", { body: document, query: { dry_run: options.dryRun || undefined } });
+  }
+
   /** The example library (`language`: `de`, `en`, `es`, `fr`, `it` or `pt-BR`). */
   // ---- connected MCP services
 
@@ -792,6 +805,16 @@ export class NodestroClient {
 
   async removeMcpServer(serverId: string): Promise<void> {
     await this.http.request("DELETE", `/api/mcp/servers/${enc(serverId)}`);
+  }
+
+  /** Every MCP server's configuration as `nodestro-mcp/1` (never a token or sign-in); needs `admin`. */
+  async exportMcpServers(): Promise<McpPackage> {
+    return this.http.json("GET", "/api/mcp/export");
+  }
+
+  /** Preview (`dryRun`) or add the servers of a `nodestro-mcp/1` file, all or none: switched off, without tokens. */
+  async importMcpServers(document: Record<string, unknown>, options: { dryRun?: boolean } = {}): Promise<ImportReport> {
+    return this.http.json("POST", "/api/mcp/import", { body: document, query: { dry_run: options.dryRun || undefined } });
   }
 
   /** Connect to the server and list its tools; new and changed definitions wait for an administrator. */
@@ -1475,6 +1498,24 @@ export class NodestroClient {
 
   async knowledgeCollections(): Promise<CollectionInfo[]> {
     return this.http.json("GET", "/api/knowledge/collections");
+  }
+
+  /** The collection as a `nodestro-collection/1` ZIP file: documents, retrieval settings, embedding identity. */
+  async exportKnowledgeCollection(name: string): Promise<Uint8Array> {
+    return this.http.bytes("GET", "/api/knowledge/collections/export", { query: { name } });
+  }
+
+  /** Preview (`dryRun`) or store a `nodestro-collection/1` file into a new collection, all documents or none. */
+  async importKnowledgeCollection(
+    file: Blob | Uint8Array,
+    options: { dryRun?: boolean; collection?: string } = {},
+  ): Promise<ImportReport> {
+    const blob = file instanceof Blob ? file : new Blob([new Uint8Array(file)]);
+    const form = new FormData();
+    form.append("file", blob, "collection.nodestro-collection.zip");
+    form.append("dry_run", options.dryRun ? "true" : "false");
+    if (options.collection !== undefined) form.append("collection", options.collection);
+    return this.http.json("POST", "/api/knowledge/collections/import", { form });
   }
 
   /**

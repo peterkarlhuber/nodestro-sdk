@@ -745,6 +745,19 @@ class NodestroClient:
             list[models.ConnectionEvent], self._http.json("GET", "/api/connections/events", params={"limit": limit})
         )
 
+    def export_connections(self) -> models.ConnectionPackage:
+        """Every connection as ``nodestro-connection/1`` (never a secret); needs ``admin``."""
+        return cast(models.ConnectionPackage, self._http.json("GET", "/api/connections/export"))
+
+    def import_connections(self, document: Mapping[str, Any], *, dry_run: bool = False) -> models.ImportReport:
+        """Preview (``dry_run``) or create the connections of a ``nodestro-connection/1`` file, all or none, without
+        secrets (``secrets_to_reenter``); needs ``admin``. A newer format version raises ``exchange.version_newer``."""
+        params = {"dry_run": True} if dry_run else None
+        return cast(
+            models.ImportReport,
+            self._http.json("POST", "/api/connections/import", json_body=dict(document), params=params),
+        )
+
     # ---- connected MCP services ------------------------------------------------------------
 
     def mcp_status(self) -> models.McpStatus:
@@ -768,6 +781,18 @@ class NodestroClient:
 
     def remove_mcp_server(self, server_id: str) -> None:
         self._http.request("DELETE", f"/api/mcp/servers/{path_segment(server_id)}")
+
+    def export_mcp_servers(self) -> models.McpPackage:
+        """Every MCP server's configuration as ``nodestro-mcp/1`` (never a token or sign-in); needs ``admin``."""
+        return cast(models.McpPackage, self._http.json("GET", "/api/mcp/export"))
+
+    def import_mcp_servers(self, document: Mapping[str, Any], *, dry_run: bool = False) -> models.ImportReport:
+        """Preview (``dry_run``) or add the servers of a ``nodestro-mcp/1`` file, all or none: switched off, without
+        tokens and with no tool approved; needs ``admin``."""
+        params = {"dry_run": True} if dry_run else None
+        return cast(
+            models.ImportReport, self._http.json("POST", "/api/mcp/import", json_body=dict(document), params=params)
+        )
 
     def discover_mcp_tools(self, server_id: str) -> models.McpDiscovery:
         """Connect to the server and list its tools; new and changed definitions wait for an administrator."""
@@ -1423,6 +1448,28 @@ class NodestroClient:
 
     def knowledge_collections(self) -> list[models.CollectionInfo]:
         return cast(list[models.CollectionInfo], self._http.json("GET", "/api/knowledge/collections"))
+
+    def export_knowledge_collection(self, name: str) -> bytes:
+        """The collection as a ``nodestro-collection/1`` ZIP file: documents, retrieval settings, embedding identity."""
+        return self._http.request("GET", "/api/knowledge/collections/export", params={"name": name}).content
+
+    def import_knowledge_collection(
+        self,
+        file: str | os.PathLike[str] | bytes | IO[bytes],
+        *,
+        dry_run: bool = False,
+        collection: str | None = None,
+    ) -> models.ImportReport:
+        """Preview (``dry_run``) or store a ``nodestro-collection/1`` file into a new collection (``collection``, else
+        the file's name), all documents or none; they are indexed again here."""
+        name, content = _upload(file, None, "collection.nodestro-collection.zip")
+        data: dict[str, str] = {"dry_run": "true" if dry_run else "false"}
+        if collection is not None:
+            data["collection"] = collection
+        return cast(
+            models.ImportReport,
+            self._http.json("POST", "/api/knowledge/collections/import", files={"file": (name, content)}, data=data),
+        )
 
     def search_knowledge(
         self,

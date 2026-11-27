@@ -1483,6 +1483,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/connections/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Connections
+         * @description The connections (``ids``: only these) as ``nodestro-connection/1``: type, provider, name, description and
+         *     settings, never a secret, an id, the reachable hosts or a check. An export that would hold a secret is refused
+         *     (``exchange.secret_detected``).
+         */
+        get: operations["export_connections_api_connections_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Connections
+         * @description Preview (``dry_run``) or apply a ``nodestro-connection/1`` file. Each connection is checked like creating it by
+         *     hand (type and mode, provider, settings, address rules, a unique name); applying creates all of them or none,
+         *     without secrets (``secrets_to_reenter`` names those to enter). A newer format version is refused
+         *     (``exchange.version_newer``).
+         */
+        post: operations["import_connections_api_connections_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/connections/status": {
         parameters: {
             query?: never;
@@ -2309,6 +2354,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/knowledge/collections/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Collection
+         * @description The collection ``name`` as ``nodestro-collection/1`` (a ZIP file): its documents' stored bytes, the retrieval
+         *     settings and the embedding identity of the index (never vectors or provenance). 404
+         *     ``exchange.collection_not_found`` for a name without files.
+         */
+        get: operations["export_collection_api_knowledge_collections_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/collections/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Collection
+         * @description Preview (``dry_run``) or apply a ``nodestro-collection/1`` file: size, entries, paths, ZIP bombs, format and
+         *     version (``exchange.version_newer``), the manifest's content and every document's checksum are checked first.
+         *     Applying stores the documents into a new collection (``collection``, else the file's name; one with files already
+         *     is refused, ``exchange.collection_exists``) with the rules of an upload, all of them or none; a document whose
+         *     content this workspace has already is left as it is (``exists``). The workspace's settings are never changed.
+         */
+        post: operations["import_collection_api_knowledge_collections_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/knowledge/index": {
         parameters: {
             query?: never;
@@ -3051,6 +3142,50 @@ export interface paths {
         get: operations["list_events_api_mcp_events_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Servers
+         * @description The servers (``ids``: only these) as ``nodestro-mcp/1``: their configuration, never a token, a sign-in, an id,
+         *     the switch or the tool approvals. An export that would hold a secret is refused (``exchange.secret_detected``).
+         */
+        get: operations["export_servers_api_mcp_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Servers
+         * @description Preview (``dry_run``) or apply a ``nodestro-mcp/1`` file. Each server is checked like adding it by hand
+         *     (address rules, a stdio server only with the Docker sandbox, the server limit); applying adds all of them or none,
+         *     each switched off, without a token and with no tool approved (``secrets_to_reenter`` names the tokens and sign-ins
+         *     to enter). A newer format version is refused (``exchange.version_newer``).
+         */
+        post: operations["import_servers_api_mcp_import_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6011,7 +6146,9 @@ export interface paths {
          * @description Import an exported workflow as a new copy (new id).
          *
          *     A file that is not a workflow export (no ``nodes`` list) is refused with 400 ``workflow.import_invalid``; a
-         *     graph the check finds broken with its code (``workflow.edge_dangling``, ``workflow.node_duplicate``).
+         *     graph the check finds broken with its code (``workflow.edge_dangling``, ``workflow.node_duplicate``). A file that
+         *     names its ``format`` must be ``nodestro-workflow/1``: a newer version is refused with 422
+         *     ``exchange.version_newer``, another format with ``exchange.format_invalid`` or ``exchange.format_mismatch``.
          */
         post: operations["import_workflow_api_workflows_import_post"];
         delete?: never;
@@ -8463,6 +8600,18 @@ export interface components {
             /** Run Id */
             run_id: string;
         };
+        /** Body_import_collection_api_knowledge_collections_import_post */
+        Body_import_collection_api_knowledge_collections_import_post: {
+            /** Collection */
+            collection?: string | null;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /** File */
+            file: string;
+        };
         /** Body_import_skill_api_skills_import_post */
         Body_import_skill_api_skills_import_post: {
             /**
@@ -9249,6 +9398,30 @@ export interface components {
             status: "unchecked" | "ok" | "failed";
         };
         /**
+         * ConnectionEntry
+         * @description A connection's configuration: never its id, secret, reachable hosts (derived again on import) or check.
+         */
+        ConnectionEntry: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Name */
+            name: string;
+            /**
+             * Provider
+             * @default generic
+             */
+            provider: string;
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            };
+            /** Type */
+            type: string;
+        };
+        /**
          * ConnectionEvent
          * @description An administration event (who changed which connection); never secrets or settings values.
          */
@@ -9299,6 +9472,20 @@ export interface components {
             };
             /** Type */
             type: string;
+        };
+        /** ConnectionPackage */
+        ConnectionPackage: {
+            /** Connections */
+            connections: components["schemas"]["ConnectionEntry"][];
+            /** Created At */
+            created_at?: string | null;
+            /** Format */
+            format: string;
+            /**
+             * Producer
+             * @default
+             */
+            producer: string;
         };
         /**
          * ConnectionPatch
@@ -10143,6 +10330,25 @@ export interface components {
              * @enum {string}
              */
             on_exhausted: "fail" | "continue";
+        };
+        /**
+         * EmbeddingMatch
+         * @description The embedding identity of a collection's source index and of this workspace's (``None``: no vectors).
+         */
+        EmbeddingMatch: {
+            /**
+             * Matches
+             * @default false
+             */
+            matches: boolean;
+            /** Package */
+            package?: {
+                [key: string]: unknown;
+            } | null;
+            /** Workspace */
+            workspace?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** EnableIn */
         EnableIn: {
@@ -11336,6 +11542,61 @@ export interface components {
             /** Template */
             template?: string | null;
         };
+        /**
+         * ImportItem
+         * @description One entry of an import: ``ready`` (the preview found no problem), ``refused`` (``code`` and ``params`` say why;
+         *     the same as adding it by hand would answer), ``created`` (``id`` is the new entry's) or ``exists`` (a document
+         *     whose content this workspace has already, ``id``: that file; it is left as it is).
+         */
+        ImportItem: {
+            /** Code */
+            code?: string | null;
+            /** Id */
+            id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "mcp_server" | "connection" | "document";
+            /** Name */
+            name: string;
+            /**
+             * Needs Secret
+             * @default false
+             */
+            needs_secret: boolean;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Status
+             * @default ready
+             * @enum {string}
+             */
+            status: "ready" | "refused" | "created" | "exists";
+        };
+        /** ImportReport */
+        ImportReport: {
+            /** Collection */
+            collection?: string | null;
+            /**
+             * Collection Exists
+             * @default false
+             */
+            collection_exists: boolean;
+            /** Dry Run */
+            dry_run: boolean;
+            embedding?: components["schemas"]["EmbeddingMatch"] | null;
+            /** Format */
+            format: string;
+            /** Items */
+            items?: components["schemas"]["ImportItem"][];
+            /** Left Out */
+            left_out?: string[];
+            /** Secrets To Reenter */
+            secrets_to_reenter?: string[];
+        };
         /** ImportResult */
         ImportResult: {
             check: components["schemas"]["TemplateCheck"];
@@ -12424,6 +12685,66 @@ export interface components {
             /** Authorization Url */
             authorization_url: string;
         };
+        /** McpPackage */
+        McpPackage: {
+            /** Created At */
+            created_at?: string | null;
+            /** Format */
+            format: string;
+            /**
+             * Producer
+             * @default
+             */
+            producer: string;
+            /** Servers */
+            servers: components["schemas"]["McpServerEntry"][];
+        };
+        /**
+         * McpServerEntry
+         * @description An MCP service's configuration without anything of this workspace: no id, token, sign-in, state, approvals.
+         */
+        McpServerEntry: {
+            /**
+             * Allow Loopback
+             * @default false
+             */
+            allow_loopback: boolean;
+            /**
+             * Auth
+             * @default none
+             * @enum {string}
+             */
+            auth: "none" | "bearer" | "oauth";
+            /**
+             * Max Output Chars
+             * @default 20000
+             */
+            max_output_chars: number;
+            /**
+             * Max Parallel Calls
+             * @default 4
+             */
+            max_parallel_calls: number;
+            /** Name */
+            name: string;
+            stdio?: components["schemas"]["McpStdioEntry"] | null;
+            /**
+             * Timeout Seconds
+             * @default 60
+             */
+            timeout_seconds: number;
+            /**
+             * Transport
+             * @default http
+             * @enum {string}
+             */
+            transport: "http" | "stdio";
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+        };
         /**
          * McpServerHealth
          * @description What this process knows about one server since it started (no secrets, no arguments).
@@ -12618,6 +12939,20 @@ export interface components {
             unattended_enabled: boolean;
             /** Write Tools Enabled */
             write_tools_enabled: boolean;
+        };
+        /** McpStdioEntry */
+        McpStdioEntry: {
+            /** Args */
+            args?: string[];
+            /**
+             * Memory Mb
+             * @default 512
+             */
+            memory_mb: number;
+            /** Module */
+            module: string;
+            /** Requirements */
+            requirements: string[];
         };
         /**
          * McpToolRef
@@ -19332,6 +19667,8 @@ export interface components {
             description: string;
             /** Edges */
             edges?: components["schemas"]["Edge"][];
+            /** Format */
+            format?: string | null;
             limits?: components["schemas"]["WorkflowLimits"];
             /**
              * Name
@@ -22584,6 +22921,74 @@ export interface operations {
             };
         };
     };
+    export_connections_api_connections_export_get: {
+        parameters: {
+            query?: {
+                ids?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionPackage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    import_connections_api_connections_import_post: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     connection_status_api_connections_status_get: {
         parameters: {
             query?: never;
@@ -24221,6 +24626,70 @@ export interface operations {
             };
         };
     };
+    export_collection_api_knowledge_collections_export_get: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ``nodestro-collection/1`` file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    import_collection_api_knowledge_collections_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_collection_api_knowledge_collections_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     knowledge_index_api_knowledge_index_get: {
         parameters: {
             query?: never;
@@ -25478,6 +25947,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["McpEvent"][];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_servers_api_mcp_export_get: {
+        parameters: {
+            query?: {
+                ids?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpPackage"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    import_servers_api_mcp_import_post: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
                 };
             };
             /** @description Error */
