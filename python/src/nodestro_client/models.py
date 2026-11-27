@@ -1155,6 +1155,15 @@ class FolderBrowseIn(TypedDict):
     path: NotRequired[str | None]
 
 
+class FolderIndexInfo(TypedDict):
+    chunks: NotRequired[int]
+    code: NotRequired[str | None]
+    files: NotRequired[int]
+    last_indexed_at: NotRequired[str | None]
+    skipped: NotRequired[int]
+    state: Literal['off', 'indexing', 'ready', 'failed', 'budget_exceeded']
+
+
 class FolderLimitBounds(TypedDict):
     highest: float
     lowest: float
@@ -4195,6 +4204,7 @@ class FolderGrantView(TypedDict):
     agents: list[str]
     expires_at: NotRequired[str | None]
     folder: FolderGrant
+    index_state: NotRequired[FolderIndexInfo]
     mode: Literal['supervised', 'unattended']
     revoked_at: NotRequired[str | None]
     revoked_by: NotRequired[str | None]
