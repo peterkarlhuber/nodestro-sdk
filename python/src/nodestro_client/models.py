@@ -130,6 +130,15 @@ class AgentModel(TypedDict):
     tier: str
 
 
+class AnswerFile(TypedDict):
+    file_id: str
+    format: str
+    media_type: NotRequired[str]
+    name: str
+    run_id: str
+    size: NotRequired[int]
+
+
 class ApiExamples(TypedDict):
     base_url: str
     curl: dict[str, str]
@@ -3419,30 +3428,6 @@ class ToolCallApproval(TypedDict):
     ]
 
 
-class ToolCallRecord(TypedDict):
-    approval: NotRequired[ToolCallApproval | None]
-    finished_at: NotRequired[str | None]
-    id: str
-    input: NotRequired[dict[str, Any]]
-    is_error: NotRequired[bool]
-    name: str
-    output: NotRequired[str | None]
-    provenance: NotRequired[dict[str, Any]]
-    started_at: NotRequired[str]
-
-
-class ToolCallView(TypedDict):
-    approval: NotRequired[ToolCallApproval | None]
-    arguments: NotRequired[dict[str, Any]]
-    duration_ms: NotRequired[int | None]
-    finished_at: NotRequired[str | None]
-    id: str
-    is_error: NotRequired[bool]
-    name: str
-    result: NotRequired[str | None]
-    started_at: str
-
-
 class ToolCapability(TypedDict):
     access: Literal['read', 'write', 'destructive']
     reach: Literal['internal', 'external']
@@ -3733,12 +3718,34 @@ class VersionSummary(TypedDict):
     workflow_id: str
 
 
+class WorkflowApprovalCard(TypedDict):
+    instructions: NotRequired[str]
+    label: NotRequired[str]
+    node_id: str
+    run_id: str
+
+
+class WorkflowCall(TypedDict):
+    run_id: str
+    version: int
+    workflow_id: str
+
+
 class WorkflowCheck(TypedDict):
     agents: dict[str, list[ConfigIssue]]
     errors: NotRequired[int]
     ok: bool
     problems: list[CheckIssue]
     warnings: NotRequired[int]
+
+
+class WorkflowEffect(TypedDict):
+    access: NotRequired[Literal['read', 'write', 'destructive']]
+    approvals: NotRequired[int]
+    memory: NotRequired[bool]
+    reach: NotRequired[Literal['internal', 'external']]
+    unknown: NotRequired[list[str]]
+    workflows: NotRequired[list[str]]
 
 
 class WorkflowLimits(TypedDict):
@@ -3770,6 +3777,36 @@ class WorkflowSummary(TypedDict):
     ]
     name: str
     updated_at: str
+
+
+class WorkflowToolApprovalCard(TypedDict):
+    request_id: str
+    run_id: str
+    tool: str
+
+
+class WorkflowToolConfig(TypedDict):
+    description: NotRequired[str]
+    effect: NotRequired[WorkflowEffect | None]
+    name: str
+    version: int
+    workflow_id: str
+
+
+class WorkflowToolInfo(TypedDict):
+    binding: WorkflowToolConfig
+    blocked_fields: NotRequired[list[str]]
+    description: str
+    input_schema: dict[str, Any]
+    latest_version: NotRequired[int | None]
+    workflow_name: str
+
+
+class WorkflowToolUpdate(TypedDict):
+    latest_version: int
+    name: str
+    version: int
+    workflow_id: str
 
 
 class NodestroApiBenchmarksCheckResult(TypedDict):
@@ -3858,30 +3895,6 @@ class AgentConversationSummary(TypedDict):
     offline: bool
     title: str
     updated_at: str
-
-
-class AgentTestResult(TypedDict):
-    agent_name: str
-    error: NotRequired[str | None]
-    error_code: NotRequired[str | None]
-    error_params: NotRequired[dict[str, Any]]
-    evaluation: NotRequired[EvaluationRecord | None]
-    finished_at: NotRequired[str | None]
-    id: NotRequired[str]
-    kind: NotRequired[Literal['agent_test']]
-    memory: NotRequired[dict[str, str] | None]
-    memory_isolated: NotRequired[bool]
-    model: str
-    output: NotRequired[Any]
-    prompt: str
-    reasoning: NotRequired[ReasoningTrace]
-    reasoning_reduced: NotRequired[str | None]
-    started_at: NotRequired[str]
-    status: NotRequired[Literal['succeeded', 'failed']]
-    text: NotRequired[str]
-    tool_calls: NotRequired[list[ToolCallRecord]]
-    usage: NotRequired[Usage]
-    value_warnings: NotRequired[list[ValueWarning]]
 
 
 class ApiCheck(TypedDict):
@@ -4480,58 +4493,6 @@ class ModelProfile(TypedDict):
     reasons: NotRequired[dict[str, str]]
 
 
-class NodeRun(TypedDict):
-    approval: NotRequired[ApprovalRecord | None]
-    child_run_id: NotRequired[str | None]
-    child_run_ids: NotRequired[list[str]]
-    child_version: NotRequired[int | None]
-    current_decision: NotRequired[dict[str, Any] | None]
-    decision: NotRequired[DecisionRecord | None]
-    decision_usage: NotRequired[Usage | None]
-    earlier: NotRequired[list[NodeRun]]
-    error: NotRequired[str | None]
-    error_code: NotRequired[str | None]
-    error_params: NotRequired[dict[str, Any]]
-    evaluation: NotRequired[EvaluationRecord | None]
-    files: NotRequired[list[ProvidedFile]]
-    fingerprint: NotRequired[str | None]
-    finished_at: NotRequired[str | None]
-    guidance: NotRequired[list[GuidanceRef]]
-    iteration: NotRequired[list[int]]
-    limits_handled: NotRequired[list[Literal['reasoning', 'tool_rounds']]]
-    memory: NotRequired[dict[str, str] | None]
-    orchestration: NotRequired[dict[str, Any] | None]
-    output: NotRequired[Any]
-    prompt: NotRequired[str | None]
-    proposals: NotRequired[list[KnowledgeProposal]]
-    reasoning_reduced: NotRequired[str | None]
-    reused_from: NotRequired[str | None]
-    skill_selection: NotRequired[SkillSelection | None]
-    skills: NotRequired[list[SkillUse]]
-    started_at: NotRequired[str | None]
-    status: NotRequired[
-        Literal[
-            'idle',
-            'waiting',
-            'running',
-            'succeeded',
-            'failed',
-            'skipped',
-            'blocked',
-            'awaiting_approval',
-            'awaiting_budget',
-            'cancelled',
-        ]
-    ]
-    text: NotRequired[str]
-    thinking: NotRequired[str]
-    thinking_kind: NotRequired[Literal['thinking', 'summary'] | None]
-    thinking_phases: NotRequired[int]
-    thinking_redacted: NotRequired[bool]
-    tool_calls: NotRequired[list[ToolCallRecord]]
-    usage: NotRequired[Usage]
-
-
 class OrchestratorConfig(TypedDict):
     allow_values: NotRequired[bool]
     instructions: NotRequired[str]
@@ -4967,6 +4928,19 @@ class ToolApprovalRequest(TypedDict):
     version: NotRequired[int | None]
 
 
+class ToolCallRecord(TypedDict):
+    approval: NotRequired[ToolCallApproval | None]
+    finished_at: NotRequired[str | None]
+    id: str
+    input: NotRequired[dict[str, Any]]
+    is_error: NotRequired[bool]
+    name: str
+    output: NotRequired[str | None]
+    provenance: NotRequired[dict[str, Any]]
+    started_at: NotRequired[str]
+    workflow: NotRequired[WorkflowCall | None]
+
+
 class ToolDraft(TypedDict):
     agents: NotRequired[list[str]]
     check: NotRequired[NodestroRuntimeToolLibraryCheckResult | None]
@@ -5010,6 +4984,18 @@ class ToolInfo(TypedDict):
 class TraceImport(TypedDict):
     duplicate: bool
     run: RunSummary
+
+
+class WorkflowCallView(TypedDict):
+    approvals: NotRequired[list[WorkflowApprovalCard]]
+    cost_usd: NotRequired[float | None]
+    error: NotRequired[Problem | None]
+    files: NotRequired[list[AnswerFile]]
+    run_id: str
+    status: str
+    tool_approvals: NotRequired[list[WorkflowToolApprovalCard]]
+    version: int
+    workflow_id: str
 
 
 class AccessRow(TypedDict):
@@ -5077,6 +5063,7 @@ class AgentConfig(TypedDict):
     tool_policies: NotRequired[dict[str, ToolBinding]]
     tool_settings: NotRequired[dict[str, ToolSettings]]
     tools: NotRequired[list[str]]
+    workflow_tools: NotRequired[list[WorkflowToolConfig]]
 
 
 class AgentConsentPreviewIn(TypedDict):
@@ -5120,6 +5107,30 @@ class AgentTestIn(TypedDict):
     input: NotRequired[str]
     raw: NotRequired[bool]
     workflow_id: NotRequired[str | None]
+
+
+class AgentTestResult(TypedDict):
+    agent_name: str
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    error_params: NotRequired[dict[str, Any]]
+    evaluation: NotRequired[EvaluationRecord | None]
+    finished_at: NotRequired[str | None]
+    id: NotRequired[str]
+    kind: NotRequired[Literal['agent_test']]
+    memory: NotRequired[dict[str, str] | None]
+    memory_isolated: NotRequired[bool]
+    model: str
+    output: NotRequired[Any]
+    prompt: str
+    reasoning: NotRequired[ReasoningTrace]
+    reasoning_reduced: NotRequired[str | None]
+    started_at: NotRequired[str]
+    status: NotRequired[Literal['succeeded', 'failed']]
+    text: NotRequired[str]
+    tool_calls: NotRequired[list[ToolCallRecord]]
+    usage: NotRequired[Usage]
+    value_warnings: NotRequired[list[ValueWarning]]
 
 
 class ApiOverview(TypedDict):
@@ -5232,39 +5243,6 @@ class ContextPreview(TypedDict):
     system_prompt: str
     task_template: str
     tools: NotRequired[list[str]]
-
-
-class ConversationMessage(TypedDict):
-    agent: NotRequired[TemplateRef | None]
-    approval_ids: NotRequired[list[str]]
-    attachments: NotRequired[list[MessageFile]]
-    content: NotRequired[str]
-    conversation_id: str
-    cost_usd: NotRequired[float | None]
-    created_at: NotRequired[str]
-    error: NotRequired[Problem | None]
-    finished_at: NotRequired[str | None]
-    id: NotRequired[str]
-    model: NotRequired[str | None]
-    reply_to: NotRequired[str | None]
-    role: Literal['user', 'assistant']
-    run_id: NotRequired[str | None]
-    seq: int
-    sources: NotRequired[list[SourceEntry]]
-    status: NotRequired[
-        Literal[
-            'complete',
-            'queued',
-            'running',
-            'paused',
-            'succeeded',
-            'failed',
-            'cancelled',
-        ]
-    ]
-    summary: NotRequired[HistorySummary | None]
-    tool_calls: NotRequired[list[ToolCallView]]
-    usage: NotRequired[Usage | None]
 
 
 class DependencyStatus(TypedDict):
@@ -5409,6 +5387,58 @@ class Node(TypedDict):
     ]
 
 
+class NodeRun(TypedDict):
+    approval: NotRequired[ApprovalRecord | None]
+    child_run_id: NotRequired[str | None]
+    child_run_ids: NotRequired[list[str]]
+    child_version: NotRequired[int | None]
+    current_decision: NotRequired[dict[str, Any] | None]
+    decision: NotRequired[DecisionRecord | None]
+    decision_usage: NotRequired[Usage | None]
+    earlier: NotRequired[list[NodeRun]]
+    error: NotRequired[str | None]
+    error_code: NotRequired[str | None]
+    error_params: NotRequired[dict[str, Any]]
+    evaluation: NotRequired[EvaluationRecord | None]
+    files: NotRequired[list[ProvidedFile]]
+    fingerprint: NotRequired[str | None]
+    finished_at: NotRequired[str | None]
+    guidance: NotRequired[list[GuidanceRef]]
+    iteration: NotRequired[list[int]]
+    limits_handled: NotRequired[list[Literal['reasoning', 'tool_rounds']]]
+    memory: NotRequired[dict[str, str] | None]
+    orchestration: NotRequired[dict[str, Any] | None]
+    output: NotRequired[Any]
+    prompt: NotRequired[str | None]
+    proposals: NotRequired[list[KnowledgeProposal]]
+    reasoning_reduced: NotRequired[str | None]
+    reused_from: NotRequired[str | None]
+    skill_selection: NotRequired[SkillSelection | None]
+    skills: NotRequired[list[SkillUse]]
+    started_at: NotRequired[str | None]
+    status: NotRequired[
+        Literal[
+            'idle',
+            'waiting',
+            'running',
+            'succeeded',
+            'failed',
+            'skipped',
+            'blocked',
+            'awaiting_approval',
+            'awaiting_budget',
+            'cancelled',
+        ]
+    ]
+    text: NotRequired[str]
+    thinking: NotRequired[str]
+    thinking_kind: NotRequired[Literal['thinking', 'summary'] | None]
+    thinking_phases: NotRequired[int]
+    thinking_redacted: NotRequired[bool]
+    tool_calls: NotRequired[list[ToolCallRecord]]
+    usage: NotRequired[Usage]
+
+
 class RunChatView(TypedDict):
     active: bool
     answer_model: str
@@ -5428,9 +5458,17 @@ class SaveResult(TypedDict):
     tool: ToolInfo | None
 
 
-class SentConversationMessage(TypedDict):
-    assistant: ConversationMessage
-    user: ConversationMessage
+class ToolCallView(TypedDict):
+    approval: NotRequired[ToolCallApproval | None]
+    arguments: NotRequired[dict[str, Any]]
+    duration_ms: NotRequired[int | None]
+    finished_at: NotRequired[str | None]
+    id: str
+    is_error: NotRequired[bool]
+    name: str
+    result: NotRequired[str | None]
+    started_at: str
+    workflow: NotRequired[WorkflowCallView | None]
 
 
 class ToolDraftDecision(TypedDict):
@@ -5484,28 +5522,6 @@ class WorkflowVersion(TypedDict):
     restored_from: NotRequired[int | None]
     snapshot: WorkflowIn
     workflow_id: str
-
-
-class AgentConversationDetail(TypedDict):
-    agent: TemplateRef
-    answering: NotRequired[str | None]
-    auto_title: NotRequired[bool]
-    budget_usd: NotRequired[float | None]
-    created_at: NotRequired[str]
-    files: NotRequired[list[AgentConversationFile]]
-    history: NotRequired[Literal['trim', 'summarize']]
-    id: NotRequired[str]
-    last_seq: NotRequired[int]
-    messages: NotRequired[list[ConversationMessage]]
-    model: str
-    offline: NotRequired[bool]
-    owner: NotRequired[str | None]
-    provenance: NotRequired[Literal['unchecked', 'granted_content']]
-    summary_model: NotRequired[str | None]
-    tenant_id: str
-    title: NotRequired[str]
-    updated_at: NotRequired[str]
-    usage: NotRequired[Usage]
 
 
 class ArchitectJob(TypedDict):
@@ -5573,6 +5589,40 @@ class AttachRequest(TypedDict):
     ref_id: str
     variant: NotRequired[Literal['saved', 'draft']]
     workflow: NotRequired[WorkflowIn | None]
+
+
+class ConversationMessage(TypedDict):
+    agent: NotRequired[TemplateRef | None]
+    approval_ids: NotRequired[list[str]]
+    attachments: NotRequired[list[MessageFile]]
+    content: NotRequired[str]
+    conversation_id: str
+    cost_usd: NotRequired[float | None]
+    created_at: NotRequired[str]
+    error: NotRequired[Problem | None]
+    finished_at: NotRequired[str | None]
+    id: NotRequired[str]
+    model: NotRequired[str | None]
+    reply_to: NotRequired[str | None]
+    result_files: NotRequired[list[AnswerFile]]
+    role: Literal['user', 'assistant']
+    run_id: NotRequired[str | None]
+    seq: int
+    sources: NotRequired[list[SourceEntry]]
+    status: NotRequired[
+        Literal[
+            'complete',
+            'queued',
+            'running',
+            'paused',
+            'succeeded',
+            'failed',
+            'cancelled',
+        ]
+    ]
+    summary: NotRequired[HistorySummary | None]
+    tool_calls: NotRequired[list[ToolCallView]]
+    usage: NotRequired[Usage | None]
 
 
 class PartDetail(TypedDict):
@@ -5660,6 +5710,11 @@ class Run(TypedDict):
     workflow_version: NotRequired[int | None]
 
 
+class SentConversationMessage(TypedDict):
+    assistant: ConversationMessage
+    user: ConversationMessage
+
+
 class SubworkflowSnapshot(TypedDict):
     version: int
     workflow: Workflow
@@ -5720,6 +5775,29 @@ class TemplateDetail(TypedDict):
 
 class WorkflowDependencyRequest(TypedDict):
     workflow: NotRequired[WorkflowIn | None]
+
+
+class AgentConversationDetail(TypedDict):
+    agent: TemplateRef
+    answering: NotRequired[str | None]
+    auto_title: NotRequired[bool]
+    budget_usd: NotRequired[float | None]
+    created_at: NotRequired[str]
+    files: NotRequired[list[AgentConversationFile]]
+    history: NotRequired[Literal['trim', 'summarize']]
+    id: NotRequired[str]
+    last_seq: NotRequired[int]
+    messages: NotRequired[list[ConversationMessage]]
+    model: str
+    offline: NotRequired[bool]
+    owner: NotRequired[str | None]
+    provenance: NotRequired[Literal['unchecked', 'granted_content']]
+    summary_model: NotRequired[str | None]
+    tenant_id: str
+    title: NotRequired[str]
+    updated_at: NotRequired[str]
+    usage: NotRequired[Usage]
+    workflow_tool_updates: NotRequired[list[WorkflowToolUpdate]]
 
 
 class ReleaseBundle(TypedDict):

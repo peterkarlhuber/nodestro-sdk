@@ -6373,6 +6373,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/{workflow_id}/versions/{number}/tool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Version As Tool
+         * @description A saved workflow version as a tool an agent may call (N-20; runtime ``docs/workflow-tools.md``): the binding to
+         *     store in the agent's ``workflow_tools`` (its effect computed now), what the model sees and the newest saved
+         *     version. Reads only; calling it needs ``NODESTRO_WORKFLOW_TOOLS=1`` when the agent runs.
+         */
+        get: operations["version_as_tool_api_workflows__workflow_id__versions__number__tool_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6851,6 +6873,8 @@ export interface components {
             };
             /** Tools */
             tools?: string[];
+            /** Workflow Tools */
+            workflow_tools?: components["schemas"]["WorkflowToolConfig"][];
         };
         /**
          * AgentConsentPreview
@@ -6932,6 +6956,8 @@ export interface components {
              */
             updated_at?: string;
             usage?: components["schemas"]["Usage"];
+            /** Workflow Tool Updates */
+            workflow_tool_updates?: components["schemas"]["WorkflowToolUpdate"][];
         };
         /**
          * AgentConversationFile
@@ -7178,6 +7204,31 @@ export interface components {
             usage?: components["schemas"]["Usage"];
             /** Value Warnings */
             value_warnings?: components["schemas"]["ValueWarning"][];
+        };
+        /**
+         * AnswerFile
+         * @description A result file of a workflow tool's run: an attachment of the answer (N-20), downloaded with the run routes
+         *     (``GET /api/runs/{run_id}/files/{file_id}``).
+         */
+        AnswerFile: {
+            /** File Id */
+            file_id: string;
+            /** Format */
+            format: string;
+            /**
+             * Media Type
+             * @default
+             */
+            media_type: string;
+            /** Name */
+            name: string;
+            /** Run Id */
+            run_id: string;
+            /**
+             * Size
+             * @default 0
+             */
+            size: number;
         };
         /**
          * ApiCheck
@@ -9927,6 +9978,8 @@ export interface components {
             model?: string | null;
             /** Reply To */
             reply_to?: string | null;
+            /** Result Files */
+            result_files?: components["schemas"]["AnswerFile"][];
             /**
              * Role
              * @enum {string}
@@ -18760,6 +18813,7 @@ export interface components {
              * Format: date-time
              */
             started_at?: string;
+            workflow?: components["schemas"]["WorkflowCall"] | null;
         };
         /**
          * ToolCallView
@@ -18791,6 +18845,7 @@ export interface components {
              * Format: date-time
              */
             started_at: string;
+            workflow?: components["schemas"]["WorkflowCallView"] | null;
         };
         /**
          * ToolCapability
@@ -19667,6 +19722,62 @@ export interface components {
              */
             updated_at?: string;
         };
+        /**
+         * WorkflowApprovalCard
+         * @description An approval step inside a workflow tool's run that waits for a person (N-20): decided with the run routes
+         *     (``POST /api/runs/{run_id}/approvals/{node_id}``).
+         */
+        WorkflowApprovalCard: {
+            /**
+             * Instructions
+             * @default
+             */
+            instructions: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /** Node Id */
+            node_id: string;
+            /** Run Id */
+            run_id: string;
+        };
+        /**
+         * WorkflowCall
+         * @description The run of a workflow tool's call (N-20): a child run of the agent's run, below the agent's step.
+         */
+        WorkflowCall: {
+            /** Run Id */
+            run_id: string;
+            /** Version */
+            version: number;
+            /** Workflow Id */
+            workflow_id: string;
+        };
+        /**
+         * WorkflowCallView
+         * @description A workflow tool's call (N-20): the workflow in its fixed version, its run, what it waits for and its files.
+         */
+        WorkflowCallView: {
+            /** Approvals */
+            approvals?: components["schemas"]["WorkflowApprovalCard"][];
+            /** Cost Usd */
+            cost_usd?: number | null;
+            error?: components["schemas"]["Problem"] | null;
+            /** Files */
+            files?: components["schemas"]["AnswerFile"][];
+            /** Run Id */
+            run_id: string;
+            /** Status */
+            status: string;
+            /** Tool Approvals */
+            tool_approvals?: components["schemas"]["WorkflowToolApprovalCard"][];
+            /** Version */
+            version: number;
+            /** Workflow Id */
+            workflow_id: string;
+        };
         /** WorkflowCheck */
         WorkflowCheck: {
             /** Agents */
@@ -19691,6 +19802,42 @@ export interface components {
         /** WorkflowDependencyRequest */
         WorkflowDependencyRequest: {
             workflow?: components["schemas"]["WorkflowIn"] | null;
+        };
+        /**
+         * WorkflowEffect
+         * @description What a workflow may do as a whole (N-20): the highest ``access`` and ``reach`` of everything it contains (its
+         *     agents' tools, MCP tools and server tools, its result files, its sub-workflows, teams and workflow tools, at every
+         *     depth). Something unknown (a tool that is not there, a team chosen at run time, a workflow that cannot be read)
+         *     counts as ``write`` + ``external`` (:data:`~nodestro_runtime.tool_policy.UNKNOWN`) and is named in ``unknown``.
+         *     See :mod:`nodestro_runtime.workflow_tools`.
+         */
+        WorkflowEffect: {
+            /**
+             * Access
+             * @default write
+             * @enum {string}
+             */
+            access: "read" | "write" | "destructive";
+            /**
+             * Approvals
+             * @default 0
+             */
+            approvals: number;
+            /**
+             * Memory
+             * @default false
+             */
+            memory: boolean;
+            /**
+             * Reach
+             * @default external
+             * @enum {string}
+             */
+            reach: "internal" | "external";
+            /** Unknown */
+            unknown?: string[];
+            /** Workflows */
+            workflows?: string[];
         };
         /** WorkflowImport */
         WorkflowImport: {
@@ -19810,6 +19957,74 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * WorkflowToolApprovalCard
+         * @description A tool call inside a workflow tool's run that waits for a person's approval (N-20, S-2).
+         */
+        WorkflowToolApprovalCard: {
+            /** Request Id */
+            request_id: string;
+            /** Run Id */
+            run_id: string;
+            /** Tool */
+            tool: string;
+        };
+        /**
+         * WorkflowToolConfig
+         * @description A saved workflow in one fixed version that an agent may call as a tool (N-20).
+         *
+         *     The version never changes by itself: a newer version of the workflow is only reported
+         *     (:func:`~nodestro_runtime.workflow_tools.newer_versions`). The arguments are the workflow's start form; the
+         *     result is its output and its result files. ``effect`` is what the workflow may do, computed when it was added
+         *     (:func:`~nodestro_runtime.workflow_tools.describe`); every call computes it again and the higher one counts.
+         */
+        WorkflowToolConfig: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            effect?: components["schemas"]["WorkflowEffect"] | null;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+            /** Workflow Id */
+            workflow_id: string;
+        };
+        /**
+         * WorkflowToolInfo
+         * @description A workflow in one version as a tool (N-20): the binding to store with an agent, and what the model sees.
+         */
+        WorkflowToolInfo: {
+            binding: components["schemas"]["WorkflowToolConfig"];
+            /** Blocked Fields */
+            blocked_fields?: string[];
+            /** Description */
+            description: string;
+            /** Input Schema */
+            input_schema: {
+                [key: string]: unknown;
+            };
+            /** Latest Version */
+            latest_version?: number | null;
+            /** Workflow Name */
+            workflow_name: string;
+        };
+        /**
+         * WorkflowToolUpdate
+         * @description A workflow tool whose workflow has a newer saved version (only reported, never used by itself).
+         */
+        WorkflowToolUpdate: {
+            /** Latest Version */
+            latest_version: number;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+            /** Workflow Id */
+            workflow_id: string;
         };
         /** WorkflowVersion */
         WorkflowVersion: {
@@ -33085,6 +33300,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    version_as_tool_api_workflows__workflow_id__versions__number__tool_get: {
+        parameters: {
+            query?: {
+                name?: string | null;
+            };
+            header?: never;
+            path: {
+                workflow_id: string;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowToolInfo"];
                 };
             };
             /** @description Error */

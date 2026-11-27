@@ -81,6 +81,7 @@ export type ConfigIssue = Schemas["ConfigIssue"];
 export type TemplateSummary = Schemas["TemplateSummary"];
 export type WorkflowCheck = Schemas["WorkflowCheck"];
 export type VersionSummary = Schemas["VersionSummary"];
+export type WorkflowToolInfo = Schemas["WorkflowToolInfo"];
 export type ResultFile = Stored<Schemas["ResultFile"]>;
 export type AgentTemplate = Stored<Schemas["AgentTemplate"]>;
 export type AgentTemplateIn = Schemas["AgentTemplateIn"];
@@ -403,6 +404,20 @@ export class NodestroClient {
   /** The saved versions of a workflow, newest first. */
   async workflowVersions(workflowId: string): Promise<VersionSummary[]> {
     return this.http.json("GET", `/api/workflows/${enc(workflowId)}/versions`);
+  }
+
+  /**
+   * A saved workflow version as a tool of an agent (N-20): the binding to store in the agent's `workflow_tools`
+   * (with its effect), the arguments the model sees and the newest saved version.
+   */
+  async workflowVersionAsTool(
+    workflowId: string,
+    version: number,
+    options: { name?: string } = {},
+  ): Promise<WorkflowToolInfo> {
+    return this.http.json("GET", `/api/workflows/${enc(workflowId)}/versions/${Math.trunc(version)}/tool`, {
+      query: options.name !== undefined ? { name: options.name } : undefined,
+    });
   }
 
   // ---- runs
