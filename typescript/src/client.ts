@@ -231,6 +231,8 @@ export type FolderAccessEntry = Schemas["FolderAccessEntry"];
 export type FolderBrowse = Schemas["FolderBrowse"];
 export type BrowsedFolder = Schemas["BrowsedFolder"];
 export type FolderPlace = Schemas["FolderPlace"];
+export type ExtensionStoreView = Schemas["ExtensionStoreView"];
+export type StoredExtension = Schemas["StoredExtension"];
 export type DeleteResult = Schemas["DeleteResult"];
 /** A folder grant as a person gives it (the server fills in who and when; for all agents, `supervised`, until revoked,
  * with the default excludes of common secret files unless `default_excludes` is `false`). */
@@ -1858,6 +1860,47 @@ export class NodestroClient {
    */
   async browseFolders(path?: string): Promise<FolderBrowse> {
     return this.http.json("POST", "/api/folders/browse", { body: { path: path ?? null } });
+  }
+
+  // ---- the data-only extension store (RT-098; never on a server)
+
+  /**
+   * The extension store (`admin`): its packages with their state (`locked` with the reason, `pending` until the next
+   * start, or `sandboxed`), the revoked hashes and the packages refused in the backend's Python environment.
+   * `404 extension_store.disabled` on a server, like every method below.
+   */
+  async listExtensions(): Promise<ExtensionStoreView> {
+    return this.http.json("GET", "/api/extensions");
+  }
+
+  /**
+   * Take a pure-Python wheel into the store (`admin`, a signed-in person only: an API key is refused with
+   * `access.person_required`). `sha256` is the hash you expect, `origin` where the package comes from, `replaces` the
+   * SHA-256 of the installed version it updates. Nothing is installed or imported; a refused package answers
+   * `422 extension_store.refused` with `reason`. Its tools run only in the Docker sandbox, only while the
+   * installation's development switch is on (off by default).
+   */
+  async uploadExtension(
+    file: Blob | Uint8Array,
+    options: { sha256: string; origin: string; replaces?: string; filename?: string },
+  ): Promise<StoredExtension> {
+    const blob = file instanceof Blob ? file : new Blob([new Uint8Array(file)]);
+    const form = new FormData();
+    form.append("file", blob, options.filename ?? "package.whl");
+    form.append("sha256", options.sha256);
+    form.append("origin", options.origin);
+    if (options.replaces !== undefined) form.append("replaces", options.replaces);
+    return this.http.json("POST", "/api/extensions", { form });
+  }
+
+  /** Remove a package (`admin`); later calls of its tools are refused at once. It may be uploaded again. */
+  async removeExtension(sha256: string): Promise<ExtensionStoreView> {
+    return this.http.json("DELETE", `/api/extensions/${enc(sha256)}`);
+  }
+
+  /** Revoke a hash (`admin`): removed when installed, refused at every later upload. */
+  async revokeExtension(sha256: string): Promise<ExtensionStoreView> {
+    return this.http.json("POST", `/api/extensions/${enc(sha256)}/revoke`);
   }
 
   // ---- all data of the installation (N-15)

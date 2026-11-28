@@ -1090,6 +1090,19 @@ describe("test series, knowledge, input files, tool approvals and exports (SDK-0
     }
   });
 
+  it("checks extension store uploads before anything is written and lists revoked hashes (RT-098)", async () => {
+    const store = await nodestro.listExtensions();
+    expect([store.enabled, store.tools_switch]).toEqual([true, false]);
+    const bytes = new TextEncoder().encode("not a wheel");
+    const digest = Buffer.from(await crypto.subtle.digest("SHA-256", bytes)).toString("hex");
+    const refused = await failure(nodestro.uploadExtension(bytes, { sha256: digest, origin: "tests" }));
+    expect([refused?.status, refused?.code, refused?.params]).toEqual([422, "extension_store.refused", { reason: "archive" }]);
+    const revoked = await nodestro.revokeExtension("c".repeat(64));
+    expect(revoked.revoked.map((item) => item.sha256)).toContain("c".repeat(64));
+    const missing = await failure(nodestro.removeExtension("d".repeat(64)));
+    expect([missing?.status, missing?.code]).toEqual([404, "extension_store.not_found"]);
+  });
+
   it("keeps access grants off on the test server: the state answers, every other route is not found (N-06)", async () => {
     const state = await nodestro.accessState();
     expect(state.enabled).toBe(false);

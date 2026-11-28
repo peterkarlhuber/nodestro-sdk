@@ -73,7 +73,14 @@ class ActivityEvent(TypedDict, closed=True):
     resource_type: NotRequired[str]
     run_id: NotRequired[str | None]
     source: Literal[
-        'tool_call', 'tool_approval', 'mcp', 'connection', 'workflow', 'agent', 'file'
+        'tool_call',
+        'tool_approval',
+        'mcp',
+        'connection',
+        'workflow',
+        'agent',
+        'file',
+        'extension',
     ]
     source_event: NotRequired[str | None]
 
@@ -426,6 +433,13 @@ class BodyInspectApiBackupInspectPost(TypedDict):
 class BodyParseBatchFileApiBatchesParsePost(TypedDict):
     file: str
     workflow_id: str
+
+
+class BodyUploadExtensionApiExtensionsPost(TypedDict):
+    file: str
+    origin: str
+    replaces: NotRequired[str | None]
+    sha256: str
 
 
 class BodyUploadFilesApiAssistantConversationsConversationIdFilesPost(TypedDict):
@@ -2488,6 +2502,13 @@ class ReferenceUser(TypedDict):
     workflow_id: NotRequired[str | None]
 
 
+class RefusedExtension(TypedDict):
+    detail: NotRequired[str | None]
+    distribution: str
+    name: str
+    version: str
+
+
 class ReindexIn(TypedDict):
     model: NotRequired[str | None]
 
@@ -2633,6 +2654,12 @@ class ReviewOut(TypedDict):
     issues: list[Any]
     source: str
     version: str
+
+
+class RevokedExtension(TypedDict):
+    revoked_at: str
+    revoked_by: str
+    sha256: str
 
 
 class RunBudget(TypedDict):
@@ -3165,6 +3192,23 @@ class StorageInfo(TypedDict):
     files: NotRequired[int]
     in_use: NotRequired[int]
     unreferenced: NotRequired[int]
+
+
+class StoredExtension(TypedDict):
+    bytes: int
+    detail: NotRequired[str | None]
+    distribution: str
+    entries: list[list[str]]
+    files: int
+    installed_at: str
+    installed_by: str
+    origin: str
+    reason: NotRequired[str | None]
+    replaces: NotRequired[str | None]
+    sha256: str
+    state: NotRequired[Literal['sandboxed', 'locked']]
+    tools: NotRequired[list[str]]
+    version: str
 
 
 class SubmitResult(TypedDict):
@@ -4170,6 +4214,15 @@ class ExportedDefinition(TypedDict):
     packages: NotRequired[list[LockedPackage]]
     python_version: NotRequired[str]
     requirements: NotRequired[list[NeededRequirement]]
+
+
+class ExtensionStoreView(TypedDict):
+    enabled: bool
+    host_refused: list[RefusedExtension]
+    max_bytes: int
+    packages: list[StoredExtension]
+    revoked: list[RevokedExtension]
+    tools_switch: bool
 
 
 class FileUpload(TypedDict):

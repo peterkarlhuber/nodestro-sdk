@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 import contextlib
 from decimal import Decimal
+import hashlib
 from pathlib import Path
 import socket
 import threading
@@ -1175,6 +1176,26 @@ def test_folder_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> 
         with pytest.raises(NodestroAPIError) as off:
             call()
         assert (off.value.status, off.value.code) == (404, "folder.disabled")
+
+
+def test_the_extension_store_checks_uploads_and_revokes(nodestro: NodestroClient) -> None:
+    """RT-098: the test server (a desktop app) has a data-only extension store. A file that is no wheel is refused
+    before anything is written; a revoked hash is listed; removing an unknown package is not found."""
+    store = nodestro.list_extensions()
+    assert store["enabled"] is True and store["tools_switch"] is False and store["max_bytes"] > 0
+    with pytest.raises(NodestroAPIError) as refused:
+        nodestro.upload_extension(b"not a wheel", sha256=hashlib.sha256(b"not a wheel").hexdigest(), origin="tests")
+    assert (refused.value.status, refused.value.code, refused.value.params) == (
+        422,
+        "extension_store.refused",
+        {"reason": "archive"},
+    )
+    digest = "a" * 64
+    revoked = nodestro.revoke_extension(digest)
+    assert digest in [item["sha256"] for item in revoked["revoked"]] and revoked["packages"] == []
+    with pytest.raises(NodestroAPIError) as missing:
+        nodestro.remove_extension("b" * 64)
+    assert (missing.value.status, missing.value.code) == (404, "extension_store.not_found")
 
 
 def test_access_grants_stay_off_on_the_test_server(nodestro: NodestroClient) -> None:

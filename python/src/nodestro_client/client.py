@@ -1779,6 +1779,46 @@ class NodestroClient:
         body: models.FolderBrowseIn = {"path": path}
         return cast(models.FolderBrowse, self._http.json("POST", "/api/folders/browse", json_body=dict(body)))
 
+    # ---- the data-only extension store (RT-098; never on a server) ----------------------------
+
+    def list_extensions(self) -> models.ExtensionStoreView:
+        """The extension store (``admin``): its packages with their state (``locked`` with the reason, ``pending``
+        until the next start, or ``sandboxed``), the revoked hashes and the packages refused in the backend's Python
+        environment. ``404 extension_store.disabled`` on a server, like every method below."""
+        return cast(models.ExtensionStoreView, self._http.json("GET", "/api/extensions"))
+
+    def upload_extension(
+        self,
+        file: str | os.PathLike[str] | bytes | IO[bytes] | tuple[str, bytes],
+        *,
+        sha256: str,
+        origin: str,
+        replaces: str | None = None,
+        filename: str | None = None,
+    ) -> models.StoredExtension:
+        """Take a pure-Python wheel into the store (``admin``, a signed-in person only: an API key is refused with
+        ``access.person_required``). ``sha256`` is the hash you expect, ``origin`` where the package comes from,
+        ``replaces`` the SHA-256 of the installed version it updates. Nothing is installed or imported; a refused
+        package answers ``422 extension_store.refused`` with ``reason``. Its tools run only in the Docker sandbox,
+        only while the installation's development switch is on (off by default)."""
+        name, content = _upload(file, filename, "package.whl")
+        data = {"sha256": sha256, "origin": origin}
+        if replaces is not None:
+            data["replaces"] = replaces
+        return cast(
+            models.StoredExtension,
+            self._http.json("POST", "/api/extensions", files={"file": (name, content)}, data=data),
+        )
+
+    def remove_extension(self, sha256: str) -> models.ExtensionStoreView:
+        """Remove a package (``admin``); later calls of its tools are refused at once. It may be uploaded again."""
+        return cast(models.ExtensionStoreView, self._http.json("DELETE", f"/api/extensions/{path_segment(sha256)}"))
+
+    def revoke_extension(self, sha256: str) -> models.ExtensionStoreView:
+        """Revoke a hash (``admin``): removed when installed, refused at every later upload."""
+        path = f"/api/extensions/{path_segment(sha256)}/revoke"
+        return cast(models.ExtensionStoreView, self._http.json("POST", path))
+
     # ---- all data of the installation (N-15) ---------------------------------------------------
 
     def export_everything(self) -> bytes:
